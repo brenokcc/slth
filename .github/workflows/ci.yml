@@ -10,4 +10,4 @@ jobs:
 
     steps:
     - name: First step
-      run: echo "Great!"
+      run: whoami
