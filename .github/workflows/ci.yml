@@ -1,0 +1,13 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: First step
+      run: echo "Great!"
