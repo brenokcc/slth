@@ -1,0 +1,5 @@
+local.env
+.deploy
+src/frontend/dist
+src/frontend/node_modules
+*.pyc

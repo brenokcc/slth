@@ -1,0 +1,89 @@
+version: "3.9"
+
+services:
+  frontend: &frontend
+    env_file:
+      - base.env
+      - local.env
+    ports:
+      - "5173:5173"
+    build:
+      context: src/frontend
+      dockerfile: Dockerfile
+    restart: always
+    entrypoint: /opt/app/run.sh
+  frontend-builder:
+    <<: *frontend
+    volumes:
+      - .deploy/html:/opt/app/dist
+    restart: on-failure
+    entrypoint: /opt/app/build.sh
+  frontend-server:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - .deploy/html:/usr/share/nginx/html
+    depends_on:
+      frontend-builder:
+        condition: service_completed_successfully
+  backend: &backend
+    env_file:
+      - base.env
+      - local.env
+    ports:
+      - "8000:8000"
+    build:
+      context: src/backend
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - .deploy/media:/opt/app/media
+      - .deploy/static:/opt/app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /app
+    entrypoint: /app/run.sh
+  tester:
+    <<: *backend
+    ports:
+      - "9000"
+    depends_on:
+      selenium:
+        condition: service_started
+    entrypoint: /app/test.sh
+  selenium:
+    env_file:
+      - base.env
+      - local.env
+    ports:
+      - "4444"
+    build:
+      context: src/selenium
+      dockerfile: Dockerfile
+    restart: always
+  redis:
+    env_file:
+      - base.env
+      - local.env
+    image: redis
+    hostname: redis
+    restart: always
+    ports:
+      - "6379"
+    command: redis-server --loglevel warning
+    volumes:
+      - .deploy/redis:/data
+  postgres:
+    env_file:
+      - base.env
+      - local.env
+    image: postgres
+    hostname: postgres
+    ports:
+      - "5432"
+    volumes:
+      - .deploy/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: psql -U postgres -d $$POSTGRES_DB -c "SELECT version();"
