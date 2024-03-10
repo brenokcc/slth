@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User, Group, Permission
 from django import forms
+from django.forms import modelform_factory
 
 ENDPOINTS = {}
 FIELD_TYPES = {
@@ -18,6 +19,15 @@ FIELD_TYPES = {
 class InlineFormField(forms.Field):
     def __init__(self, *args, form=None, min=1, max=3, **kwargs):
         self.form = form
+        self.max = max
+        self.min = min
+        super().__init__(*args,  **kwargs)
+        self.required = False
+
+
+class InlineModelField(forms.Field):
+    def __init__(self, *args, model=None, fields='__all__', exclude=(), min=1, max=3, **kwargs):
+        self.form = modelform_factory(model, fields=fields, exclude=exclude)
         self.max = max
         self.min = min
         super().__init__(*args,  **kwargs)
@@ -39,7 +49,7 @@ def serialize_form(obj, prefix=None):
     if prefix:
         data['fields'].append(dict(type='hidden', name=prefix))
     for name, field in obj.fields.items():
-        if isinstance(field, InlineFormField):
+        if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
             value = []
             for i in range(1, field.max + 1):
                 value.append(serialize_form(field.form(data=obj.data), prefix=f'{name}__{i}'))
@@ -105,7 +115,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         data = {}
         errors = {}
         form = self.get_form(self.request.POST)
-        inline_fields = {name: field for name, field in form.fields.items() if isinstance(field, InlineFormField)}
+        inline_fields = {name: field for name, field in form.fields.items() if isinstance(field, InlineFormField) or isinstance(field, InlineModelField)}
         if form:
             form.is_valid()
             errors.update(form.errors)
@@ -177,7 +187,7 @@ class GroupForm(forms.ModelForm):
         exclude = ()
 
 class UserForm(forms.ModelForm):
-    groups = InlineFormField(label='Grupos', form=GroupForm)
+    groups = InlineModelField(label='Grupos', model=Group)
     class Meta:
         model = User
         fields = 'username', 'email', 'is_superuser'
@@ -191,9 +201,12 @@ class RegisterForm(forms.Form):
         print(self.cleaned_data, 88888)
 
 class Register(Endpoint):
+    form = RegisterForm
+
+
+class AddUser(Endpoint):
     # source = User.objects.get(pk=8)
     form = UserForm
-
 
 class ListUsers(Endpoint):
     def get(self):

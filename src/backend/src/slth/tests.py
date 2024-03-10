@@ -129,7 +129,7 @@ class ApiTestCase(ServerTestCase):
             groups__1='', groups__1__name='A', groups__1__permissions='',
             groups__2='', groups__2__name='B', groups__2__permissions=''
         )
-        self.post('/api/register/', data)
+        self.post('/api/add-user/', data)
         self.assert_model_count('auth.user', 1)
         self.assert_model_count('auth.group', 2)
         self.get('/api/list-users/')
