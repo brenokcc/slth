@@ -31,8 +31,9 @@ ALLOWED_HOSTS = ['*', 'selenium']
 # Application definition
 
 INSTALLED_APPS = [
-    'slth',
     'main',
+    'slth',
+    'slth.test',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

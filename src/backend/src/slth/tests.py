@@ -105,7 +105,10 @@ class ServerTestCase(StaticLiveServerTestCase):
         self.authorization = None
 
     def assert_model_count(self, model, n):
-        self.assertEquals(apps.get_model(model).objects.count(), n)
+        self.assertEquals(self.objects(model).count(), n)
+
+    def objects(self, model):
+        return apps.get_model(model).objects
 
 
     @staticmethod
@@ -115,34 +118,3 @@ class ServerTestCase(StaticLiveServerTestCase):
         user.is_superuser = is_superuser
         user.save()
         return user
-    
-
-class ApiTestCase(ServerTestCase):
-    def test_form(self):
-        self.debug = True
-        self.assert_model_count('auth.user', 0)
-        self.assert_model_count('auth.group', 0)
-        data = dict(
-            username='brenokcc', email='brenokcc@yahoo.com.br',
-            groups__0='', groups__0__name='A', groups__0__permissions='',
-            groups__1='', groups__1__name='B', groups__1__permissions=''
-        )
-        self.post('/api/add-user/', data)
-        self.assert_model_count('auth.user', 1)
-        self.assert_model_count('auth.group', 2)
-        self.get('/api/list-users/')
-        self.get('/api/view-user/1/')
-
-    def test_json(self):
-        self.debug = True
-        self.assert_model_count('auth.user', 0)
-        self.assert_model_count('auth.group', 0)
-        data = dict(
-            username='brenokcc', email='brenokcc@yahoo.com.br',
-            groups=[dict(name='A'), dict(name='B')]
-        )
-        self.post('/api/add-user/', json=data)
-        self.assert_model_count('auth.user', 1)
-        self.assert_model_count('auth.group', 2)
-        self.get('/api/list-users/')
-        self.get('/api/view-user/1/')

@@ -1,50 +1,18 @@
 
 import json
 import traceback
+from django.apps import apps
 from typing import Any
+from django.conf import settings
 from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.models import User, Group, Permission
-from django import forms
+from . import forms
 from django.forms import modelform_factory
+from .exceptions import JsonResponseException
+
 
 ENDPOINTS = {}
-FIELD_TYPES = {
-    forms.CharField: 'text',
-    forms.EmailField: 'email',
-    forms.BooleanField: 'boolean',
-    forms.IntegerField: 'number',
-    forms.ChoiceField: 'choice',
-    forms.ModelChoiceField: 'choice',
-    forms.MultipleChoiceField: 'choice',
-    forms.ModelMultipleChoiceField: 'choice',
-}
-
-
-class JsonResponseException(Exception):
-
-    def __init__(self, data, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.data = data
-
-
-class InlineFormField(forms.Field):
-    def __init__(self, *args, form=None, min=1, max=3, **kwargs):
-        self.form = form
-        self.max = max
-        self.min = min
-        super().__init__(*args,  **kwargs)
-        self.required = False
-
-
-class InlineModelField(forms.Field):
-    def __init__(self, *args, model=None, fields='__all__', exclude=(), min=1, max=3, **kwargs):
-        self.form = modelform_factory(model, fields=fields, exclude=exclude)
-        self.max = max
-        self.min = min
-        super().__init__(*args,  **kwargs)
-        self.required = False
 
 
 @csrf_exempt
@@ -60,42 +28,7 @@ def dispatcher(request, path):
     else:
         return ApiResponse({}, status=404)
     
-def build_url(request, **params):
-    url = "{}://{}{}".format(request.META.get('X-Forwarded-Proto', request.scheme), request.get_host(), request.path)
-    for k, v in params.items():
-        url = f'{url}&{k}={v}' if '?' in url else f'{url}?{k}={v}'
-    return url
 
-def serialize_form(form, request, prefix=None):
-    data = dict(type='form', fields=[])
-    choices_field_name = request.GET.get('choices')
-    if prefix:
-        value = form.instance.pk if isinstance(form, forms.ModelForm) else ''
-        data['fields'].append(dict(type='hidden', name=prefix, value=value))
-    for name, field in form.fields.items():
-        if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
-            value = []
-            instances = {}
-            if isinstance(form, forms.ModelForm) and hasattr(form.instance, name):
-                instances = {i: instance for i, instance in enumerate(getattr(form.instance, name).all()[0:field.max])}
-            for i in range(0, field.max):
-                kwargs = dict(data=form.data, instance=instances.get(i)) if isinstance(form, forms.ModelChoiceField) else dict(data=form.data)
-                value.append(serialize_form(field.form(**kwargs), request, prefix=f'{name}__{i}'))
-            data['fields'].append(dict(type='inline', min=field.min, max=field.max, name=name, label=field.label, required=field.required, value=value))
-        else:
-            ftype = FIELD_TYPES.get(type(field), 'text')
-            value = field.initial or form.initial.get(name)
-            fname = name if prefix is None else f'{prefix}__{name}'
-            data['fields'].append(dict(type=ftype, name=fname, label=field.label, required=field.required, value=value))
-            if ftype == 'choice':
-                if getattr(field.choices, 'queryset') is None:
-                    data['fields'][-1]['choices'] = [dict(id=k, value=v) for k, v in field.choices]
-                else:
-                    if choices_field_name == fname:
-                        raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in field.choices.queryset.all()])
-                    else:
-                        data['fields'][-1]['choices'] = build_url(request, choices=fname)
-    return data
 
 def serialize(obj):
     if isinstance(obj, dict):
@@ -161,15 +94,15 @@ class Endpoint(metaclass=EnpointMetaclass):
         form = None
         if self.form:
             if issubclass(self.form, forms.ModelForm):
-                form = self.form(data=data, instance=self.source)
+                form = self.form(data=data, instance=self.source, endpoint=self)
             elif issubclass(self.form, forms.Form):
-                form = self.form(data=data)
+                form = self.form(data=data, endpoint=self)
         return form
         
     def get(self):
         try:
             form = self.get_form(self.request.GET)
-            return serialize_form(form, self.request) if form else serialize(self.source)
+            return forms.serialize_form(form, self.request) if form else serialize(self.source)
         except JsonResponseException as e:
             return e.data
     
@@ -177,7 +110,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         data = {}
         errors = {}
         form = self.get_form(self.request.POST)
-        inline_fields = {name: field for name, field in form.fields.items() if isinstance(field, InlineFormField) or isinstance(field, InlineModelField)}
+        inline_fields = {name: field for name, field in form.fields.items() if isinstance(field, forms.InlineFormField) or isinstance(field, forms.InlineModelField)}
         if form:
             form.is_valid()
             errors.update(form.errors)
@@ -194,7 +127,7 @@ class Endpoint(metaclass=EnpointMetaclass):
                         instance = inline_field.form._meta.model.objects.get(pk=pk) if pk else None
                         inline_form = inline_field.form(data=inline_form_data, instance=instance)
                         if inline_form.is_valid():
-                            if isinstance(inline_form, forms.ModelForm):
+                            if isinstance(inline_form, forms.DjangoModelForm):
                                 data[inline_field_name].append(inline_form.instance)
                             else:
                                 data[inline_field_name].append(inline_form.cleaned_data)
@@ -206,14 +139,16 @@ class Endpoint(metaclass=EnpointMetaclass):
         else:
             with transaction.atomic():
                 form.cleaned_data = data
-                form.save()
-                if isinstance(form, forms.ModelForm):
+                if isinstance(form, forms.DjangoModelForm):
+                    form.save()
                     for inline_field_name in inline_fields:
                         relation = getattr(form.instance, inline_field_name)
                         for obj in form.cleaned_data[inline_field_name]:
                             obj.save()
                             relation.add(obj)
-                return dict(message='Action successfully performed.')
+                    dict(message='Action successfully performed.')
+                else:
+                    return form.submit()
     
     def save(self, data):
         pass
@@ -231,59 +166,19 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = {}
         return ApiResponse(serialize(data), safe=False)
         
+class Login(Endpoint):
+    form = forms.LoginForm
 
-class HealthCheck(Endpoint):
-
-    def get(self):
-        return dict(version='1.0.0')
-
-
-class PhoneForm(forms.Form):
-    ddd = forms.IntegerField(label='DDD')
-    numero = forms.CharField(label='Número')
-
-
-class GroupForm(forms.ModelForm):
-    class Meta:
-        model = Group
-        exclude = ()
-
-class UserForm(forms.ModelForm):
-    groups = InlineModelField(label='Grupos', model=Group)
-    class Meta:
-        model = User
-        fields = 'username', 'email', 'is_superuser'
-
-class RegisterForm(forms.Form):
-    email = forms.EmailField(label='E-mail')
-    telefones = InlineFormField(label='Telefones', form=PhoneForm)
-    grupos = InlineFormField(label='Grupos', form=GroupForm)
-
-    def save(self):
-        print(self.cleaned_data, 88888)
-
-class Register(Endpoint):
-    form = RegisterForm
-
-
-class AddUser(Endpoint):
-    form = UserForm
-
-class EditUser(Endpoint):
-    form = UserForm
-
-    def load(self):
-        self.source = User.objects.get(pk=self.args[0])
-
-class ListUsers(Endpoint):
-    
-    def load(self):
-        self.source = User.objects.all()
-    
-
-class ViewUser(Endpoint):
-    def load(self):
-        self.source = User.objects.get(pk=self.args[0])
-
+for app_label in settings.INSTALLED_APPS:
+    try:
+        app = apps.get_app_config(app_label.split('.')[-1])
+        fromlist = app.module.__package__.split('.')
+        if app_label != 'slth':
+            __import__('{}.{}'.format(app_label, 'views'), fromlist=fromlist)
+    except ImportError as e:
+        if not e.name.endswith('views'):
+            raise e
+    except BaseException as e:
+        raise e
 
 # print(ENDPOINTS)
