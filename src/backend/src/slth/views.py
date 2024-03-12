@@ -1,4 +1,6 @@
-from json import JSONEncoder
+
+import json
+import traceback
 from typing import Any
 from django.db import transaction, models
 from django.http import JsonResponse
@@ -50,7 +52,11 @@ def dispatcher(request, path):
     tokens = path.split('/')
     cls = ENDPOINTS.get(tokens[0].replace('-', ''))
     if cls:
-        return cls(request, *tokens[1:]).to_response()
+        try:
+            return cls(request, *tokens[1:]).to_response()
+        except Exception as e:
+            traceback.print_exc() 
+            return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
     else:
         return ApiResponse({}, status=404)
     
@@ -126,9 +132,30 @@ class Endpoint(metaclass=EnpointMetaclass):
         self.request = request
         self.args = args
         self.load()
-
+        self.parse()
+        
     def load(self):
         pass
+
+    def parse(self):
+        content_type = self.request.META.get('CONTENT_TYPE')
+        method = self.request.method.lower()
+        if content_type and content_type.lower() == 'application/json':
+            if method == 'get' or method == 'post':
+                d1 = json.loads(self.request.body.decode()) if self.request.body else {}
+                d2 = self.request.GET if method == 'get' else self.request.POST
+                d2._mutable = True
+                d2.clear()
+                for k, v in d1.items():
+                    if isinstance(v, list):
+                        for i, item in enumerate(v):
+                            prefix = f'{k}__{i}'
+                            d2[prefix] = item.get('id')
+                            for k1, v1 in item.items():
+                                d2[f'{prefix}__{k1}'] = v1
+                    else:
+                        d2[k] = v
+                d2._mutable = False
 
     def get_form(self, data):
         form = None
@@ -259,4 +286,4 @@ class ViewUser(Endpoint):
         self.source = User.objects.get(pk=self.args[0])
 
 
-print(ENDPOINTS)
+# print(ENDPOINTS)

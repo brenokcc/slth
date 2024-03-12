@@ -37,13 +37,12 @@ class ServerTestCase(StaticLiveServerTestCase):
     def __init__(self, *args, **kwargs):
         self.authorization = None
         self.debug = False
-        self.headers = {}
         super().__init__(*args, **kwargs)
 
     def get_headers(self, ):
         if self.authorization:
-            headers = {'Authorization': self.authorization}
-            headers.update(self.headers)
+            headers = {}
+            headers['Authorization']= self.authorization
             return headers
         return None
 
@@ -73,10 +72,10 @@ class ServerTestCase(StaticLiveServerTestCase):
         self.assertEquals(response.status_code, status_code)
         return response.json()
 
-    def post(self, path, data=None, status_code=200):
+    def post(self, path, data=None, json=None, status_code=200):
         url = self.url(path)
-        response = requests.post(url, data=data, headers=self.get_headers())
-        self.log('POST', url, data, response)
+        response = requests.post(url, data=data, json=json, headers=self.get_headers())
+        self.log('POST', url, data or json, response)
         self.assertEquals(response.status_code, status_code)
         return response.json()
 
@@ -119,9 +118,8 @@ class ServerTestCase(StaticLiveServerTestCase):
     
 
 class ApiTestCase(ServerTestCase):
-    def test(self):
+    def test_form(self):
         self.debug = True
-        self.get('/api/register/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
         data = dict(
@@ -134,4 +132,17 @@ class ApiTestCase(ServerTestCase):
         self.assert_model_count('auth.group', 2)
         self.get('/api/list-users/')
         self.get('/api/view-user/1/')
-        print('OK')
+
+    def test_json(self):
+        self.debug = True
+        self.assert_model_count('auth.user', 0)
+        self.assert_model_count('auth.group', 0)
+        data = dict(
+            username='brenokcc', email='brenokcc@yahoo.com.br',
+            groups=[dict(name='A'), dict(name='B')]
+        )
+        self.post('/api/add-user/', json=data)
+        self.assert_model_count('auth.user', 1)
+        self.assert_model_count('auth.group', 2)
+        self.get('/api/list-users/')
+        self.get('/api/view-user/1/')
