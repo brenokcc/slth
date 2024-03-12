@@ -126,8 +126,8 @@ class ApiTestCase(ServerTestCase):
         self.assert_model_count('auth.group', 0)
         data = dict(
             username='brenokcc', email='brenokcc@yahoo.com.br',
-            groups__1='', groups__1__name='A', groups__1__permissions='',
-            groups__2='', groups__2__name='B', groups__2__permissions=''
+            groups__0='', groups__0__name='A', groups__0__permissions='',
+            groups__1='', groups__1__name='B', groups__1__permissions=''
         )
         self.post('/api/add-user/', data)
         self.assert_model_count('auth.user', 1)

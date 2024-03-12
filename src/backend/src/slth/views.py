@@ -12,8 +12,19 @@ FIELD_TYPES = {
     forms.CharField: 'text',
     forms.EmailField: 'email',
     forms.BooleanField: 'boolean',
-    forms.IntegerField: 'number'
+    forms.IntegerField: 'number',
+    forms.ChoiceField: 'choice',
+    forms.ModelChoiceField: 'choice',
+    forms.MultipleChoiceField: 'choice',
+    forms.ModelMultipleChoiceField: 'choice',
 }
+
+
+class JsonResponseException(Exception):
+
+    def __init__(self, data, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.data = data
 
 
 class InlineFormField(forms.Field):
@@ -37,28 +48,47 @@ class InlineModelField(forms.Field):
 @csrf_exempt
 def dispatcher(request, path):
     tokens = path.split('/')
-    try:
-        cls = ENDPOINTS[tokens[0].replace('-', '')]
+    cls = ENDPOINTS.get(tokens[0].replace('-', ''))
+    if cls:
         return cls(request, *tokens[1:]).to_response()
-    except KeyError:
+    else:
         return ApiResponse({}, status=404)
     
+def build_url(request, **params):
+    url = "{}://{}{}".format(request.META.get('X-Forwarded-Proto', request.scheme), request.get_host(), request.path)
+    for k, v in params.items():
+        url = f'{url}&{k}={v}' if '?' in url else f'{url}?{k}={v}'
+    return url
 
-def serialize_form(obj, prefix=None):
+def serialize_form(form, request, prefix=None):
     data = dict(type='form', fields=[])
+    choices_field_name = request.GET.get('choices')
     if prefix:
-        data['fields'].append(dict(type='hidden', name=prefix))
-    for name, field in obj.fields.items():
+        value = form.instance.pk if isinstance(form, forms.ModelForm) else ''
+        data['fields'].append(dict(type='hidden', name=prefix, value=value))
+    for name, field in form.fields.items():
         if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
             value = []
-            for i in range(1, field.max + 1):
-                value.append(serialize_form(field.form(data=obj.data), prefix=f'{name}__{i}'))
+            instances = {}
+            if isinstance(form, forms.ModelForm) and hasattr(form.instance, name):
+                instances = {i: instance for i, instance in enumerate(getattr(form.instance, name).all()[0:field.max])}
+            for i in range(0, field.max):
+                kwargs = dict(data=form.data, instance=instances.get(i)) if isinstance(form, forms.ModelChoiceField) else dict(data=form.data)
+                value.append(serialize_form(field.form(**kwargs), request, prefix=f'{name}__{i}'))
             data['fields'].append(dict(type='inline', min=field.min, max=field.max, name=name, label=field.label, required=field.required, value=value))
         else:
             ftype = FIELD_TYPES.get(type(field), 'text')
-            value = field.initial or obj.initial.get(name)
+            value = field.initial or form.initial.get(name)
             fname = name if prefix is None else f'{prefix}__{name}'
             data['fields'].append(dict(type=ftype, name=fname, label=field.label, required=field.required, value=value))
+            if ftype == 'choice':
+                if getattr(field.choices, 'queryset') is None:
+                    data['fields'][-1]['choices'] = [dict(id=k, value=v) for k, v in field.choices]
+                else:
+                    if choices_field_name == fname:
+                        raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in field.choices.queryset.all()])
+                    else:
+                        data['fields'][-1]['choices'] = build_url(request, choices=fname)
     return data
 
 def serialize(obj):
@@ -95,21 +125,26 @@ class Endpoint(metaclass=EnpointMetaclass):
     def __init__(self, request, *args):
         self.request = request
         self.args = args
+        self.load()
+
+    def load(self):
+        pass
 
     def get_form(self, data):
+        form = None
         if self.form:
             if issubclass(self.form, forms.ModelForm):
-                return self.form(data=data, instance=self.source)
+                form = self.form(data=data, instance=self.source)
             elif issubclass(self.form, forms.Form):
-                return self.form(data=data)
-        else:
-            return None
+                form = self.form(data=data)
+        return form
         
     def get(self):
-        form = self.get_form(self.request.GET)
-        if form:
-            return serialize_form(form)
-        return {}
+        try:
+            form = self.get_form(self.request.GET)
+            return serialize_form(form, self.request) if form else serialize(self.source)
+        except JsonResponseException as e:
+            return e.data
     
     def post(self):
         data = {}
@@ -121,7 +156,7 @@ class Endpoint(metaclass=EnpointMetaclass):
             errors.update(form.errors)
             for inline_field_name, inline_field in inline_fields.items():
                 data[inline_field_name] = []
-                for i in range(1, inline_field.max + 1):
+                for i in range(0, inline_field.max):
                     prefix = f'{inline_field_name}__{i}'
                     if prefix in form.data:
                         inline_form_data = {}
@@ -205,14 +240,23 @@ class Register(Endpoint):
 
 
 class AddUser(Endpoint):
-    # source = User.objects.get(pk=8)
     form = UserForm
 
+class EditUser(Endpoint):
+    form = UserForm
+
+    def load(self):
+        self.source = User.objects.get(pk=self.args[0])
+
 class ListUsers(Endpoint):
-    def get(self):
-        return User.objects.all()
+    
+    def load(self):
+        self.source = User.objects.all()
     
 
 class ViewUser(Endpoint):
-    def get(self):
-        return User.objects.get(pk=self.args[0])
+    def load(self):
+        self.source = User.objects.get(pk=self.args[0])
+
+
+print(ENDPOINTS)
