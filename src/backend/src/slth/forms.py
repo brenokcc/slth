@@ -21,24 +21,6 @@ FIELD_TYPES = {
     ModelMultipleChoiceField: 'choice',
 }
 
-class InlineFormField(Field):
-    def __init__(self, *args, form=None, min=1, max=3, **kwargs):
-        self.form = form
-        self.max = max
-        self.min = min
-        super().__init__(*args,  **kwargs)
-        self.required = False
-
-
-class InlineModelField(Field):
-    def __init__(self, *args, model=None, fields='__all__', exclude=(), min=1, max=3, **kwargs):
-        self.form = modelform_factory(model, fields=fields, exclude=exclude)
-        self.max = max
-        self.min = min
-        super().__init__(*args,  **kwargs)
-        self.required = False
-
-
 class Form(DjangoForm):
     def __init__(self, *args, **kwargs):
         self.endpoint = kwargs.pop('endpoint', None)
@@ -55,6 +37,33 @@ class ModelForm(DjangoModelForm):
 
     def submit(self):
         pass
+
+class InlineFormField(Field):
+    def __init__(self, *args, form=None, min=1, max=3, **kwargs):
+        self.form = form
+        self.max = max
+        self.min = min
+        super().__init__(*args,  **kwargs)
+        self.required = False
+
+
+class InlineModelField(Field):
+    def __init__(self, model, *args, fields='__all__', exclude=(), min=1, max=3, **kwargs):
+        self.form = modelform_factory(model, form=ModelForm, fields=fields, exclude=exclude)
+        self.max = max
+        self.min = min
+        super().__init__(*args,  **kwargs)
+        self.required = False
+
+
+class OneToManyField(InlineModelField):
+    def __init__(self, model, fields='__all__', exclude=(), min=1, max=3, **kwargs):
+        super().__init__(model, fields=fields, exclude=exclude, min=min, max=max)
+
+class OneToOneField(InlineModelField):
+    def __init__(self, model, fields='__all__', exclude=(), **kwargs):
+        super().__init__(model, fields=fields, exclude=exclude, min=1, max=1)
+
 
 
 def build_url(request, **params):
@@ -73,7 +82,7 @@ def serialize(form, request, prefix=None):
         if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
             value = []
             instances = {}
-            if isinstance(form, ModelForm) and hasattr(form.instance, name):
+            if isinstance(form, ModelForm) and form.instance.id and  hasattr(form.instance, name):
                 instances = {i: instance for i, instance in enumerate(getattr(form.instance, name).all()[0:field.max])}
             for i in range(0, field.max):
                 kwargs = dict(data=form.data, instance=instances.get(i)) if isinstance(form, ModelChoiceField) else dict(data=form.data)

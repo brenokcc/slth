@@ -8,7 +8,6 @@ from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from . import forms
-from django.forms import modelform_factory
 from .exceptions import JsonResponseException
 
 
@@ -58,14 +57,15 @@ class EnpointMetaclass(type):
 
 
 class Endpoint(metaclass=EnpointMetaclass):
+    fieldsets = None
     source = None
-    form = None
+    form_class = None
 
     def __init__(self, request, *args):
         self.request = request
-        self.args = args
-        self.load()
         self.parse()
+        if self.fieldsets and self.source:
+            self.form_class = forms.modelform_factory(type(self.source),form=forms.ModelForm, fields='__all__')
         
     def load(self):
         pass
@@ -92,17 +92,17 @@ class Endpoint(metaclass=EnpointMetaclass):
 
     def get_form(self, data):
         form = None
-        if self.form:
-            if issubclass(self.form, forms.ModelForm):
-                form = self.form(data=data, instance=self.source, endpoint=self)
-            elif issubclass(self.form, forms.Form):
-                form = self.form(data=data, endpoint=self)
+        if self.form_class:
+            if issubclass(self.form_class, forms.DjangoModelForm):
+                form = self.form_class(data=data, instance=self.source, endpoint=self)
+            elif issubclass(self.form_class, forms.DjangoForm):
+                form = self.form_class(data=data, endpoint=self)
         return form
         
     def get(self):
         try:
             form = self.get_form(self.request.GET)
-            return forms.serialize_form(form, self.request) if form else serialize(self.source)
+            return forms.serialize(form, self.request) if form else serialize(self.source or {})
         except JsonResponseException as e:
             return e.data
     
@@ -167,7 +167,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         return ApiResponse(serialize(data), safe=False)
         
 class Login(Endpoint):
-    form = forms.LoginForm
+    form_class = forms.LoginForm
 
 for app_label in settings.INSTALLED_APPS:
     try:
