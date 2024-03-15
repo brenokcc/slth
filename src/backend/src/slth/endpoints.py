@@ -1,5 +1,6 @@
 
 import json
+import inspect
 from django.apps import apps
 from typing import Any
 from django.conf import settings
@@ -159,6 +160,14 @@ class Endpoint(metaclass=EnpointMetaclass):
         for arg in args:
             url = '{}{}/'.format(url, arg)
         return url
+    
+    @classmethod
+    def get_api_url_pattern(cls):
+        args = inspect.getfullargspec(cls.__init__).args[2:]
+        pattern = '{}/'.format(cls.get_api_name())
+        for arg in args:
+            pattern = '{}{}/'.format(pattern, '<int:{}>'.format(arg))
+        return pattern
         
 
 class ChildEndpoint(Endpoint):

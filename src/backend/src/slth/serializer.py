@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime
 from django.apps import apps
 from django.db import models
 from django.utils.text import slugify
@@ -7,8 +8,12 @@ from django.utils.text import slugify
 def serialize(obj):
     if isinstance(obj, dict):
         return obj
-    if isinstance(obj, list):
-        return obj
+    elif isinstance(obj, date):
+        return obj.strftime('%d/%m/%Y')
+    elif isinstance(obj, datetime):
+        return obj.strftime('%d/%m/%Y %H:%M:%S')
+    elif isinstance(obj, list):
+        return [serialize(obj) for obj in obj]
     elif isinstance(obj, models.Model):
         return dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, models.QuerySet):

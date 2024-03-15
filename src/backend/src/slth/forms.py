@@ -4,6 +4,8 @@ from django.forms import *
 from .exceptions import JsonResponseException
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
+from django.forms.models import ModelChoiceIterator
+from django.db.models import Model
 from .models import Token
 
 
@@ -91,16 +93,20 @@ def serialize(form, request, prefix=None):
         else:
             ftype = FIELD_TYPES.get(type(field), 'text')
             value = field.initial or form.initial.get(name)
+            if callable(value):
+                value = value()
+            if isinstance(value, list):
+                value = [obj.pk if isinstance(obj, Model) else obj for obj in value]
             fname = name if prefix is None else f'{prefix}__{name}'
-            data['fields'].append(dict(type=ftype, name=fname, label=field.label, required=field.required, value=value))
+            data['fields'].append(dict(type=ftype, name=fname, label=field.label, required=field.required, value=value)) 
             if ftype == 'choice':
-                if getattr(field.choices, 'queryset') is None:
-                    data['fields'][-1]['choices'] = [dict(id=k, value=v) for k, v in field.choices]
-                else:
+                if isinstance(field.choices, ModelChoiceIterator):
                     if choices_field_name == fname:
-                        raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in field.choices.queryset.all()])
+                        raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in field.choices])
                     else:
                         data['fields'][-1]['choices'] = build_url(request, choices=fname)
+                else:
+                    data['fields'][-1]['choices'] = [dict(id=k, value=v) for k, v in field.choices]
     return data
 
 

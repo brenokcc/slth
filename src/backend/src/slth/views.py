@@ -13,12 +13,12 @@ from .serializer import serialize
 
 
 @csrf_exempt
-def dispatcher(request, path):
-    tokens = path.split('/')
-    cls = slth.ENDPOINTS.get(tokens[0].replace('-', ''))
+def dispatcher(request, **kwargs):
+    tokens = request.path.split('/')
+    cls = slth.ENDPOINTS.get(tokens[2].replace('-', ''))
     if cls:
         try:
-            return cls(request, *tokens[1:]).to_response()
+            return cls(request, *kwargs.values()).to_response()
         except Exception as e:
             traceback.print_exc() 
             return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
@@ -33,20 +33,3 @@ class ApiResponse(JsonResponse):
         self["Access-Control-Allow-Headers"] = "*"
         self["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH";
         self["Access-Control-Max-Age"] = "600"
-
-
-for app_label in settings.INSTALLED_APPS:
-    try:
-        app = apps.get_app_config(app_label.split('.')[-1])
-        fromlist = app.module.__package__.split('.')
-        if app_label != 'slth':
-            __import__('{}.{}'.format(app_label, 'endpoints'), fromlist=fromlist)
-    except ImportError as e:
-        if not e.name.endswith('endpoints'):
-            raise e
-    except BaseException as e:
-        raise e
-
-
-for cls in slth.ENDPOINTS.values():
-    print(cls.get_api_url())
