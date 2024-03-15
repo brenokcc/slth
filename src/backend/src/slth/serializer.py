@@ -45,7 +45,7 @@ class Serializar:
         self._actions = []
         self._data = []
         self._request = request
-        self._only = request.GET.getlist('only')
+        self._only = request.GET.getlist('only') if request else ()
     
     def fields(self, *names):
         for name in names:
@@ -57,7 +57,7 @@ class Serializar:
             endpoint = cls(self._request, self._obj)
             if endpoint.check_permission():
                 data = serialize(endpoint.get())
-            self._data.append(dict(type='fieldset', slug=slugify(title), title=title, actions=[], fields=data))
+            self._data.append(dict(type='fieldset', slug=slugify(title), title=title, actions=[], data=data))
         return self
 
     def fieldset(self, title, *names, relation=None):
@@ -67,12 +67,12 @@ class Serializar:
             obj = getattr(self._obj, relation) if relation else self._obj
             for name in names:
                 fields.extend(getfield(obj, name, self._request))
-            self._data.append(dict(type='fieldset', title=title, slug=slugify(title), actions=actions, fields=fields))
+            self._data.append(dict(type='fieldset', title=title, slug=slugify(title), actions=actions, data=fields))
         return self
     
     def serialize(self, debug=False):
         data = dict(title=self._title, actions=self._actions, data=self._data)
         if debug:
-            json.dumps(data, indent=4, ensure_ascii=False)
+            json.dumps(data, indent=2, ensure_ascii=False)
         return data
 

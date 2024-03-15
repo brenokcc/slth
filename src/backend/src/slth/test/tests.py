@@ -1,6 +1,4 @@
 from ..tests import ServerTestCase
-from ..serializer import Serializar, LinkField
-from .views import VisualizarPessoa
 
 class ApiTestCase(ServerTestCase):
     def test_form(self):
@@ -41,8 +39,8 @@ class ApiTestCase(ServerTestCase):
         self.debug = True
         juca = self.objects('test.pessoa').create(nome='Juca da Silva')
         cidade = self.objects('test.cidade').create(nome='Natal', prefeito=juca)
-        # self.get('/api/visualizar-pessoa/{}/'.format(juca.pk))
-        # self.get('/api/visualizar-pessoa2/{}/'.format(juca.pk))
+        self.get('/api/visualizar-pessoa/{}/'.format(juca.pk))
+        self.get('/api/visualizar-pessoa2/{}/'.format(juca.pk))
         self.get('/api/visualizar-cidade/{}/'.format(cidade.pk))
         self.get('/api/visualizar-cidade/{}/?only=dados-gerais&only=cidades-vizinhas'.format(cidade.pk))
         

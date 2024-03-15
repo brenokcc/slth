@@ -51,8 +51,8 @@ class ServerTestCase(StaticLiveServerTestCase):
             print('{}: {}'.format(method, url))
             try:
                 if data:
-                    print('Input:\n{}'.format(json.dumps(data, indent=4, ensure_ascii=False)))
-                print('Output:\n{}'.format(json.dumps(response.json(), indent=4, ensure_ascii=False)))
+                    print('Input:\n{}'.format(json.dumps(data, indent=2, ensure_ascii=False)))
+                print('Output:\n{}'.format(json.dumps(response.json(), indent=2, ensure_ascii=False)))
             except Exception:
                 print(response.text)
                 import traceback
