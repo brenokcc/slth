@@ -1,11 +1,21 @@
 import json
 from django.apps import apps
 from django.db import models
+from django.utils.text import slugify
+
 
 def serialize(obj):
+    if isinstance(obj, dict):
+        return obj
+    if isinstance(obj, list):
+        return obj
+    elif isinstance(obj, models.Model):
+        return dict(pk=obj.pk, str=str(obj))
+    elif isinstance(obj, models.QuerySet):
+        return [dict(pk=item.pk, str=str(item)) for item in obj]
     return str(obj)
 
-def getfield(obj, name_or_names, size=100):
+def getfield(obj, name_or_names, request=None, size=100):
     fields = []
     if isinstance(name_or_names, str):
         value = getattr(obj, name_or_names)
@@ -14,7 +24,9 @@ def getfield(obj, name_or_names, size=100):
         value = getattr(obj, name_or_names.name)
         field = dict(type='field', name=name_or_names.name, value=serialize(value), size=size)
         if value:
-            field.update(url=name_or_names.endpoint.get_api_url(value.id))
+            endpoint = name_or_names.endpoint(request, value.id)
+            if endpoint.check_permission():
+                field.update(url=name_or_names.endpoint.get_api_url(value.id))
         fields.append(field)
     else:
         for name in name_or_names:
@@ -27,30 +39,40 @@ class LinkField:
         self.endpoint = endpoint
 
 class Serializar:
-    def __init__(self, obj):
+    def __init__(self, obj, request=None):
         self._obj = obj
         self._title= str(obj)
         self._actions = []
         self._data = []
+        self._request = request
+        self._only = request.GET.getlist('only')
     
     def fields(self, *names):
         for name in names:
-            self._data.extend(getfield(self._obj, name))
+            self._data.extend(getfield(self._obj, name, self._request))
+        return self
+    
+    def endpoint(self, title, cls):
+        if not self._only or slugify(title) in self._only:
+            endpoint = cls(self._request, self._obj)
+            if endpoint.check_permission():
+                data = serialize(endpoint.get())
+            self._data.append(dict(type='fieldset', slug=slugify(title), title=title, actions=[], fields=data))
         return self
 
     def fieldset(self, title, *names, relation=None):
-        actions=[]
-        fields=[]
-        obj = getattr(self._obj, relation) if relation else self._obj
-        for name in names:
-            fields.extend(getfield(obj, name))
-        self._data.append(dict(type='fieldset', title=title, actions=actions, fields=fields))
+        if not self._only or slugify(title) in self._only:
+            actions=[]
+            fields=[]
+            obj = getattr(self._obj, relation) if relation else self._obj
+            for name in names:
+                fields.extend(getfield(obj, name, self._request))
+            self._data.append(dict(type='fieldset', title=title, slug=slugify(title), actions=actions, fields=fields))
         return self
     
     def serialize(self, debug=False):
         data = dict(title=self._title, actions=self._actions, data=self._data)
-        output = json.dumps(data, indent=4, ensure_ascii=False)
         if debug:
-            print(output)
-        return output
+            json.dumps(data, indent=4, ensure_ascii=False)
+        return data
 

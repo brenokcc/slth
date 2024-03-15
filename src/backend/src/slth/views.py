@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from . import forms
 from .exceptions import JsonResponseException
+from .serializer import serialize
 
 
 ENDPOINTS = {}
@@ -28,18 +29,6 @@ def dispatcher(request, path):
         return ApiResponse({}, status=404)
     
 
-
-def serialize(obj):
-    if isinstance(obj, dict):
-        return obj
-    if isinstance(obj, list):
-        return obj
-    elif isinstance(obj, models.Model):
-        return dict(pk=obj.pk, str=str(obj))
-    elif isinstance(obj, models.QuerySet):
-        return [dict(pk=item.pk, str=str(item)) for item in obj]
-    return str(obj)
-
 class ApiResponse(JsonResponse):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,7 +41,8 @@ class ApiResponse(JsonResponse):
 class EnpointMetaclass(type):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
-        if name != 'Endpoint': ENDPOINTS[cls.__name__.lower()] = cls
+        if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
+            ENDPOINTS[cls.__name__.lower()] = cls
         return cls
 
 
@@ -89,6 +79,9 @@ class Endpoint(metaclass=EnpointMetaclass):
                     else:
                         d2[k] = v
                 d2._mutable = False
+
+    def objects(self, model):
+        return apps.get_model(model).objects
 
     def get_form(self, data):
         form = None
@@ -182,6 +175,12 @@ class Endpoint(metaclass=EnpointMetaclass):
             url = '{}{}/'.format(url, arg)
         return url
         
+
+class ChildEndpoint(Endpoint):
+    def __init__(self, request, parent, *args):
+        self.parent = parent
+        super().__init__(request, *args)
+
 class Login(Endpoint):
     form_class = forms.LoginForm
 
