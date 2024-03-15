@@ -52,4 +52,9 @@ class CadastrarPessoa(Endpoint):
             'Telefones Profissionais': ('telefones_profissionais',)
         }
         super().__init__(request)
+
+class VisualizarPessoa(Endpoint):
+    def __init__(self, request, pk):
+        self.source = User.objects.get(pk=pk)
+
     

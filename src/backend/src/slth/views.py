@@ -165,6 +165,22 @@ class Endpoint(metaclass=EnpointMetaclass):
         else:
             data = {}
         return ApiResponse(serialize(data), safe=False)
+    
+    @classmethod
+    def get_api_name(cls):
+        name = []
+        for c in cls.__name__:
+            if name and c.isupper():
+                name.append('-')
+            name.append(c.lower())
+        return ''.join(name)
+    
+    @classmethod
+    def get_api_url(cls, *args):
+        url = '/api/{}/'.format(cls.get_api_name())
+        for arg in args:
+            url = '{}{}/'.format(url, arg)
+        return url
         
 class Login(Endpoint):
     form_class = forms.LoginForm
@@ -181,4 +197,6 @@ for app_label in settings.INSTALLED_APPS:
     except BaseException as e:
         raise e
 
-# print(ENDPOINTS)
+
+for name, cls in ENDPOINTS.items():
+    print(name, cls.get_api_url())

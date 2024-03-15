@@ -1,4 +1,6 @@
 from ..tests import ServerTestCase
+from ..serializer import Serializar, LinkField
+from .views import VisualizarPessoa
 
 class ApiTestCase(ServerTestCase):
     def test_form(self):
@@ -34,5 +36,25 @@ class ApiTestCase(ServerTestCase):
         user.set_password('123')
         user.save()
         self.post('/api/login/', json=dict(username='brenokcc', password='123'))
+
+    def test_serialization(self):
+        juca = self.objects('test.pessoa').create(nome='Juca da Silva')
+        cidade = self.objects('test.cidade').create(nome='Natal', prefeito=juca)
+        (
+            Serializar(juca)
+            .fields('id', 'nome')
+            .serialize(False)
+        )
+        (
+            Serializar(juca)
+            .fieldset('Dados Gerais', ('id', 'nome'))
+            .serialize(False)
+        )
+        (
+            Serializar(cidade)
+            .fieldset('Dados Gerais', ('id', 'nome'), LinkField('prefeito', VisualizarPessoa))
+            .fieldset('Prefeito', ('id', 'nome'), relation='prefeito')
+            .serialize(True)
+        )
 
         
