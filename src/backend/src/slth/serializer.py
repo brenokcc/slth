@@ -1,7 +1,8 @@
 import json
+import types
 from datetime import date, datetime
 from django.apps import apps
-from django.db import models
+from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
 
 
@@ -14,10 +15,10 @@ def serialize(obj):
         return obj.strftime('%d/%m/%Y %H:%M:%S')
     elif isinstance(obj, list):
         return [serialize(obj) for obj in obj]
-    elif isinstance(obj, models.Model):
+    elif isinstance(obj, Model):
         return dict(pk=obj.pk, str=str(obj))
-    elif isinstance(obj, models.QuerySet):
-        return [dict(pk=item.pk, str=str(item)) for item in obj]
+    elif isinstance(obj, QuerySet) or isinstance(obj, Manager):
+        return [dict(pk=item.pk, str=str(item)) for item in obj.filter()]
     return str(obj)
 
 def getfield(obj, name_or_names, request=None, size=100):
@@ -43,41 +44,59 @@ class LinkField:
         self.name = name
         self.endpoint = endpoint
 
-class Serializar:
+class Serializer:
     def __init__(self, obj, request=None):
-        self._obj = obj
-        self._title= str(obj)
-        self._actions = []
-        self._data = []
-        self._request = request
-        self._only = request.GET.getlist('only') if request else ()
+        self.obj = obj
+        self.request = request
+        self.only = request.GET.getlist('only') if request else ()
+        if isinstance(obj, Model):
+            self.data = dict(type='instance', title=str(obj), actions=[], data=[])
+        elif isinstance(self.obj, QuerySet) or isinstance(self.obj, Manager):
+            self.obj = self.obj.filter()
+            self.data= dict(type='queryset', title=self.obj.model._meta.verbose_name_plural, data={})
     
     def fields(self, *names):
         for name in names:
-            self._data.extend(getfield(self._obj, name, self._request))
+            self.data['data'].extend(getfield(self.obj, name, self.request))
+        return self
+    
+    def relation(self, name):
+        title = name
+        if not self.only or slugify(title) in self.only:
+            attr = getattr(self.obj, name)
+            value = attr() if type(attr) == types.MethodType else attr
+            data = serialize(value)
+            if isinstance(value, QuerySet) or isinstance(value, Manager):
+                data = dict(type='queryset', data=data)
+            self.data['data'].append(dict(type='fieldset', slug=slugify(title), title=name, data=data))
         return self
     
     def endpoint(self, title, cls):
-        if not self._only or slugify(title) in self._only:
-            endpoint = cls(self._request, self._obj)
+        if not self.only or slugify(title) in self.only:
+            endpoint = cls(self.request, self.obj)
             if endpoint.check_permission():
                 data = serialize(endpoint.get())
-            self._data.append(dict(type='fieldset', slug=slugify(title), title=title, actions=[], data=data))
+            self.data['data'].append(
+                dict(type='fieldset', slug=slugify(title), title=title, actions=[], data=data)
+            )
         return self
 
-    def fieldset(self, title, *names, relation=None):
-        if not self._only or slugify(title) in self._only:
+    def fieldset(self, title, names, relation=None):
+        if not self.only or slugify(title) in self.only:
             actions=[]
             fields=[]
-            obj = getattr(self._obj, relation) if relation else self._obj
+            obj = getattr(self.obj, relation) if relation else self.obj
             for name in names:
-                fields.extend(getfield(obj, name, self._request))
-            self._data.append(dict(type='fieldset', title=title, slug=slugify(title), actions=actions, data=fields))
+                fields.extend(getfield(obj, name, self.request))
+            self.data['data'].append(
+                dict(type='fieldset', title=title, slug=slugify(title), actions=actions, data=fields)
+            )
         return self
     
     def serialize(self, debug=False):
-        data = dict(title=self._title, actions=self._actions, data=self._data)
+        if not self.data['data']:
+            self.data['data'] = serialize(self.obj)
         if debug:
-            json.dumps(data, indent=2, ensure_ascii=False)
-        return data
+            json.dumps(self.data, indent=2, ensure_ascii=False)
+        return self.data
 

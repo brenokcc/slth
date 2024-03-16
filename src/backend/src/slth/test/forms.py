@@ -17,7 +17,7 @@ class UserForm(forms.ModelForm):
     groups = forms.InlineModelField(label='Grupos', model=Group)
     class Meta:
         model = User
-        fields = 'username', 'email', 'is_superuser'
+        fields = 'username', 'first_name', 'last_name', 'email', 'is_superuser'
 
 
 class RegisterForm(forms.Form):

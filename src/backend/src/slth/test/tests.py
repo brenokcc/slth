@@ -3,6 +3,7 @@ from ..tests import ServerTestCase
 class ApiTestCase(ServerTestCase):
     def test_form(self):
         self.debug = True
+        self.get('/api/add-user/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
         data = dict(
@@ -14,10 +15,16 @@ class ApiTestCase(ServerTestCase):
         self.assert_model_count('auth.user', 1)
         self.assert_model_count('auth.group', 2)
         self.get('/api/list-users/')
-        self.get('/api/view-user/1/')
+        user = self.objects('auth.user').first()
+        self.get('/api/view-user/{}/'.format(user.pk))
+        self.post('/api/login/', json=dict(username='brenokcc', password='213'))
+        user.set_password('123')
+        user.save()
+        self.post('/api/login/', json=dict(username='brenokcc', password='123')) 
 
     def test_json(self):
         self.debug = True
+        self.get('/api/add-user/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
         data = dict(

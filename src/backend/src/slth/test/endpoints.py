@@ -1,9 +1,8 @@
-from slth.endpoints import Endpoint, ChildEndpoint
-from . import forms
-from django.forms import modelform_factory
+from slth.endpoints import Endpoint, ChildEndpoint, FormFactory
+from .forms import RegisterForm, UserForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Telefone
-from slth.serializer import Serializar, LinkField
+from slth.serializer import Serializer, LinkField
 
 
 class HealthCheck(Endpoint):
@@ -13,75 +12,87 @@ class HealthCheck(Endpoint):
 
 
 class Register(Endpoint):
-    form_class = forms.RegisterForm
+    def __init__(self, request):
+        super().__init__(request)
+        self.form = RegisterForm(endpoint=self)
 
 
 class AddUser(Endpoint):
-    form_class = forms.UserForm
+    def __init__(self, request):
+        super().__init__(request)
+        self.form = UserForm(instance=User(), request=request)
 
 class EditUser(Endpoint):
-    form_class = forms.UserForm
-    fieldsets = {
-        'Dados Gerais': ('username', ('first_name', 'last_name'), 'email'),
-        'Grupos': ('groups',)
-    }
 
     def __init__(self, request, pk):
-        self.source = User.objects.get(pk=pk)
         super().__init__(request)
+        self.form = (
+            UserForm(instance=User.objects.get(pk=pk), request=request)
+            .fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email'))
+            .fieldset('Grupos', ('groups',))
+        )
 
 class ListUsers(Endpoint):
 
     def __init__(self, request):
-        self.source = User.objects.all()
         super().__init__(request)
-
+        self.serializer = Serializer(User.objects.all())
+        
 
 class ViewUser(Endpoint):
     def __init__(self, request, pk):
-        self.source = User.objects.get(pk=pk)
         super().__init__(request)
+        self.serializer = (
+            Serializer(User.objects.get(pk=pk), request=request)
+            .fieldset('Dados Gerais', (('username', 'email'),))
+            .fieldset('Dados Pessoais', ('first_name', 'last_name'))
+            .fields('password')
+            .relation('groups')
+        )
     
 
 class CadastrarPessoa(Endpoint):
     def __init__(self, request):
-        self.source = Pessoa()
-        self.fieldsets = {
-            'Dados Gerais': ('nome',),
-            'Telefone Pessoal': ('telefone_pessoal',),
-            'Telefones Profissionais': ('telefones_profissionais',)
-        }
         super().__init__(request)
+        self.form = (
+            FormFactory(instance=Pessoa(), request=request)
+            .fieldset('Dados Gerais', ('nome',))
+            .fieldset('Telefone Pessoal', ('telefone_pessoal',))
+            .fieldset('Telefones Profissionais', ('telefones_profissionais',))
+        )
+
+
+class ListarPessoas(Endpoint):
+    def __init__(self, request):
+        super().__init__(request)
+        self.serializer = Serializer(Pessoa.objects, request)
+
 
 class VisualizarPessoa(Endpoint):
     def __init__(self, request, pk):
-        self.source = self.objects('test.pessoa').get(pk=pk)
         super().__init__(request)
-
-    def get(self):
-        return Serializar(self.source).fields('id', 'nome').serialize()
+        self.serializer = Serializer(Pessoa.objects.get(pk=pk), request).fields('id', 'nome')
 
     def check_permission(self):
         return True
     
-class VisualizarPessoa2(VisualizarPessoa):
-    def get(self):
-        return Serializar(self.source).fieldset('Dados Gerais', ('id', 'nome')).serialize()
+class VisualizarPessoa2(Endpoint):
+    def __init__(self, request, pk):
+        super().__init__(request)
+        self.serializer = Serializer(Pessoa.objects.get(pk=pk), request).fieldset('Dados Gerais', ('id', 'nome'))
     
 
 class VisualizarCidade(Endpoint):
     def __init__(self, request, pk):
-        self.source = self.objects('test.cidade').get(pk=pk)
         super().__init__(request)
-
-    def get(self):
-        return (
-            Serializar(self.source, self.request)
+        self.serializer = (
+            Serializer(self.objects('test.cidade').get(pk=pk), self.request)
             .fieldset('Dados Gerais', ('id', 'nome'), LinkField('prefeito', VisualizarPessoa))
             .fieldset('Prefeito', ('id', 'nome'), relation='prefeito')
             .endpoint('Cidades Vizinhas', CidadesVizinhas)
             .serialize()
         )
+
 
 
 class CidadesVizinhas(ChildEndpoint):
