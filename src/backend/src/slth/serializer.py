@@ -6,8 +6,10 @@ from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
 
 
-def serialize(obj):
-    if isinstance(obj, dict):
+def serialize(obj, primitive=False):
+    if obj is None:
+        return None
+    elif isinstance(obj, dict):
         return obj
     elif isinstance(obj, date):
         return obj.strftime('%d/%m/%Y')
@@ -16,19 +18,22 @@ def serialize(obj):
     elif isinstance(obj, list):
         return [serialize(obj) for obj in obj]
     elif isinstance(obj, Model):
-        return dict(pk=obj.pk, str=str(obj))
+        return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager):
-        return [dict(pk=item.pk, str=str(item)) for item in obj.filter()]
+        if primitive:
+            return [str(obj) for obj in obj.filter()]
+        else:
+            return [dict(pk=item.pk, str=str(item)) for item in obj.filter()]
     return str(obj)
 
 def getfield(obj, name_or_names, request=None, size=100):
     fields = []
     if isinstance(name_or_names, str):
-        value = getattr(obj, name_or_names)
-        fields.append(dict(type='field', name=name_or_names, value=serialize(value), size=size))
+        value = getattr(obj, name_or_names) if obj else None
+        fields.append(dict(type='field', name=name_or_names, value=serialize(value, primitive=True), size=size))
     elif isinstance(name_or_names, LinkField):
-        value = getattr(obj, name_or_names.name)
-        field = dict(type='field', name=name_or_names.name, value=serialize(value), size=size)
+        value = getattr(obj, name_or_names.name) if obj else None
+        field = dict(type='field', name=name_or_names.name, value=serialize(value, primitive=True), size=size)
         if value:
             endpoint = name_or_names.endpoint(request, value.id)
             if endpoint.check_permission():

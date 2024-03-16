@@ -11,7 +11,7 @@ class OneToManyField(ManyToManyField):
         return super().formfield(*args, model=self.related_model, **kwargs)
 
 
-class OneToOneField(ManyToManyField):
+class OneToOneField(OneToOneField):
 
     def formfield(self, *args, **kwargs):
         kwargs.update(form_class=forms.OneToOneField)

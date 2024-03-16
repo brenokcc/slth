@@ -71,7 +71,10 @@ class ListarPessoas(Endpoint):
 class VisualizarPessoa(Endpoint):
     def __init__(self, request, pk):
         super().__init__(request)
-        self.serializer = Serializer(Pessoa.objects.get(pk=pk), request).fields('id', 'nome')
+        self.serializer = (
+            Serializer(Pessoa.objects.get(pk=pk), request)
+            .fields('id', 'nome', 'telefone_pessoal', 'telefones_profissionais')
+        )
 
     def check_permission(self):
         return True
@@ -79,7 +82,12 @@ class VisualizarPessoa(Endpoint):
 class VisualizarPessoa2(Endpoint):
     def __init__(self, request, pk):
         super().__init__(request)
-        self.serializer = Serializer(Pessoa.objects.get(pk=pk), request).fieldset('Dados Gerais', ('id', 'nome'))
+        self.serializer = (
+            Serializer(Pessoa.objects.get(pk=pk), request)
+            .fieldset('Dados Gerais', ('id', 'nome'))
+            .fieldset('Telefone Pessoal', ('ddd', 'numero'), relation='telefone_pessoal')
+            .relation('telefones_profissionais')
+        )
     
 
 class VisualizarCidade(Endpoint):
@@ -87,10 +95,9 @@ class VisualizarCidade(Endpoint):
         super().__init__(request)
         self.serializer = (
             Serializer(self.objects('test.cidade').get(pk=pk), self.request)
-            .fieldset('Dados Gerais', ('id', 'nome'), LinkField('prefeito', VisualizarPessoa))
+            .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa)))
             .fieldset('Prefeito', ('id', 'nome'), relation='prefeito')
             .endpoint('Cidades Vizinhas', CidadesVizinhas)
-            .serialize()
         )
 
 

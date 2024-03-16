@@ -8,6 +8,7 @@ from django.forms.models import ModelChoiceIterator
 from django.db.models import Model
 from .models import Token
 from django.db import transaction
+from django.db.models import Manager
 
 
 DjangoModelForm = ModelForm
@@ -70,11 +71,11 @@ class FormMixin:
             data.update(fieldsets=fieldsets)
         else:
             fields = []
+            if prefix:
+                value = self.instance.pk if isinstance(self, ModelForm) else ''
+                fields.append(dict(type='hidden', name=prefix, value=value))
             for name, field in self.fields.items():
                 fields.append(self.serialize_field(name, field, prefix, choices_field_name))
-                if prefix:
-                    value = self.instance.pk if isinstance(self, ModelForm) else ''
-                    fields.append(dict(type='hidden', name=prefix, value=value))
             data.update(fields=fields)
         return data
     
@@ -131,21 +132,28 @@ class FormMixin:
                         else:
                             data[inline_field_name].append(inline_form.cleaned_data)
                     else:
-                        errors.update({f'{inline_field_name}__{i}__{name}': error for name, error in inline_form.errors.items()})
-        data.update({field_name: self.cleaned_data.get(field_name) for field_name in self.fields if field_name not in inline_fields}) 
+                        errors.update({f'{inline_field_name}__{i}__{name}': error for name, error in inline_form.errors.items()}) 
         if errors:
             return dict(message='Please correct the errors.', errors=errors)
         else:
+            data.update({field_name: self.cleaned_data.get(field_name) for field_name in self.fields if field_name not in inline_fields})
             with transaction.atomic():
                 self.cleaned_data = data
                 if isinstance(self, DjangoModelForm):
+                    for inline_field_name in inline_fields:
+                        for obj in self.cleaned_data[inline_field_name]:
+                            obj.save()
+                            # set one-to-one
+                            if hasattr(self.instance, f'{inline_field_name}_id'):
+                                setattr(self.instance, inline_field_name, obj)
                     self.save()
                     for inline_field_name in inline_fields:
                         relation = getattr(self.instance, inline_field_name)
                         for obj in self.cleaned_data[inline_field_name]:
-                            obj.save()
-                            relation.add(obj)
-                    dict(message='Action successfully performed.')
+                            # set one-to-many
+                            if isinstance(relation, Manager):
+                                relation.add(obj)
+                    return dict(message='Action successfully performed.')
                 else:
                     return self.submit()
 
@@ -158,7 +166,7 @@ class Form(DjangoForm, FormMixin):
             if self.request.method.upper() == 'GET':
                 data = self.request.GET or None
             elif self.request.method.upper() == 'POST':
-                data = self.request.POST or None
+                data = self.request.POST or {}
         else:
             data = kwargs['data']
         kwargs.update(data=data)
@@ -177,7 +185,7 @@ class ModelForm(DjangoModelForm, FormMixin):
             if self.request.method.upper() == 'GET':
                 data = self.request.GET or None
             elif self.request.method.upper() == 'POST':
-                data = self.request.POST or None
+                data = self.request.POST or {}
         else:
             data = kwargs['data']
         kwargs.update(data=data)
