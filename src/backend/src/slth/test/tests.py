@@ -2,7 +2,7 @@ from ..tests import ServerTestCase
 
 class ApiTestCase(ServerTestCase):
     def test_form(self):
-        self.debug = True
+        self.debug = False
         self.get('/api/add-user/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
@@ -39,7 +39,7 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizar-pessoa2/{}/'.format(pessoa.pk))
 
     def test_json(self):
-        self.debug = True
+        self.debug = False
         self.get('/api/add-user/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
@@ -85,13 +85,25 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizar-pessoa2/{}/'.format(pessoa.pk))
 
     def test_serialization(self):
-        self.debug = True
+        self.debug = False
         juca = self.objects('test.pessoa').create(nome='Juca da Silva')
         cidade = self.objects('test.cidade').create(nome='Natal', prefeito=juca)
         self.get('/api/visualizar-pessoa/{}/'.format(juca.pk))
         self.get('/api/visualizar-pessoa2/{}/'.format(juca.pk))
         self.get('/api/visualizar-cidade/{}/'.format(cidade.pk))
         self.get('/api/visualizar-cidade/{}/?only=dados-gerais&only=cidades-vizinhas'.format(cidade.pk))
+
+    def test_model(self):
+        telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
+        juca = self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone)
+        maria = self.objects('test.pessoa').create(nome='Maria da Silva')
+        qs1 = self.objects('test.pessoa').com_telefone_pessoal()
+        qs2 = self.objects('test.pessoa').sem_telefone_pessoal()
+        self.assertEqual(qs1.count(), 1)
+        self.assertEqual(qs2.count(), 1)
+        pessoas = self.objects('test.pessoa').fields('id', 'nome', 'telefone')
+        print(pessoas.metadata)
+        print(pessoas.counter('telefone_pessoal'))
         
 
         

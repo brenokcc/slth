@@ -25,5 +25,5 @@ for app_label in settings.INSTALLED_APPS:
 for cls in slth.ENDPOINTS.values():
     pattern = cls.get_api_url_pattern()
     urlpatterns.append(path(pattern, views.dispatcher))
-    print(f'/api/{pattern}')
-print()
+    #print(f'/api/{pattern}')
+#print()

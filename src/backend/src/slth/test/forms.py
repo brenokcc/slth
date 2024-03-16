@@ -26,4 +26,4 @@ class RegisterForm(forms.Form):
     grupos = forms.InlineFormField(label='Grupos', form=GroupForm)
 
     def save(self):
-        print(self.cleaned_data, 88888)
+        print(self.cleaned_data)
