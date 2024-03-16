@@ -34,7 +34,8 @@ class FormMixin:
     def parse_json(self):
         content_type = self.request.META.get('CONTENT_TYPE')
         method = self.request.method.lower()
-        if content_type and content_type.lower() == 'application/json':
+        # 'application/x-www-form-urlencoded'
+        if content_type and content_type.lower() in 'application/json':
             if method == 'get' or method == 'post':
                 d1 = json.loads(self.request.body.decode()) if self.request.body else {}
                 d2 = self.request.GET if method == 'get' else self.request.POST
@@ -44,9 +45,14 @@ class FormMixin:
                     if isinstance(v, list):
                         for i, item in enumerate(v):
                             prefix = f'{k}__{i}'
-                            d2[prefix] = item.get('id')
+                            d2[f'{prefix}__id'] = item.get('id')
                             for k1, v1 in item.items():
                                 d2[f'{prefix}__{k1}'] = v1
+                    elif isinstance(v, dict):
+                        prefix = k
+                        d2[f'{prefix}__id'] = v.get('id')
+                        for k1, v1 in v.items():
+                            d2[f'{prefix}__{k1}'] = v1
                     else:
                         d2[k] = v
                 d2._mutable = False
@@ -117,12 +123,14 @@ class FormMixin:
         for inline_field_name, inline_field in inline_fields.items():
             data[inline_field_name] = []
             for i in range(0, inline_field.max):
-                prefix = f'{inline_field_name}__{i}'
-                if prefix in self.data:
+                is_one_to_one = inline_field.max == inline_field.min == 1
+                prefix = inline_field_name if is_one_to_one else f'{inline_field_name}__{i}'
+                inline_form_field_name = f'{prefix}__id'
+                if inline_form_field_name in self.data:
                     inline_form_data = {}
-                    pk = self.data.get(prefix)
+                    pk = self.data.get(inline_form_field_name)
                     for name in inline_field.form.base_fields:
-                        inline_form_field_name = f'{inline_field_name}__{i}__{name}'
+                        inline_form_field_name = f'{prefix}__{name}'
                         inline_form_data[name] = self.data.get(inline_form_field_name)
                     instance = inline_field.form._meta.model.objects.get(pk=pk) if pk else None
                     inline_form = inline_field.form(data=inline_form_data, instance=instance, request=self.request)

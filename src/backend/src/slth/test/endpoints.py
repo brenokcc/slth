@@ -61,6 +61,16 @@ class CadastrarPessoa(Endpoint):
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
 
+class EditarPessoa(Endpoint):
+    def __init__(self, request, pk):
+        super().__init__(request)
+        self.form = (
+            FormFactory(instance=Pessoa.objects.get(pk=pk), request=request)
+            .fieldset('Dados Gerais', ('nome',))
+            .fieldset('Telefone Pessoal', ('telefone_pessoal',))
+            .fieldset('Telefones Profissionais', ('telefones_profissionais',))
+        )
+
 
 class ListarPessoas(Endpoint):
     def __init__(self, request):
