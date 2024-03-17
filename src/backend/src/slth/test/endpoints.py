@@ -50,7 +50,7 @@ class ViewUser(Endpoint):
             .fieldset('Dados Gerais', (('username', 'email'),))
             .fieldset('Dados Pessoais', ('first_name', 'last_name'))
             .fields('password')
-            .relation('groups')
+            .queryset('groups')
         )
     
 
@@ -102,8 +102,8 @@ class VisualizarPessoa2(Endpoint):
         self.serializer = (
             Serializer(Pessoa.objects.get(pk=pk), request)
             .fieldset('Dados Gerais', ('id', 'nome'))
-            .fieldset('Telefone Pessoal', ('ddd', 'numero'), relation='telefone_pessoal')
-            .relation('telefones_profissionais')
+            .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal')
+            .queryset('telefones_profissionais')
         )
     
 
@@ -113,7 +113,7 @@ class VisualizarCidade(Endpoint):
         self.serializer = (
             Serializer(self.objects('test.cidade').get(pk=pk), self.request)
             .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa)))
-            .fieldset('Prefeito', ('id', 'nome'), relation='prefeito')
+            .fieldset('Prefeito', ('id', 'nome'), attr='prefeito')
             .endpoint('Cidades Vizinhas', CidadesVizinhas)
         )
 

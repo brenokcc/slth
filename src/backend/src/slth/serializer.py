@@ -146,15 +146,13 @@ class Serializer:
             self.data['data'].extend(getfield(self.obj, name, self.request))
         return self
     
-    def relation(self, name):
+    def queryset(self, name):
         title = name
         if not self.only or slugify(title) in self.only:
             attr = getattr(self.obj, name)
             value = attr() if type(attr) == types.MethodType else attr
-            data = serialize(value)
-            if isinstance(value, QuerySet) or isinstance(value, Manager):
-                data = dict(type='queryset', data=data)
-            self.data['data'].append(dict(type='fieldset', slug=slugify(title), title=name, data=data))
+            data = QuerysetSerializer(value, self.request).serialize(True)
+            self.data['data'].append(data)
         return self
     
     def endpoint(self, title, cls):
@@ -167,11 +165,11 @@ class Serializer:
             )
         return self
 
-    def fieldset(self, title, names, relation=None):
+    def fieldset(self, title, names, attr=None):
         if not self.only or slugify(title) in self.only:
             actions=[]
             fields=[]
-            obj = getattr(self.obj, relation) if relation else self.obj
+            obj = getattr(self.obj, attr) if attr else self.obj
             for name in names:
                 fields.extend(getfield(obj, name, self.request))
             self.data['data'].append(
