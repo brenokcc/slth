@@ -1,4 +1,5 @@
 from django.db import models
+from slth.roles import role
 
 class Telefone(models.Model):
     ddd = models.IntegerField('DDD')
@@ -17,6 +18,8 @@ class PessoaQuerySet(models.QuerySet):
 
 class Pessoa(models.Model):
     nome = models.CharField('Nome', max_length=255)
+    sexo = models.CharField('Sexo', choices=[['M', 'Masculino'], ['F', 'Femino']], default='M')
+    data_nascimento = models.DateField('Data de Nascimento', null=True, blank=True)
     telefone_pessoal = models.OneToOneField(Telefone, verbose_name='Telefone Pessoal', related_name='p1', on_delete=models.CASCADE, null=True, blank=True)
     telefones_profissionais = models.OneToManyField(Telefone, verbose_name='Telefones Profissionais')
 
@@ -32,3 +35,36 @@ class Cidade(models.Model):
     def __str__(self):
         return self.nome
     
+@role('Administrador', username='email', active='is_admin')
+class Funcionario(models.Model):
+    email = models.CharField('E-mail')
+    is_admin = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.nome
+
+@role('Supervisor', username='supervisor__email', rede='pk')
+class Rede(models.Model):
+    nome = models.CharField('Nome')
+    supervisor = models.ForeignKey(Funcionario)
+
+    def __str__(self):
+        return self.nome
+
+@role('Gerente', username='gerente__email', loja='pk', rede='rede')
+@role('Vendedor', username='vendedores__email', loja='pk', rede='rede')
+class Loja(models.Model):
+    rede = models.ForeignKey(Rede)
+    nome = models.CharField('Nome')
+    gerente = models.ForeignKey(Funcionario)
+    vendedores = models.ManyToManyField(Funcionario, related_name='r1')
+
+    def __str__(self):
+        return self.nome
+
+class Produto(models.Model):
+    loja = models.ForeignKey(Loja)
+    nome = models.CharField('Nome')
+
+    def __str__(self):
+        return self.nome

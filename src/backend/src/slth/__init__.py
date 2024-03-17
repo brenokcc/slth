@@ -105,10 +105,25 @@ class QuerySet(models.QuerySet):
     def title(self, name):
         self.metadata['title'] = name
         return self
+    
+    def limit(self, limit):
+        self.metadata['limit'] = limit
+        return self
+    
+    def lookup(self, role_name=None, **lookups):
+        if 'lookups' not in self.metadata:
+            self.metadata['lookups'] = {}
+        self.metadata['lookups'][role_name] = lookups
+        return self
 
-    def contextualize(self, request, metadata=None):
-        if metadata:
-            self.metadata.update(**metadata)
+    def apply_lookups(self, user):
+        from . import permissions
+        lookups = self.metadata.get('lookups')
+        if lookups:
+            return permissions.apply_lookups(self, lookups, user)
+        return self
+
+    def contextualize(self, request):
         filters = self.metadata.get('filters', ())
         for lookup in filters:
             if lookup.endswith('userrole'):

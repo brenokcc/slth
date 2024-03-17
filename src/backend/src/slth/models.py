@@ -27,6 +27,13 @@ class RoleQuerySet(models.QuerySet):
 
     def inactive(self):
         return self.filter(active=False)
+    
+    def debug(self):
+        print('------- ROLES -----------')
+        print('USERNAME\tNAME\tSCOPE')
+        for role in self:
+            print('{}\t{}\t{}'.format(role.username, role.name, role.get_scope_value()))
+        print('-------------------------')
 
 class Role(models.Model):
     username = models.CharField(max_length=50, db_index=True)

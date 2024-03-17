@@ -36,7 +36,10 @@ class ListUsers(Endpoint):
 
     def __init__(self, request):
         super().__init__(request)
-        self.serializer = Serializer(User.objects.all())
+        self.serializer = Serializer(
+            User.objects.search('username').fields('username', 'is_superuser').filters('is_superuser', 'groups'),
+            request
+        )
         
 
 class ViewUser(Endpoint):
@@ -75,7 +78,11 @@ class EditarPessoa(Endpoint):
 class ListarPessoas(Endpoint):
     def __init__(self, request):
         super().__init__(request)
-        self.serializer = Serializer(Pessoa.objects, request)
+        self.serializer = Serializer(
+            (
+                Pessoa.objects.search('nome').subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
+            ), request
+        )
 
 
 class VisualizarPessoa(Endpoint):

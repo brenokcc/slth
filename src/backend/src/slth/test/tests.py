@@ -1,4 +1,5 @@
 from ..tests import ServerTestCase
+from ..permissions import apply_lookups
 
 class ApiTestCase(ServerTestCase):
     def test_form(self):
@@ -95,8 +96,8 @@ class ApiTestCase(ServerTestCase):
 
     def test_model(self):
         telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
-        juca = self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone)
-        maria = self.objects('test.pessoa').create(nome='Maria da Silva')
+        self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone)
+        self.objects('test.pessoa').create(nome='Maria da Silva')
         qs1 = self.objects('test.pessoa').com_telefone_pessoal()
         qs2 = self.objects('test.pessoa').sem_telefone_pessoal()
         self.assertEqual(qs1.count(), 1)
@@ -104,6 +105,54 @@ class ApiTestCase(ServerTestCase):
         pessoas = self.objects('test.pessoa').fields('id', 'nome', 'telefone')
         print(pessoas.metadata)
         print(pessoas.counter('telefone_pessoal'))
+
+    def test_queryset(self):
+        telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
+        self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone)
+        self.objects('test.pessoa').create(nome='Maria da Silva')
+        self.objects('auth.user').create(username='juca', email='juca@mail.com', is_superuser=True)
+        self.objects('auth.user').create(username='joh', email='john@mail.com')
+        #self.get('/api/list-users/?page=2&page_size=1')
+        #self.get('/api/list-users/?q=ju&is_superuser=true')
+        self.get('/api/listar-pessoas/')
+
+    def test_roles(self):
+        a = self.objects('test.funcionario').create(email='adm@mail.com', is_admin=True)
+        self.assert_model_count('slth.role', 1)
+        a.is_admin = False
+        a.save()
+        self.assert_model_count('slth.role', 0)
+        a.is_admin = True
+        a.save()
+        self.assert_model_count('slth.role', 1)
+        s1 = self.objects('test.funcionario').create(email='s1@mail.com')
+        s2 = self.objects('test.funcionario').create(email='s2@mail.com')
+        r1 = self.objects('test.rede').create(nome='r1', supervisor=s1)
+        r2 = self.objects('test.rede').create(nome='r2', supervisor=s2)
+        
+        self.objects('slth.role').debug()
+        self.assert_model_count('slth.role', 3)
+        redes = self.objects('test.rede').all()
+        print(redes.lookup('Administrador').apply_lookups(a.email))
+        print(redes.lookup('Supervisor', pk='rede').apply_lookups(s1.email))
+        print(redes.lookup(supervisor__email='username').apply_lookups(s1.email))
+
+        g1 = self.objects('test.funcionario').create(email='s1@mail.com')
+        g2 = self.objects('test.funcionario').create(email='s2@mail.com')
+        va1 = self.objects('test.funcionario').create(email='va1@mail.com')
+        vb1 = self.objects('test.funcionario').create(email='vb1@mail.com')
+        va2 = self.objects('test.funcionario').create(email='va2@mail.com')
+        vb2 = self.objects('test.funcionario').create(email='vb2@mail.com')
+        la1 = self.objects('test.loja').create(rede=r1, nome='la1', gerente=g1)
+        la1.vendedores.add(va1)
+        self.objects('test.produto').create(nome='p1a', loja=la1)
+        self.objects('test.produto').create(nome='p2a', loja=la1)
+        la2 = self.objects('test.loja').create(rede=r1, nome='la2', gerente=g2)
+        la2.vendedores.add(va2)
+        self.objects('test.produto').create(nome='p1b', loja=la2)
+        self.objects('test.produto').create(nome='p2b', loja=la2)
+        self.objects('slth.role').debug()
+
         
 
         
