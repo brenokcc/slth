@@ -213,7 +213,7 @@ class QuerySet(models.QuerySet):
             fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
             objs.append(Serializer(obj, self.request).fields(*fields).serialize())
 
-        data = dict(type='queryset', title=title, attrname=attrname, icon=None, url=url, actions=actions, filters=filters, search=search, data=objs)
+        data = dict(type='queryset', title=title, key=attrname, icon=None, url=url, actions=actions, filters=filters, search=search, data=objs)
         if calendar:
             data.update(calendar=calendar)
             data['filters'].extend([

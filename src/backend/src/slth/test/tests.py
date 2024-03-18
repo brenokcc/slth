@@ -57,6 +57,7 @@ class ApiTestCase(ServerTestCase):
         self.assert_model_count('auth.group', 2)
         self.get('/api/list-users/')
         user = self.objects('auth.user').first()
+        self.get('/api/edit-user/{}/'.format(user.pk))
         self.get('/api/view-user/{}/'.format(user.pk))
         self.post('/api/login/', json=dict(username='brenokcc', password='213'))
         user.set_password('123')
@@ -109,24 +110,30 @@ class ApiTestCase(ServerTestCase):
         self.assertEqual(qs2.count(), 1)
         pessoas = (
             self.objects('test.pessoa').
-            fields('id', 'nome', 'telefone_pessoal', 'data_nascimento')
+            fields('id', 'nome', 'telefone_pessoal', 'data_nascimento', 'get_qtd_telefones_profissionais')
             .calendar('data_nascimento')
         )
         serialized = pessoas.serialize(debug=self.debug)
         self.assertEqual(len(serialized['data']), 1)
-        self.assertEqual(serialized['data'][0]['data'][1]['value'], juca.nome)
+        self.assertEqual(serialized['data'][0]['data'][1][0]['value'], juca.nome)
         serialized = pessoas.contextualize(HttpRequest(
             data_nascimento__day=next_month.day,
             data_nascimento__month=next_month.month,
             data_nascimento__year=next_month.year
         )).serialize(debug=self.debug)
         self.assertEqual(len(serialized['data']), 1)
-        self.assertEqual(serialized['data'][0]['data'][1]['value'], maria.nome)
+        self.assertEqual(serialized['data'][0]['data'][1][0]['value'], maria.nome)
 
         # test pagination of a queryset relation of an object    
         for numero in ('11111-1111', '22222-2222', '33333-3333'):
             juca.telefones_profissionais.add(self.objects('test.telefone').create(ddd=84, numero=numero))
         serialized = Serializer(juca).serialize(self.debug)
+        serialized = Serializer(juca).fieldset(
+            'Dados Gerais', ['nome', ['sexo', 'data_nascimento']]
+        ).fieldset(
+            'Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais']
+        ).queryset('telefones_profissionais').serialize(self.debug)
+        
         serialized = Serializer(juca, HttpRequest( only='telefones_profissionais', page_size=1, page=1)).serialize(self.debug)
         self.assertEquals(serialized['data'][0]['previous'], None)
         self.assertEquals(serialized['data'][0]['next'], '?only=telefones_profissionais&page=2')
@@ -153,12 +160,12 @@ class ApiTestCase(ServerTestCase):
         r1 = self.objects('test.rede').create(nome='r1', supervisor=s1)
         r2 = self.objects('test.rede').create(nome='r2', supervisor=s2)
         
-        self.objects('slth.role').debug()
+        if self.debug: self.objects('slth.role').debug()
         self.assert_model_count('slth.role', 3)
         redes = self.objects('test.rede').all()
-        print(redes.lookup('Administrador').apply_lookups(a.email))
-        print(redes.lookup('Supervisor', pk='rede').apply_lookups(s1.email))
-        print(redes.lookup(supervisor__email='username').apply_lookups(s1.email))
+        self.assertEquals(redes.lookup('Administrador').apply_lookups(a.email).count(), 2)
+        self.assertEquals(redes.lookup('Supervisor', pk='rede').apply_lookups(s1.email).count(), 1)
+        self.assertEquals(redes.lookup(supervisor__email='username').apply_lookups(s1.email).count(), 1)
 
         g1 = self.objects('test.funcionario').create(email='s1@mail.com')
         g2 = self.objects('test.funcionario').create(email='s2@mail.com')
@@ -174,7 +181,7 @@ class ApiTestCase(ServerTestCase):
         la2.vendedores.add(va2)
         self.objects('test.produto').create(nome='p1b', loja=la2)
         self.objects('test.produto').create(nome='p2b', loja=la2)
-        self.objects('slth.role').debug()
+        if self.debug: self.objects('slth.role').debug()
 
         
 

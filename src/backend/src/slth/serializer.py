@@ -28,22 +28,33 @@ def serialize(obj, primitive=False):
             return [dict(pk=item.pk, str=str(item)) for item in obj.filter()]
     return str(obj)
 
-def getfield(obj, name_or_names, request=None, size=100):
+def getfield(obj, name_or_names, request=None):
     fields = []
     if isinstance(name_or_names, str):
-        value = getattr(obj, name_or_names) if obj else None
-        fields.append(dict(type='field', name=name_or_names, value=serialize(value, primitive=True), size=size))
+        if obj:
+            attr = getattr(obj, name_or_names)
+            if type(attr) == types.MethodType:
+                value = attr()
+                label = getattr(attr, 'verbose_name', name_or_names)
+            else:
+                value = attr
+                label = getattr(type(obj), name_or_names).field.verbose_name
+        else:
+            value = None
+            label = None
+        field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True))
+        fields.append([field])
     elif isinstance(name_or_names, LinkField):
         value = getattr(obj, name_or_names.name) if obj else None
-        field = dict(type='field', name=name_or_names.name, value=serialize(value, primitive=True), size=size)
+        field = dict(type='field', name=name_or_names.name, value=serialize(value, primitive=True))
         if value:
             endpoint = name_or_names.endpoint(request, value.id)
             if endpoint.check_permission():
                 field.update(url=name_or_names.endpoint.get_api_url(value.id))
-        fields.append(field)
+        fields.append([field])
     else:
         for name in name_or_names:
-            fields.append(getfield(obj, name, size=int(100/len(name_or_names))))
+            fields.append(getfield(obj, name))
     return fields
 
 class LinkField:
@@ -92,10 +103,11 @@ class Serializer:
             actions=[]
             fields=[]
             obj = getattr(self.obj, attr) if attr else self.obj
-            for name in names:
-                fields.extend(getfield(obj, name, self.request))
+            for i, name in enumerate(names):
+                for field in getfield(obj, name, self.request):
+                    fields.append(field)
             self.data['data'].append(
-                dict(type='fieldset', title=title, slug=slugify(title), actions=actions, data=fields)
+                dict(type='fieldset', title=title, key=slugify(title), actions=actions, data=fields)
             )
         return self
     

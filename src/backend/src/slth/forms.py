@@ -66,13 +66,12 @@ class FormMixin:
                 fields = []
                 for name in names:
                     if isinstance(name, str):
-                        fields.append(self.serialize_field(name, self.fields[name], prefix, choices_field_name))
+                        field = self.serialize_field(name, self.fields[name], prefix, choices_field_name)
+                        fields.append([field])
                     else:
-                        width = int(100/len(name))
-                        for name in name:
-                            fields.append(
-                                self.serialize_field(name, self.fields[name], prefix, choices_field_name, width=width)
-                            )
+                        fields.append(
+                            [self.serialize_field(name, self.fields[name], prefix, choices_field_name) for name in name]
+                        )
                 fieldsets.append(dict(type='fieldset', title=title, fields=fields))
             data.update(fieldsets=fieldsets)
         else:
@@ -85,7 +84,7 @@ class FormMixin:
             data.update(fields=fields)
         return data
     
-    def serialize_field(self, name, field, prefix, choices_field_name, width=100):
+    def serialize_field(self, name, field, prefix, choices_field_name):
         if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
             value = []
             instances = {}
@@ -94,7 +93,7 @@ class FormMixin:
             for i in range(0, field.max):
                 kwargs = dict(instance=instances.get(i), request=self.request) if isinstance(self, ModelChoiceField) else dict(request=self.request)
                 value.append(field.form(**kwargs).serialize(prefix=f'{name}__{i}'))
-            data = dict(type='inline', min=field.min, max=field.max, name=name, label=field.label, required=field.required, value=value, width=width)
+            data = dict(type='inline', min=field.min, max=field.max, name=name, label=field.label, required=field.required, value=value)
         else:
             ftype = FIELD_TYPES.get(type(field), 'text')
             value = field.initial or self.initial.get(name)
@@ -103,7 +102,7 @@ class FormMixin:
             if isinstance(value, list):
                 value = [obj.pk if isinstance(obj, Model) else obj for obj in value]
             fname = name if prefix is None else f'{prefix}__{name}'
-            data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, width=width)
+            data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value)
             if ftype == 'choice':
                 if isinstance(field.choices, ModelChoiceIterator):
                     if choices_field_name == fname:

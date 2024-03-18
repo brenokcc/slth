@@ -1,5 +1,4 @@
-from django.db import models
-from slth.roles import role
+from slth.db import models, role, meta
 
 class Telefone(models.Model):
     ddd = models.IntegerField('DDD')
@@ -27,6 +26,10 @@ class Pessoa(models.Model):
 
     def __str__(self):
         return self.nome
+    
+    @meta('Quantidade de Telefones Pessoais')
+    def get_qtd_telefones_profissionais(self):
+        return self.telefones_profissionais.count()
     
 class Cidade(models.Model):
     nome = models.CharField('Nome', max_length=255)
