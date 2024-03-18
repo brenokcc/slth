@@ -6,10 +6,8 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db.models import manager, Q, CharField, ForeignKey, DecimalField, OneToOneField, ManyToManyField, TextField, CASCADE
 from django.db.models.aggregates import Sum, Avg
 from django.db.models.base import ModelBase
-from .statistics import Statistics
+from .queryset import QuerySet
 from functools import reduce
-from datetime import datetime
-import operator
 from django.utils.translation import gettext_lazy as _
 
 warnings.filterwarnings('ignore', module='urllib3')
@@ -51,120 +49,6 @@ class ModelMixin(object):
         for attr_name in username_lookup.split('__'):
             obj = getattr(obj, attr_name)
         return apps.get_model('auth.user').objects.get(username=obj)
-
-
-class QuerySet(models.QuerySet):
-
-    def __init__(self, *args, **kwargs):
-        self.metadata = {}
-        super().__init__(*args, **kwargs)
-
-    def counter(self, x=None, y=None, title=None, chart=None):
-        return Statistics(self, title=title, chart=chart).count(x=x, y=y) if x else super().count()
-
-    def sum(self, z, x=None, y=None, title=None, chart=None):
-        return Statistics(self, title=title, chart=chart).sum(z, x=x, y=y) if x else super().aggregate(sum=Sum(z))['sum'] or 0
-
-    def _clone(self):
-        qs = super()._clone()
-        for k, v in self.metadata.items():
-            v = self.metadata[k]
-            if isinstance(v, list):
-                qs.metadata[k] = list(v)
-            elif isinstance(v, dict):
-                qs.metadata[k] = dict(v)
-            else:
-                qs.metadata[k] = v
-        return qs
-
-    def fields(self, *names):
-        if 'fields' not in self.metadata:
-            self.metadata['fields'] = ('id',) + names
-        return self
-
-    def search(self, *names):
-        if 'search' not in self.metadata:
-            self.metadata['search'] = [name if '__' in name else '{}__icontains'.format(name) for name in names]
-        return self
-
-    def filters(self, *names):
-        if 'filters' not in self.metadata:
-            self.metadata['filters'] = names
-        return self
-
-    def actions(self, *names):
-        if 'actions' not in self.metadata:
-            self.metadata['actions'] = names
-        return self
-
-    def subsets(self, *names):
-        if 'subsets' not in self.metadata:
-            self.metadata['subsets'] = names
-        return self
-
-    def title(self, name):
-        self.metadata['title'] = name
-        return self
-    
-    def limit(self, limit):
-        self.metadata['limit'] = limit
-        return self
-    
-    def lookup(self, role_name=None, **lookups):
-        if 'lookups' not in self.metadata:
-            self.metadata['lookups'] = {}
-        self.metadata['lookups'][role_name] = lookups
-        return self
-
-    def apply_lookups(self, user):
-        from . import permissions
-        lookups = self.metadata.get('lookups')
-        if lookups:
-            return permissions.apply_lookups(self, lookups, user)
-        return self
-
-    def contextualize(self, request):
-        filters = self.metadata.get('filters', ())
-        for lookup in filters:
-            if lookup.endswith('userrole'):
-                from api.models import Role
-                rolename = request.GET.get('userrole')
-                if rolename:
-                    self = self.filter(
-                        **{'{}__in'.format(lookup[0:-10]):
-                        Role.objects.filter(name=rolename).values_list('username', flat=True)}
-                    )
-            elif lookup in request.GET:
-                self = self.apply_filter(lookup, request.GET[lookup])
-        search = self.metadata.get('search', ())
-        if search and 'q' in request.GET:
-            self = self.apply_search(request.GET['q'], search)
-        return self
-
-    def apply_filter(self, lookup, value):
-        booleans = dict(true=True, false=False, null=None)
-        if len(value) == 10 and '-' in value:
-            value = datetime.strptime(value, '%Y-%m-%d');
-        if value in booleans:
-            value = booleans[value]
-        return self.filter(**{lookup: value}) if value != '' else self
-
-    def apply_search(self, term, lookups=None):
-        if lookups is None:
-            lookups = [f'{field.name}__icontains' for field in self.model._meta.get_fields()
-                       if isinstance(field, CharField)] or []
-        if lookups:
-            terms = term.split(' ') if term else []
-            conditions = []
-            for term in terms:
-                queries = [
-                    Q(**{lookup: term})
-                    for lookup in lookups
-                ]
-                conditions.append(reduce(operator.or_, queries))
-
-            return self.filter(reduce(operator.and_, conditions)) if conditions else self
-        return self
 
 
 class BaseManager(manager.BaseManager):

@@ -32,6 +32,26 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from .selenium import SeleniumTestCase
 
 
+class HttpData:
+    def __init__(self, **parameters):
+        self.data = {}
+        for k, v in parameters.items():
+            if k not in self.data:
+                self.data[k] = []
+            self.data[k].append(v)
+
+    def get(self, k, default=None):
+        v = self.data.get(k)
+        return v[0] if v else default
+
+    def getlist(self, k):
+        return self.data.get(k) or []
+
+class HttpRequest:
+    def __init__(self, **parameters):
+        self.path = '/'
+        self.GET = HttpData(**parameters)
+
 class ServerTestCase(StaticLiveServerTestCase):
 
     def __init__(self, *args, **kwargs):

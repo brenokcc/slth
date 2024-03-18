@@ -1,9 +1,14 @@
-from ..tests import ServerTestCase
+from ..tests import ServerTestCase, HttpRequest
 from ..permissions import apply_lookups
+from datetime import date, timedelta
 
 class ApiTestCase(ServerTestCase):
-    def test_form(self):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.debug = False
+
+    def test_form(self):
         self.get('/api/add-user/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
@@ -40,7 +45,6 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizar-pessoa2/{}/'.format(pessoa.pk))
 
     def test_json(self):
-        self.debug = False
         self.get('/api/add-user/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
@@ -86,7 +90,6 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizar-pessoa2/{}/'.format(pessoa.pk))
 
     def test_serialization(self):
-        self.debug = False
         juca = self.objects('test.pessoa').create(nome='Juca da Silva')
         cidade = self.objects('test.cidade').create(nome='Natal', prefeito=juca)
         self.get('/api/visualizar-pessoa/{}/'.format(juca.pk))
@@ -95,21 +98,39 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizar-cidade/{}/?only=dados-gerais&only=cidades-vizinhas'.format(cidade.pk))
 
     def test_model(self):
+        today = date.today()
+        next_month = today + timedelta(days=31)
         telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
-        self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone)
-        self.objects('test.pessoa').create(nome='Maria da Silva')
+        juca = self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone, data_nascimento=today)
+        maria = self.objects('test.pessoa').create(nome='Maria da Silva', data_nascimento=next_month)
         qs1 = self.objects('test.pessoa').com_telefone_pessoal()
         qs2 = self.objects('test.pessoa').sem_telefone_pessoal()
         self.assertEqual(qs1.count(), 1)
         self.assertEqual(qs2.count(), 1)
-        pessoas = self.objects('test.pessoa').fields('id', 'nome', 'telefone')
-        print(pessoas.metadata)
-        print(pessoas.counter('telefone_pessoal'))
+        pessoas = (
+            self.objects('test.pessoa').
+            fields('id', 'nome', 'telefone_pessoal', 'data_nascimento')
+            .calendar('data_nascimento')
+        )
+        serialized = pessoas.serialize(debug=self.debug)
+        self.assertEqual(len(serialized['data']), 1)
+        self.assertEqual(serialized['data'][0]['data'][1]['value'], juca.nome)
+        serialized = pessoas.contextualize(HttpRequest(
+            data_nascimento__day=next_month.day,
+            data_nascimento__month=next_month.month,
+            data_nascimento__year=next_month.year
+        )).serialize(debug=self.debug)
+        self.assertEqual(len(serialized['data']), 1)
+        self.assertEqual(serialized['data'][0]['data'][1]['value'], maria.nome)
+
+        #print(pessoas.counter('telefone_pessoal'))
 
     def test_queryset(self):
+        today = date.today()
+        next_month = today + timedelta(days=31)
         telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
-        self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone)
-        self.objects('test.pessoa').create(nome='Maria da Silva')
+        self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone, data_nascimento=today)
+        self.objects('test.pessoa').create(nome='Maria da Silva', data_nascimento=next_month)
         self.objects('auth.user').create(username='juca', email='juca@mail.com', is_superuser=True)
         self.objects('auth.user').create(username='joh', email='john@mail.com')
         #self.get('/api/list-users/?page=2&page_size=1')
