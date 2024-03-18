@@ -72,6 +72,10 @@ class QuerySet(models.QuerySet):
         self.metadata['title'] = name
         return self
     
+    def attrname(self, name):
+        self.metadata['attrname'] = name
+        return self
+    
     def calendar(self, name):
         self.metadata['calendar'] = name
         return self
@@ -141,8 +145,11 @@ class QuerySet(models.QuerySet):
         return self.request.GET.get(name, default) if self.request else default
     
     def serialize(self, debug=False):
-        title = str(self.model._meta.verbose_name_plural)
-        url = self.request.path if self.request else None
+        title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
+        attrname = self.metadata.get('attrname')
+        url = self.request.path if self.request else ''
+        if attrname:
+            url = '{}{}only={}'.format(url, '&' if '?' in url else '?', attrname)
         subset = None
         actions = []
         filters = []
@@ -163,42 +170,42 @@ class QuerySet(models.QuerySet):
         if subset:
             qs = getattr(qs, self.subset)()
         
-        if self.metadata:
-            if subset and 'subsets' in self.metadata:
-                subset_metadata = self.metadata['subsets'][subset]
-                if subset_metadata:
-                    self.metadata = {k: v for k, v in self.metadata.items()}
-                    if subset_metadata['actions']:
-                        self.metadata['actions'] = subset_metadata['actions']
-                    if subset_metadata.get('requires'):
-                        self.metadata['requires'] = subset_metadata['requires']
-                    if len(subset_metadata['filters']) > 1:
-                        self.metadata['filters'] = subset_metadata['filters']
-            template = self.metadata.get('template')
-            title = self.metadata.get('title') or title
+        if subset and 'subsets' in self.metadata:
+            subset_metadata = self.metadata['subsets'][subset]
+            if subset_metadata:
+                self.metadata = {k: v for k, v in self.metadata.items()}
+                if subset_metadata['actions']:
+                    self.metadata['actions'] = subset_metadata['actions']
+                if subset_metadata.get('requires'):
+                    self.metadata['requires'] = subset_metadata['requires']
+                if len(subset_metadata['filters']) > 1:
+                    self.metadata['filters'] = subset_metadata['filters']
+        template = self.metadata.get('template')
 
-            for name in self.metadata.get('search', ()):
-                search.append(name)
+        for name in self.metadata.get('search', ()):
+            search.append(name)
 
-            for lookup in self.metadata.get('filters', ()):
-                if lookup.endswith('userrole'):
-                    field = self.role_filter_field()
-                else:
-                    field = self.filter_field(lookup)
-                if field:
-                    filters.append(field)
+        for lookup in self.metadata.get('filters', ()):
+            if lookup.endswith('userrole'):
+                field = self.role_filter_field()
+            else:
+                field = self.filter_field(lookup)
+            if field:
+                filters.append(field)
 
-            for name in self.metadata.get('subsets', ()):
-                subsets.append(dict(name=name, label=name, count=getattr(self, name)().count()))
+        for name in self.metadata.get('subsets', ()):
+            subsets.append(dict(name=name, label=name, count=getattr(self, name)().count()))
 
-            for name in self.metadata.get('aggregations', ()):
-                api_name = name[4:] if name.startswith('get_') else name
-                aggregation = dict(name=api_name, label=api_name, value=getattr(self, name)())
-                if isinstance(aggregation['value'], Decimal):
-                    aggregation['value'] = str(aggregation['value']).replace('.', ',')
-                aggregations.append(aggregation)
+        for name in self.metadata.get('aggregations', ()):
+            api_name = name[4:] if name.startswith('get_') else name
+            aggregation = dict(name=api_name, label=api_name, value=getattr(self, name)())
+            if isinstance(aggregation['value'], Decimal):
+                aggregation['value'] = str(aggregation['value']).replace('.', ',')
+            aggregations.append(aggregation)
 
         objs = []
+        total = self.count()
+        pages = total // page_size + total % page_size
         start = page_size * (page - 1)
         end = start + page_size
         qs = qs[start:end]
@@ -206,7 +213,7 @@ class QuerySet(models.QuerySet):
             fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
             objs.append(Serializer(obj, self.request).fields(*fields).serialize())
 
-        data = dict(type='queryset', model=self.model.__name__, title=title, icon=None, url=url, actions=actions, filters=filters, search=search, data=objs)
+        data = dict(type='queryset', title=title, attrname=attrname, icon=None, url=url, actions=actions, filters=filters, search=search, data=objs)
         if calendar:
             data.update(calendar=calendar)
             data['filters'].extend([
@@ -220,7 +227,13 @@ class QuerySet(models.QuerySet):
             data.update(aggregations=aggregations)
         if template:
             data.update(html=render_to_string(template, data))
-        data.update(page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100])
+        previous = None
+        if page > 1:
+            previous = '{}{}page={}'.format(url, '&' if '?' in url else '?', page - 1)
+        next = None
+        if page < pages:
+            next = '{}{}page={}'.format(url, '&' if '?' in url else '?', page + 1)
+        data.update(count=total, page=page, pages=pages, page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100], previous=previous, next=next)
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data

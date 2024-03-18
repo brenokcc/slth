@@ -56,24 +56,24 @@ class Serializer:
         self.obj = obj
         self.request = request
         self.only = request.GET.getlist('only') if request else ()
-        if isinstance(obj, Model):
-            self.data = dict(type='instance', title=str(obj), actions=[], data=[])
-        elif isinstance(self.obj, QuerySet) or isinstance(self.obj, Manager):
-            self.obj = self.obj.filter()
-            #self.data= dict(type='queryset', title=self.obj.model._meta.verbose_name_plural, data={})
-            self.data = self.obj.contextualize(request).serialize(debug=False)
+        self.data = dict(type='instance', title=str(obj), actions=[], data=[])
     
     def fields(self, *names):
         for name in names:
-            self.data['data'].extend(getfield(self.obj, name, self.request))
+            if not self.only or name in self.only:
+                self.data['data'].extend(getfield(self.obj, name, self.request))
         return self
     
     def queryset(self, name):
-        title = name
-        if not self.only or slugify(title) in self.only:
+        if not self.only or name in self.only:
             attr = getattr(self.obj, name)
-            value = attr() if type(attr) == types.MethodType else attr
-            data = value.contextualize(self.request).serialize(debug=False)
+            if type(attr) == types.MethodType:
+                value = attr()
+                title = name
+            else:
+                value = attr
+                title = getattr(type(self.obj), name).field.verbose_name
+            data = value.title(title).attrname(name).contextualize(self.request).serialize(debug=False)
             self.data['data'].append(data)
         return self
     
@@ -101,7 +101,9 @@ class Serializer:
     
     def serialize(self, debug=False):
         if not self.data['data']:
-            self.data['data'] = serialize(self.obj)
+            self.fields(*[field.name for field in type(self.obj)._meta.fields])
+            for m2m in type(self.obj)._meta.many_to_many:
+                self.queryset(m2m.name)
         if debug:
-            json.dumps(self.data, indent=2, ensure_ascii=False)
+            print(json.dumps(self.data, indent=2, ensure_ascii=False))
         return self.data

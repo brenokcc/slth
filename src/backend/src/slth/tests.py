@@ -49,7 +49,7 @@ class HttpData:
 
 class HttpRequest:
     def __init__(self, **parameters):
-        self.path = '/'
+        self.path = ''
         self.GET = HttpData(**parameters)
 
 class ServerTestCase(StaticLiveServerTestCase):

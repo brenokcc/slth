@@ -1,5 +1,5 @@
 from ..tests import ServerTestCase, HttpRequest
-from ..permissions import apply_lookups
+from ..serializer import Serializer
 from datetime import date, timedelta
 
 class ApiTestCase(ServerTestCase):
@@ -123,19 +123,21 @@ class ApiTestCase(ServerTestCase):
         self.assertEqual(len(serialized['data']), 1)
         self.assertEqual(serialized['data'][0]['data'][1]['value'], maria.nome)
 
-        #print(pessoas.counter('telefone_pessoal'))
+        # test pagination of a queryset relation of an object    
+        for numero in ('11111-1111', '22222-2222', '33333-3333'):
+            juca.telefones_profissionais.add(self.objects('test.telefone').create(ddd=84, numero=numero))
+        serialized = Serializer(juca).serialize(self.debug)
+        serialized = Serializer(juca, HttpRequest( only='telefones_profissionais', page_size=1, page=1)).serialize(self.debug)
+        self.assertEquals(serialized['data'][0]['previous'], None)
+        self.assertEquals(serialized['data'][0]['next'], '?only=telefones_profissionais&page=2')
+        serialized = Serializer(juca, HttpRequest( only='telefones_profissionais', page_size=1, page=2)).serialize(self.debug)
+        self.assertEquals(serialized['data'][0]['previous'], '?only=telefones_profissionais&page=1')
+        self.assertEquals(serialized['data'][0]['next'], '?only=telefones_profissionais&page=3')
+        serialized = Serializer(juca, HttpRequest( only='telefones_profissionais', page_size=1, page=3)).serialize(self.debug)
+        self.assertEquals(serialized['data'][0]['previous'], '?only=telefones_profissionais&page=2')
+        self.assertEquals(serialized['data'][0]['next'], None)
 
-    def test_queryset(self):
-        today = date.today()
-        next_month = today + timedelta(days=31)
-        telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
-        self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone, data_nascimento=today)
-        self.objects('test.pessoa').create(nome='Maria da Silva', data_nascimento=next_month)
-        self.objects('auth.user').create(username='juca', email='juca@mail.com', is_superuser=True)
-        self.objects('auth.user').create(username='joh', email='john@mail.com')
-        #self.get('/api/list-users/?page=2&page_size=1')
-        #self.get('/api/list-users/?q=ju&is_superuser=true')
-        self.get('/api/listar-pessoas/')
+        #print(pessoas.counter('telefone_pessoal'))
 
     def test_roles(self):
         a = self.objects('test.funcionario').create(email='adm@mail.com', is_admin=True)
