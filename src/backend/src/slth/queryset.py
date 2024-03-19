@@ -13,7 +13,6 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.template.loader import render_to_string
 from django.db.models import Model, QuerySet, Manager
-from django.utils.text import slugify
 from django.db import models
 from .serializer import Serializer
 
@@ -46,6 +45,10 @@ class QuerySet(models.QuerySet):
     def fields(self, *names):
         if 'fields' not in self.metadata:
             self.metadata['fields'] = ('id',) + names if 'id' not in names else names
+        return self
+    
+    def serializer(self, serializer):
+        self.metadata['serializer'] = serializer
         return self
 
     def search(self, *names):
@@ -205,13 +208,20 @@ class QuerySet(models.QuerySet):
 
         objs = []
         total = self.count()
+        count = qs.count()
         pages = total // page_size + total % page_size
         start = page_size * (page - 1)
         end = start + page_size
         qs = qs[start:end]
+        serializer = qs.metadata.get('serializer')
         for obj in qs:
-            fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
-            objs.append(Serializer(obj, self.request).fields(*fields).serialize())
+            if serializer:
+                serializer.obj = obj
+                serializer.request = self.request
+                objs.append(serializer.serialize())
+            else:
+                fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
+                objs.append(Serializer(obj, self.request).fields(*fields).serialize())
 
         data = dict(type='queryset', title=title, key=attrname, icon=None, url=url, actions=actions, filters=filters, search=search, data=objs)
         if calendar:
@@ -233,7 +243,7 @@ class QuerySet(models.QuerySet):
         next = None
         if page < pages:
             next = '{}{}page={}'.format(url, '&' if '?' in url else '?', page + 1)
-        data.update(count=total, page=page, pages=pages, page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100], previous=previous, next=next)
+        data.update(total=total, count=count, page=page, pages=pages, page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100], previous=previous, next=next)
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data

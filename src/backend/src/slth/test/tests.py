@@ -96,7 +96,7 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizar-pessoa/{}/'.format(juca.pk))
         self.get('/api/visualizar-pessoa2/{}/'.format(juca.pk))
         self.get('/api/visualizar-cidade/{}/'.format(cidade.pk))
-        self.get('/api/visualizar-cidade/{}/?only=dados-gerais&only=cidades-vizinhas'.format(cidade.pk))
+        self.get('/api/visualizar-cidade/{}/?only=dados_gerais&only=cidades_vizinhas'.format(cidade.pk))
 
     def test_model(self):
         today = date.today()
@@ -108,33 +108,53 @@ class ApiTestCase(ServerTestCase):
         qs2 = self.objects('test.pessoa').sem_telefone_pessoal()
         self.assertEqual(qs1.count(), 1)
         self.assertEqual(qs2.count(), 1)
+
+        # using a custom serializer in the queryset
+        self.objects('test.pessoa').serializer(
+            Serializer().fieldset('Dados Gerais', ('id', 'nome')).fields('telefone_pessoal')
+        ).serialize(debug=self.debug)
+
+        # using calendar
         pessoas = (
             self.objects('test.pessoa').
             fields('id', 'nome', 'telefone_pessoal', 'data_nascimento', 'get_qtd_telefones_profissionais')
             .calendar('data_nascimento')
-        )
+        )    
         serialized = pessoas.serialize(debug=self.debug)
         self.assertEqual(len(serialized['data']), 1)
-        self.assertEqual(serialized['data'][0]['data'][1][0]['value'], juca.nome)
+        self.assertEqual(serialized['data'][0]['data'][1]['value'], juca.nome)
+        
         serialized = pessoas.contextualize(HttpRequest(
             data_nascimento__day=next_month.day,
             data_nascimento__month=next_month.month,
             data_nascimento__year=next_month.year
         )).serialize(debug=self.debug)
         self.assertEqual(len(serialized['data']), 1)
-        self.assertEqual(serialized['data'][0]['data'][1][0]['value'], maria.nome)
+        self.assertEqual(serialized['data'][0]['data'][1]['value'], maria.nome)
 
-        # test pagination of a queryset relation of an object    
         for numero in ('11111-1111', '22222-2222', '33333-3333'):
             juca.telefones_profissionais.add(self.objects('test.telefone').create(ddd=84, numero=numero))
+
+        # test default object serializer
         serialized = Serializer(juca).serialize(self.debug)
+        
+        # test custom object serializer
         serialized = Serializer(juca).fieldset(
             'Dados Gerais', ['nome', ['sexo', 'data_nascimento']]
         ).fieldset(
             'Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais']
         ).queryset('telefones_profissionais').serialize(self.debug)
         
-        serialized = Serializer(juca, HttpRequest( only='telefones_profissionais', page_size=1, page=1)).serialize(self.debug)
+        # test only parameter for fieldset
+        serialized = Serializer(juca, HttpRequest(only='dados_para_contato')).fieldset(
+            'Dados Gerais', ['nome', ['sexo', 'data_nascimento']]
+        ).fieldset(
+            'Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais']
+        ).queryset('telefones_profissionais').serialize(self.debug)
+        
+        # test only parameter for fieldset
+        serialized = Serializer(juca, HttpRequest(only='telefones_profissionais', page_size=1, page=1)).serialize(self.debug)
+        # test pagination of a queryset relation of an object 
         self.assertEquals(serialized['data'][0]['previous'], None)
         self.assertEquals(serialized['data'][0]['next'], '?only=telefones_profissionais&page=2')
         serialized = Serializer(juca, HttpRequest( only='telefones_profissionais', page_size=1, page=2)).serialize(self.debug)
