@@ -223,7 +223,7 @@ class QuerySet(models.QuerySet):
                 fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
                 objs.append(Serializer(obj, self.request).fields(*fields).serialize())
 
-        data = dict(type='queryset', title=title, key=attrname, icon=None, url=url, actions=actions, filters=filters, search=search, data=objs)
+        data = dict(type='queryset', title=title, key=attrname, total=total, count=count, icon=None, url=url, actions=actions, filters=filters, search=search)
         if calendar:
             data.update(calendar=calendar)
             data['filters'].extend([
@@ -237,13 +237,7 @@ class QuerySet(models.QuerySet):
             data.update(aggregations=aggregations)
         if template:
             data.update(html=render_to_string(template, data))
-        previous = None
-        if page > 1:
-            previous = '{}{}page={}'.format(url, '&' if '?' in url else '?', page - 1)
-        next = None
-        if page < pages:
-            next = '{}{}page={}'.format(url, '&' if '?' in url else '?', page + 1)
-        data.update(total=total, count=count, page=page, pages=pages, page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100], previous=previous, next=next)
+        data.update(data=objs, page=page, pages=pages, page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100])
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data

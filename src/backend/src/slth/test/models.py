@@ -1,4 +1,5 @@
 from slth.db import models, role, meta
+from django.contrib.auth.models import Group, User
 
 class Telefone(models.Model):
     ddd = models.IntegerField('DDD')
@@ -27,9 +28,17 @@ class Pessoa(models.Model):
     def __str__(self):
         return self.nome
     
-    @meta('Quantidade de Telefones Pessoais')
+    @meta('Quantidade de Telefones Profissionais')
     def get_qtd_telefones_profissionais(self):
         return self.telefones_profissionais.count()
+    
+    @meta('Grupos')
+    def get_grupos(self):
+        return Group.objects.all()
+    
+    @meta('Usuários')
+    def get_usuarios(self):
+        return User.objects.all()
     
 class Cidade(models.Model):
     nome = models.CharField('Nome', max_length=255)

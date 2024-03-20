@@ -33,12 +33,14 @@ from .selenium import SeleniumTestCase
 
 
 class HttpData:
-    def __init__(self, **parameters):
+    def __init__(self, querystring):
         self.data = {}
-        for k, v in parameters.items():
-            if k not in self.data:
-                self.data[k] = []
-            self.data[k].append(v)
+        if querystring:
+            for parameter in querystring[1:].split('&'):
+                name, value = parameter.split('=')
+                if name not in self.data:
+                    self.data[name] = []
+                self.data[name].append(value)
 
     def get(self, k, default=None):
         v = self.data.get(k)
@@ -48,9 +50,9 @@ class HttpData:
         return self.data.get(k) or []
 
 class HttpRequest:
-    def __init__(self, **parameters):
+    def __init__(self, querystring=None):
         self.path = ''
-        self.GET = HttpData(**parameters)
+        self.GET = HttpData(querystring)
 
 class ServerTestCase(StaticLiveServerTestCase):
 
