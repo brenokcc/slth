@@ -152,6 +152,15 @@ class ApiTestCase(ServerTestCase):
             .contextualize(HttpRequest(f'?pk={maria.pk}&e=edit')).serialize(debug=self.debug)
         )
         self.assertEquals(data['type'], 'form')
+
+        data = dict(nome='Maria da Silva 2', data_nascimento=date.today())
+        data = (
+            self.objects('test.pessoa')
+            .serializer(Serializer().actions(edit='slth.test.endpoints.editarpessoa'))
+            .contextualize(HttpRequest(f'?pk={maria.pk}&e=edit', data)).serialize(debug=self.debug)
+        )
+        data = Serializer(self.objects('test.pessoa').get(pk=maria.pk)).serialize(self.debug)
+        self.assertEquals(data['title'], 'Maria da Silva 2')
         
 
     def test_model(self):

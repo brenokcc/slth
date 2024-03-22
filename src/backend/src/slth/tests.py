@@ -33,18 +33,15 @@ from .selenium import SeleniumTestCase
 
 
 class HttpData:
-    def __init__(self, querystring):
-        self.data = {}
-        if querystring:
-            for parameter in querystring[1:].split('&'):
-                name, value = parameter.split('=')
-                if name not in self.data:
-                    self.data[name] = []
-                self.data[name].append(value)
-
+    def __init__(self, data=None):
+        self._mutable = False
+        self.data = data or {}
+        
     def get(self, k, default=None):
         v = self.data.get(k)
-        return v[0] if v else default
+        if isinstance(v, list):
+            return v[0] if v else default
+        return default if v is None else v
 
     def getlist(self, k):
         return self.data.get(k) or []
@@ -59,15 +56,23 @@ class HttpData:
         self.data.clear()
 
 class HttpRequest:
-    def __init__(self, querystring=None):
+    def __init__(self, querystring=None, data=None):
         self.path = ''
         self.scheme = 'http'
-        self.method = 'get'
+        self.method = 'POST' if data else 'GET'
         self.body = None
-        self.GET = HttpData(querystring)
+        self.GET = HttpData()
+        self.POST = HttpData(data)
         self.META = {
-            'CONTENT_TYPE': 'application/json'
+            'CONTENT_TYPE': '_application/json'
         }
+
+        if querystring:
+            for parameter in querystring[1:].split('&'):
+                name, value = parameter.split('=')
+                if name not in self.GET.data:
+                    self.GET.data[name] = []
+                self.GET.data[name].append(value)
 
         def get_host(self):
             return 'localhost'
