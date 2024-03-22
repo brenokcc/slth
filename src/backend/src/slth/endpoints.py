@@ -30,6 +30,7 @@ class EnpointMetaclass(type):
         cls = super().__new__(mcs, name, bases, attrs)
         if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
             slth.ENDPOINTS[cls.__name__.lower()] = cls
+            slth.ENDPOINTS[cls.get_qualified_name()] = cls
         return cls
 
 
@@ -63,7 +64,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     def check_permission(self):
         return True
     
-    def to_response(self):
+    def serialize(self):
         if self.form and isinstance(self.form, FormFactory):
             self.form = self.form.build()
         method = self.request.method.lower()
@@ -73,7 +74,10 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = self.post()
         else:
             data = {}
-        return ApiResponse(serialize(data), safe=False)
+        return serialize(data)
+    
+    def to_response(self):
+        return ApiResponse(self.serialize(), safe=False)
     
     @classmethod
     def get_api_name(cls):
@@ -83,6 +87,19 @@ class Endpoint(metaclass=EnpointMetaclass):
                 name.append('-')
             name.append(c.lower())
         return ''.join(name)
+    
+    @classmethod
+    def get_pretty_name(cls):
+        name = []
+        for c in cls.__name__:
+            if name and c.isupper():
+                name.append(' ')
+            name.append(c)
+        return ''.join(name)
+    
+    @classmethod
+    def get_qualified_name(cls):
+        return '{}.{}'.format(cls.__module__, cls.__name__).lower()
     
     @classmethod
     def get_api_url(cls, *args):
@@ -98,6 +115,14 @@ class Endpoint(metaclass=EnpointMetaclass):
         for arg in args:
             pattern = '{}{}/'.format(pattern, '<int:{}>'.format(arg))
         return pattern
+    
+    @classmethod
+    def get_metadata(cls, key):
+        metaclass = getattr(cls, 'Meta')
+        value = getattr(metaclass, key, None)
+        if value is None and key == 'verbose_name':
+            value = cls.get_pretty_name()
+        return value
         
 
 class ChildEndpoint(Endpoint):
@@ -114,7 +139,7 @@ class FormFactory:
         self.fields = []
 
     def fieldset(self, title, *fields):
-        self.fieldsets['title'] = fields
+        self.fieldsets['title'] = title
         for names in fields:
             for name in names:
                 if isinstance(name, str):

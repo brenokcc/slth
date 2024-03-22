@@ -48,11 +48,29 @@ class HttpData:
 
     def getlist(self, k):
         return self.data.get(k) or []
+    
+    def __contains__(self, item):
+        return item in self.data
+    
+    def __getitem__(self, item):
+        return self.data[item]
+    
+    def clear(self):
+        self.data.clear()
 
 class HttpRequest:
     def __init__(self, querystring=None):
         self.path = ''
+        self.scheme = 'http'
+        self.method = 'get'
+        self.body = None
         self.GET = HttpData(querystring)
+        self.META = {
+            'CONTENT_TYPE': 'application/json'
+        }
+
+        def get_host(self):
+            return 'localhost'
 
 class ServerTestCase(StaticLiveServerTestCase):
 
@@ -131,6 +149,9 @@ class ServerTestCase(StaticLiveServerTestCase):
 
     def objects(self, model):
         return apps.get_model(model).objects
+    
+    def print(self, data):
+        print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
     @staticmethod

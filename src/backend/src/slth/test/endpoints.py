@@ -64,6 +64,11 @@ class CadastrarPessoa(Endpoint):
         )
 
 class EditarPessoa(Endpoint):
+
+    class Meta:
+        icon = 'edit'
+        verbose_name = 'Editar Pessoa'
+
     def __init__(self, request, pk):
         super().__init__(request)
         self.form = (

@@ -1,4 +1,5 @@
 import re
+import slth
 import json
 import types
 from datetime import date, datetime, timedelta
@@ -73,7 +74,7 @@ class Serializer:
         self.path = serializer.path.copy() if serializer else []
         self.obj = obj
         self.request = request
-        self.metadata = []
+        self.metadata = dict(actions={}, content=[])
         self.serializer:Serializer = serializer
         self.type = type
         if title:
@@ -81,21 +82,25 @@ class Serializer:
             self.path.append(to_snake_case(title))
         else:
             self.title = str(obj)
+
+    def actions(self, **actions):
+        self.metadata['actions'].update(actions)
+        return self
         
     def fields(self, *names):
-        self.metadata.append(('fields', dict(names=names)))
+        self.metadata['content'].append(('fields', dict(names=names)))
         return self
     
     def fieldset(self, title, names=(), attr=None, section=None, list=None, group=None):
-        self.metadata.append(('fieldset', dict(title=title, names=names, attr=attr, section=section, list=list, group=group)))
+        self.metadata['content'].append(('fieldset', dict(title=title, names=names, attr=attr, section=section, list=list, group=group)))
         return self
         
     def queryset(self, name, section=None, list=None, group=None):
-        self.metadata.append(('queryset', dict(name=name, section=section, list=list, group=group)))
+        self.metadata['content'].append(('queryset', dict(name=name, section=section, list=list, group=group)))
         return self
     
     def endpoint(self, title, cls, section=None, list=None, group=None):
-        self.metadata.append(('endpoint', dict(title=title, cls=cls, section=section, list=list, group=group)))
+        self.metadata['content'].append(('endpoint', dict(title=title, cls=cls, section=section, list=list, group=group)))
         return self
     
     def section(self, title):
@@ -105,14 +110,14 @@ class Serializer:
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title)
 
     def parent(self):
-        self.serializer.metadata.append(('serializer', dict(serializer=self)))
+        self.serializer.metadata['content'].append(('serializer', dict(serializer=self)))
         return self.serializer
     
-    def serialize(self, debug=False):
+    def serialize(self, debug=False, forward_exception=False):
         try:
             return self.to_dict(debug=debug)
         except JsonResponseException as e:
-            if self.serializer:
+            if self.serializer or forward_exception:
                 raise e
             if debug:
                 print(json.dumps(e.data, indent=2, ensure_ascii=False))
@@ -122,25 +127,31 @@ class Serializer:
         path = [f'&only={token}' if i else f'?only={token}' for i, token in enumerate(self.path)]
         only = self.request.GET.getlist('only') if self.request else ()
 
-        if not self.metadata:
+        if self.request and 'e' in self.request.GET:
+            qualified_name = self.metadata['actions'].get(self.request.GET['e'][0])
+            if qualified_name:
+                cls = slth.ENDPOINTS[qualified_name]
+                raise JsonResponseException(cls(self.request, self.obj.pk).serialize())
+
+        if not self.metadata['content']:
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
             for m2m in type(self.obj)._meta.many_to_many:
                 self.queryset(m2m.name)
         
         items = []
         output = None
-        for key, metadata in self.metadata:
+        for key, item in self.metadata['content']:
             data = None
             if key == 'fields':
                 data = []
-                for name in metadata['names']:
+                for name in item['names']:
                     if not only or name in only:
                         data.append(getfield(self.obj, name, self.request))
                 if only and only[-1] == name: raise JsonResponseException(data)
             elif key == 'fieldset':
-                title = metadata['title']
-                names = metadata['names']
-                attr = metadata['attr']
+                title = item['title']
+                names = item['names']
+                attr = item['attr']
                 if not only or to_snake_case(title) in only:
                     actions=[]
                     fields=[]
@@ -152,7 +163,7 @@ class Serializer:
                     data = dict(type='fieldset', title=title, key=to_snake_case(title), url=url, actions=actions, data=fields)
                     if only and only[-1] == to_snake_case(title): raise JsonResponseException(data)
             elif key == 'queryset':
-                name = metadata['name']
+                name = item['name']
                 if not only or to_snake_case(name) in only:
                     attr = getattr(self.obj, name)
                     if type(attr) == types.MethodType:
@@ -165,21 +176,29 @@ class Serializer:
                     data['url'] = '{}&{}'.format(''.join(path)[1:], data['url'][1:]) if data['url'] else ''.join(path)
                     if only and only[-1] == name: raise JsonResponseException(data)
             elif key == 'endpoint':
-                title = metadata['title']
-                cls = metadata['cls']
+                title = item['title']
+                cls = item['cls']
                 if not only or to_snake_case(title) in only:
                     endpoint = cls(self.request, self.obj)
                     if endpoint.check_permission():
                         data = serialize(endpoint.get())
                     data = dict(type='fieldset', slug=to_snake_case(title), title=title, actions=[], data=data)
             elif key == 'serializer':
-                serializer = metadata['serializer']
+                serializer = item['serializer']
                 if not only or to_snake_case(serializer.title) in only:
                     data = serializer.to_dict()
             if data:
                 items.extend(data) if key == 'fields' else items.append(data)
+
+        actions = []
+        if not only:
+            for action_key, qualified_name in self.metadata['actions'].items():
+                cls = slth.ENDPOINTS[qualified_name]
+                action_name = cls.get_metadata('verbose_name')
+                action_url = f'?e={action_key}'
+                actions.append(dict(type='action', name=action_name, url=action_url, key=action_key))
         
-        output = dict(type=self.type, title=self.title, url=''.join(path), actions=[], data=items)
+        output = dict(type=self.type, title=self.title, url=''.join(path), actions=actions, data=items)
         if debug:
             print(json.dumps(output, indent=2, ensure_ascii=False))
         return output

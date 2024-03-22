@@ -1,6 +1,7 @@
 from ..tests import ServerTestCase, HttpRequest
 from ..serializer import Serializer
 from datetime import date, timedelta
+from ..exceptions import JsonResponseException
 
 class ApiTestCase(ServerTestCase):
 
@@ -132,6 +133,26 @@ class ApiTestCase(ServerTestCase):
             )
             data = serializer.serialize(self.debug)
             self.assertEquals(data['type'], data_type)
+
+    def test_actions(self):
+        telefone = self.objects('test.telefone').create(ddd=84, numero='99999-9999')
+        juca = self.objects('test.pessoa').create(nome='Juca da Silva', telefone_pessoal=telefone, data_nascimento=date.today())
+        maria = self.objects('test.pessoa').create(nome='Maria da Silva', data_nascimento=date.today())
+        
+        data = (
+            Serializer(juca, HttpRequest('?e=edit'))
+            .actions(edit='slth.test.endpoints.editarpessoa')
+            .serialize(self.debug)
+        )
+        self.assertEquals(data['type'], 'form')
+          
+        data = (
+            self.objects('test.pessoa')
+            .serializer(Serializer().actions(edit='slth.test.endpoints.editarpessoa'))
+            .contextualize(HttpRequest(f'?pk={maria.pk}&e=edit')).serialize(debug=self.debug)
+        )
+        self.assertEquals(data['type'], 'form')
+        
 
     def test_model(self):
         today = date.today()

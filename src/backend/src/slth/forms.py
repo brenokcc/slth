@@ -88,7 +88,7 @@ class FormMixin:
         if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
             value = []
             instances = {}
-            if isinstance(self, ModelForm) and self.instance.id and  hasattr(self.instance, name):
+            if isinstance(field, OneToManyField) and isinstance(self, ModelForm) and self.instance.id and hasattr(self.instance, name):
                 instances = {i: instance for i, instance in enumerate(getattr(self.instance, name).all()[0:field.max])}
             for i in range(0, field.max):
                 kwargs = dict(instance=instances.get(i), request=self.request) if isinstance(self, ModelChoiceField) else dict(request=self.request)

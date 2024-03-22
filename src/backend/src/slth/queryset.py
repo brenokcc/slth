@@ -15,6 +15,7 @@ from django.template.loader import render_to_string
 from django.db.models import Model, QuerySet, Manager
 from django.db import models
 from .serializer import Serializer
+from .exceptions import JsonResponseException
 
 
 class QuerySet(models.QuerySet):
@@ -32,6 +33,7 @@ class QuerySet(models.QuerySet):
 
     def _clone(self):
         qs = super()._clone()
+        qs.request = self.request
         for k, v in self.metadata.items():
             v = self.metadata[k]
             if isinstance(v, list):
@@ -101,23 +103,27 @@ class QuerySet(models.QuerySet):
         return self
 
     def contextualize(self, request):
+        pk = request and request.GET.get('pk')
         self.request = request
-        filters = self.metadata.get('filters', ())
+        qs = self._clone()
+        if pk:
+            qs = qs.filter(pk=pk)
+        filters = qs.metadata.get('filters', ())
         for lookup in filters:
             if lookup.endswith('userrole'):
                 from api.models import Role
-                rolename = self.parameter('userrole')
+                rolename = qs.parameter('userrole')
                 if rolename:
-                    self = self.filter(
+                    qs = qs.filter(
                         **{'{}__in'.format(lookup[0:-10]):
                         Role.objects.filter(name=rolename).values_list('username', flat=True)}
                     )
-            elif lookup in request.GET:
-                self = self.apply_filter(lookup, request.GET[lookup])
-        search = self.metadata.get('search', ())
-        if search and 'q' in request.GET:
-            self = self.apply_search(request.GET['q'], search)
-        return self
+            elif request and lookup in request.GET:
+                qs = qs.apply_filter(lookup, request.GET[lookup])
+        search = qs.metadata.get('search', ())
+        if request and search and 'q' in request.GET:
+            qs = qs.apply_search(request.GET['q'], search)
+        return qs
 
     def apply_filter(self, lookup, value):
         booleans = dict(true=True, false=False, null=None)
@@ -147,7 +153,15 @@ class QuerySet(models.QuerySet):
     def parameter(self, name, default=None):
         return self.request.GET.get(name, default) if self.request else default
     
-    def serialize(self, debug=False):
+    def serialize(self, debug=False, forward_exception=False):
+        try:
+            return self.to_dict(debug=debug)
+        except JsonResponseException as e:
+            if debug:
+                print(json.dumps(e.data, indent=2, ensure_ascii=False))
+            return e.data
+    
+    def to_dict(self, debug=False):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
         attrname = self.metadata.get('attrname')
         url = self.request.path if self.request else ''
@@ -213,12 +227,12 @@ class QuerySet(models.QuerySet):
         start = page_size * (page - 1)
         end = start + page_size
         qs = qs[start:end]
-        serializer = qs.metadata.get('serializer')
+        serializer:Serializer = qs.metadata.get('serializer')
         for obj in qs:
             if serializer:
                 serializer.obj = obj
                 serializer.request = self.request
-                objs.append(serializer.serialize())
+                objs.append(serializer.serialize(forward_exception=True))
             else:
                 fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
                 objs.append(Serializer(obj, self.request).fields(*fields).serialize())
