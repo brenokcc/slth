@@ -1,4 +1,4 @@
-
+import slth
 from django.apps import apps
 from django.db import models
 from django.db.models import manager, Q, CharField, CASCADE
@@ -164,9 +164,7 @@ class QuerySet(models.QuerySet):
     def to_dict(self, debug=False):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
         attrname = self.metadata.get('attrname')
-        url = self.request.path if self.request else ''
-        if attrname:
-            url = '{}{}only={}'.format(url, '&' if '?' in url else '?', attrname)
+        url = '?only={}'.format(attrname) if attrname else ''
         subset = None
         actions = []
         filters = []
@@ -175,6 +173,25 @@ class QuerySet(models.QuerySet):
         aggregations = []
         template = None
         calendar = None
+
+        instance_actions = []
+        queryset_actions = []
+
+        for qualified_name in self.metadata.get('actions', ()):
+            cls = slth.ENDPOINTS[qualified_name]
+            if cls.has_args():
+                instance_actions.append(cls)
+            else:
+                queryset_actions.append(cls)
+
+        if self.request and 'e' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('e')]
+            if cls in queryset_actions:
+                raise JsonResponseException(cls(self.request).serialize())
+
+        for cls in queryset_actions:
+            if cls(self.request).check_permission():
+                actions.append(cls.get_api_metadata(f'?e={cls.get_api_name()}'))
 
         subset = self.parameter('subset')
         subset = None if subset == 'all' else subset
@@ -226,18 +243,28 @@ class QuerySet(models.QuerySet):
         pages = total // page_size + total % page_size
         start = page_size * (page - 1)
         end = start + page_size
-        qs = qs[start:end]
         serializer:Serializer = qs.metadata.get('serializer')
-        for obj in qs:
+
+        if self.request and 'e' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('e')]
+            if cls in instance_actions:
+                raise JsonResponseException(cls(self.request, qs.get(pk=self.request.GET.get('id')).pk).serialize())
+
+        for obj in qs[start:end]:
             if serializer:
                 serializer.obj = obj
                 serializer.request = self.request
-                objs.append(serializer.serialize(forward_exception=True))
+                serializer.title = str(obj)
             else:
                 fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
-                objs.append(Serializer(obj, self.request).fields(*fields).serialize())
+                serializer = Serializer(obj, self.request).fields(*fields)
+            serialized = serializer.serialize(forward_exception=True)
+            for cls in instance_actions:
+                if cls(self.request, obj.pk).check_permission():
+                    serialized['actions'].append(cls.get_api_metadata(f'?e={cls.get_api_name()}&id={obj.pk}'))
+            objs.append(serialized)
 
-        data = dict(type='queryset', title=title, key=attrname, total=total, count=count, icon=None, url=url, actions=actions, filters=filters, search=search)
+        data = dict(type='queryset', title=title, key=attrname, url=url, total=total, count=count, icon=None, actions=actions, filters=filters, search=search)
         if calendar:
             data.update(calendar=calendar)
             data['filters'].extend([

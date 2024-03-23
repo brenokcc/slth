@@ -49,7 +49,7 @@ class ViewUser(Endpoint):
             .fieldset('Dados Gerais', (('username', 'email'),))
             .fieldset('Dados Pessoais', ('first_name', 'last_name'))
             .fields('password')
-            .queryset('groups')
+            .queryset('Grupos', 'groups')
         )
     
 
@@ -78,12 +78,21 @@ class EditarPessoa(Endpoint):
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
 
+    def check_permission(self):
+        return True
+
 
 class ListarPessoas(Endpoint):
     def __init__(self, request):
         super().__init__(request)
         self.serializer = (
-            Pessoa.objects.search('nome').subsets('com_telefone_pessoal', 'sem_telefone_pessoal').contextualize(request)
+            Pessoa.objects.search('nome')
+            .subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
+            .actions(
+                'slth.test.endpoints.cadastrarpessoa',
+                'slth.test.endpoints.editarpessoa'
+            )
+            .contextualize(request)
         )
 
 
@@ -103,9 +112,42 @@ class VisualizarPessoa2(Endpoint):
         super().__init__(request)
         self.serializer = (
             Serializer(Pessoa.objects.get(pk=pk), request)
-            .fieldset('Dados Gerais', ('id', 'nome'))
+            .actions('slth.test.endpoints.editarpessoa')
+            .fieldset('Dados Gerais', ('id', 'nome'), 'slth.test.endpoints.editarpessoa')
             .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal')
-            .queryset('telefones_profissionais')
+            .queryset('Telefones Profissionais', 'telefones_profissionais')
+        )
+
+class EstatisticaPessoal(Endpoint):
+    def __init__(self, request, *args):
+        super().__init__(request)
+        self.serializer = Pessoa.objects.counter('sexo')
+
+class VisualizarPessoa3(Endpoint):
+    def __init__(self, request, pk):
+        super().__init__(request)
+        self.serializer = (
+            Serializer(Pessoa.objects.get(pk=pk), request)
+            .fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']])
+            .fieldset('Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais'])
+            .queryset('Telefones Profissionais', 'telefones_profissionais')
+            .section('Ensino')
+                .fieldset('Diários', ())
+                .fieldset('Projetos Finais', ())
+            .parent()
+            .dimention('Recursos Humanos')
+                .section('Ponto')
+                    .fieldset('Frequências', ())
+                    .fieldset('Afastamentos', ())
+                    .queryset('Usuários', 'get_usuarios')
+                .parent()
+                .fieldset('XXXXX', ())
+                .endpoint('Estatística', 'slth.test.endpoints.estatisticapessoal')
+                .queryset('Telefones Profissionais', 'telefones_profissionais')
+                .section('PGD')
+                    .fieldset('Adesões', ())
+                .parent()
+            .parent()
         )
     
 

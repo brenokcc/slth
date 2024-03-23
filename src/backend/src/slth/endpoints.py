@@ -48,7 +48,10 @@ class Endpoint(metaclass=EnpointMetaclass):
         if self.form:
             return self.form.serialize()
         elif self.serializer:
-            return self.serializer.serialize()
+            if isinstance(self.serializer, dict):
+                return self.serializer
+            else:
+                return self.serializer.serialize()
         else:
             return {}
     
@@ -81,6 +84,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     
     @classmethod
     def get_api_name(cls):
+        return cls.__name__.lower()
         name = []
         for c in cls.__name__:
             if name and c.isupper():
@@ -109,6 +113,10 @@ class Endpoint(metaclass=EnpointMetaclass):
         return url
     
     @classmethod
+    def has_args(cls):
+        return len(inspect.getfullargspec(cls.__init__).args) > 2
+    
+    @classmethod
     def get_api_url_pattern(cls):
         args = inspect.getfullargspec(cls.__init__).args[2:]
         pattern = '{}/'.format(cls.get_api_name())
@@ -117,9 +125,16 @@ class Endpoint(metaclass=EnpointMetaclass):
         return pattern
     
     @classmethod
+    def get_api_metadata(cls, url):
+        action_name = cls.get_metadata('verbose_name')
+        return dict(type='action', name=action_name, url=url, key=cls.get_api_name())
+    
+    @classmethod
     def get_metadata(cls, key):
-        metaclass = getattr(cls, 'Meta')
-        value = getattr(metaclass, key, None)
+        value = None
+        metaclass = getattr(cls, 'Meta', None)
+        if metaclass:
+            value = getattr(metaclass, key, None)
         if value is None and key == 'verbose_name':
             value = cls.get_pretty_name()
         return value
