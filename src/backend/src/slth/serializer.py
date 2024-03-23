@@ -145,8 +145,8 @@ class Serializer:
             if only:
                 only = only.split('__')
 
-        if self.request and 'e' in self.request.GET:
-            cls = slth.ENDPOINTS[self.request.GET.get('e')]
+        if self.request and 'action' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls and cls.get_qualified_name() in self.metadata['allow']:
                 raise JsonResponseException(cls(self.request, self.obj.pk).serialize())
 
@@ -159,7 +159,7 @@ class Serializer:
         if not self.lazy:
             for i, (datatype, key, item) in enumerate(self.metadata['content']):
                 leaf = only and only[-1] == key
-                lazy = i and self.type == 'dimension' and not leaf
+                lazy = i and self.type in ('group', 'dimension') and not leaf
                 data = None
                 if datatype == 'fields':
                     data = []
