@@ -29,7 +29,7 @@ def serialize(obj, primitive=False):
         return [serialize(obj) for obj in obj]
     elif isinstance(obj, Model):
         return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
-    elif isinstance(obj, QuerySet) or isinstance(obj, Manager):
+    elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
         if primitive:
             return [str(obj) for obj in obj.filter()]
         else:
@@ -214,7 +214,8 @@ class Serializer:
                         if not lazy:
                             endpoint = cls(self.request, self.obj.pk)
                             if endpoint.check_permission():
-                                data.update(data=serialize(endpoint.get()))
+                                returned = endpoint.get()
+                                data.update(data=returned.serialize() if hasattr(returned, 'serialize') else serialize(returned))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':
                     serializer = item['serializer']
@@ -231,7 +232,8 @@ class Serializer:
             for qualified_name in self.metadata['actions']:
                 cls = slth.ENDPOINTS[qualified_name]
                 if cls(self.request, self.obj.pk).check_permission():
-                    actions.append(cls.get_api_metadata(f'?e={cls.get_api_name()}'))
+                    url = absolute_url(self.request, f'?action={cls.get_api_name()}')
+                    actions.append(cls.get_api_metadata(url))
         
         output = dict(type=self.type, title=self.title)
         if self.serializer:

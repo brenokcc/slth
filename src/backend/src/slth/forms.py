@@ -4,11 +4,12 @@ from typing import Any
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
-from django.forms.models import ModelChoiceIterator
+from django.forms.models import ModelChoiceIterator, ModelChoiceIteratorValue
 from django.db.models import Model
 from .models import Token
 from django.db import transaction
 from django.db.models import Manager
+from .exceptions import JsonResponseException
 
 
 DjangoModelForm = ModelForm
@@ -57,7 +58,13 @@ class FormMixin:
                         d2[k] = v
                 d2._mutable = False
 
-    def serialize(self, prefix=None):
+    def serialize(self):
+        try:
+            return self.to_dict()
+        except JsonResponseException as e:
+            return e.data
+
+    def to_dict(self, prefix=None):
         data = dict(type='form')
         choices_field_name = self.request.GET.get('choices')
         if self.fieldsets:
@@ -92,7 +99,7 @@ class FormMixin:
                 instances = {i: instance for i, instance in enumerate(getattr(self.instance, name).all()[0:field.max])}
             for i in range(0, field.max):
                 kwargs = dict(instance=instances.get(i), request=self.request) if isinstance(self, ModelChoiceField) else dict(request=self.request)
-                value.append(field.form(**kwargs).serialize(prefix=f'{name}__{i}'))
+                value.append(field.form(**kwargs).to_dict(prefix=f'{name}__{i}'))
             data = dict(type='inline', min=field.min, max=field.max, name=name, label=field.label, required=field.required, value=value)
         else:
             ftype = FIELD_TYPES.get(type(field), 'text')
@@ -106,7 +113,10 @@ class FormMixin:
             if ftype == 'choice':
                 if isinstance(field.choices, ModelChoiceIterator):
                     if choices_field_name == fname:
-                        return [dict(id=obj.id, value=str(obj)) for obj in field.choices]
+                        qs = field.choices.queryset
+                        if 'q' in self.request.GET:
+                            qs = qs.apply_search(self.request.GET['q'])
+                        raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
                     else:
                         data['choices'] = build_url(self.request, choices=fname)
                 else:
