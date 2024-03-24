@@ -1,4 +1,5 @@
 from .. import forms
+from .models import Cidade, Pessoa
 from django.contrib.auth.models import User, Group
 
 
@@ -28,3 +29,19 @@ class RegisterForm(forms.Form):
 
     def save(self):
         print(self.cleaned_data)
+
+class CadastrarCidadeForm(forms.ModelForm):
+    class Meta:
+        title = 'Cadastrar Cidade'
+        model = Cidade
+        fields = 'nome', 'prefeito', 'vereadores'
+
+    def get_prefeito_queryset(self, queryset, values):
+        print(queryset, values)
+        return queryset
+    
+    def on_prefeito_change(self, values):
+        print(values)
+        self.hide('nome')
+        self.setdata(nome='Maria da Silva', prefeito=Pessoa.objects.first())
+

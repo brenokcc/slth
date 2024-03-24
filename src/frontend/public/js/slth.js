@@ -27,7 +27,7 @@ function request(method, url, callback, data){
     ).then(result => {
             if(contentType=='application/json'){
                 var data = JSON.parse(result||'{}');
-                console.log(data)
+                if(callback) callback(data, httpResponse);
             } else if(contentType.indexOf('text')<0 || contentType.indexOf('csv')>=0){
                 var file = window.URL.createObjectURL(new Blob( [ new Uint8Array(result) ], { type: contentType }));
                 var a = document.createElement("a");

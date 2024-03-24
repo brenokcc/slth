@@ -1,11 +1,12 @@
 
 import json
 from typing import Any
+import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
 from django.forms.models import ModelChoiceIterator, ModelChoiceIteratorValue
-from django.db.models import Model
+from django.db.models import Model, QuerySet, Manager
 from .models import Token
 from django.db import transaction
 from django.db.models import Manager
@@ -20,6 +21,7 @@ DjangoForm = Form
 FIELD_TYPES = {
     CharField: 'text',
     EmailField: 'email',
+    DecimalField: 'decimal',
     BooleanField: 'boolean',
     IntegerField: 'number',
     ChoiceField: 'choice',
@@ -27,6 +29,7 @@ FIELD_TYPES = {
     MultipleChoiceField: 'choice',
     ModelMultipleChoiceField: 'choice',
 }
+    
 
 class FormMixin:
 
@@ -66,10 +69,23 @@ class FormMixin:
         if metaclass:
             return getattr(metaclass, name, default)
         return default
+    
+    def on_change(self, field_name):
+        self.controls['show'].clear()
+        self.controls['hide'].clear()
+        self.controls['set'].clear()
+        values = {}
+        for name2 in self.fields:
+            value2 = self.getdata(name2, self.request.GET.get(name2))
+            if value2:
+                values[name2] = value2
+        getattr(self, f'on_{field_name}_change')(values)
+        return self.controls
 
     def serialize(self):
         try:
-            return self.to_dict()
+            field_name = self.request.GET.get('on_change')
+            return self.on_change(field_name) if field_name else self.to_dict()
         except JsonResponseException as e:
             return e.data
         
@@ -78,7 +94,11 @@ class FormMixin:
         return self
 
     def to_dict(self, prefix=None):
-        data = dict(type='form', title=self.get_metadata('title'), icon=self.get_metadata('icon'))
+        data = dict(
+            type='form', title=self.get_metadata('title'), icon=self.get_metadata('icon'),
+            style=self.get_metadata('style'), url=absolute_url(self.request)
+        )
+        data.update(controls=self.controls)
         display = []
         if self.display_data:
             for serializable in self.display_data:
@@ -133,19 +153,35 @@ class FormMixin:
                 value = value()
             if isinstance(value, list):
                 value = [obj.pk if isinstance(obj, Model) else obj for obj in value]
+            if value and isinstance(field, ModelChoiceField):
+                obj = field.queryset.get(pk=value)
+                value = dict(id=obj.id, label=str(obj))
             fname = name if prefix is None else f'{prefix}__{name}'
-            data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value)
-            if ftype == 'choice':
+            data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, mask=None)
+            if ftype == 'decimal':
+                data.update(mask='decimal')
+            elif ftype == 'choice':
                 if isinstance(field.choices, ModelChoiceIterator):
                     if choices_field_name == fname:
+                        method_name = f'get_{fname}_queryset'
                         qs = field.choices.queryset
+                        if hasattr(self, method_name):
+                            values = {}
+                            for name2 in self.fields:
+                                value2 = self.getdata(name2, self.request.GET.get(name2))
+                                if value2:
+                                    values[name2] = value2
+                            qs = getattr(self, method_name)(qs, values)
                         if 'q' in self.request.GET:
                             qs = qs.apply_search(self.request.GET['q'])
                         raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
                     else:
-                        data['choices'] = absolute_url(self.request, f'choices={fname}&q=')
+                        data['choices'] = absolute_url(self.request, f'choices={fname}')
                 else:
                     data['choices'] = [dict(id=k, value=v) for k, v in field.choices]
+        attr_name = f'on_{name}_change'
+        if hasattr(self, attr_name):
+            data['onchange'] = absolute_url(self.request, f'on_change={name}')
         return data
     
     def post(self):
@@ -198,11 +234,44 @@ class FormMixin:
                     return dict(message='Action successfully performed.')
                 else:
                     return self.submit()
+                
+    def hide(self, *names):
+        self.controls['hide'].extend(names)
+
+    def show(self, *names):
+        self.controls['show'].extend(names)
+
+    def setdata(self, **kwargs):
+        for k, v in kwargs.items():
+            if isinstance(v, Model):
+                v = dict(id=v.id, text=str(v))
+            elif isinstance(v, QuerySet) or isinstance(v, Manager):
+                v = [dict(id=v.id, text=str(v)) for v in v]
+            elif isinstance(v, bool):
+                v = str(v).lower()
+            elif isinstance(v, datetime.datetime):
+                v = v.strftime('%Y-%m-%d %H:%M')
+            elif isinstance(v, datetime.date):
+                v = v.strftime('%Y-%m-%d')
+            self.controls['set'][k] = v
+
+    def getdata(self, name, value, default=None):
+        if value is None:
+            return default
+        else:
+            try:
+                value = self.fields[name].to_python(value)
+            except KeyError:
+                pass
+            except ValidationError:
+                pass
+            return default if value is None else value
 
 class Form(DjangoForm, FormMixin):
     def __init__(self, *args, **kwargs):
         self.fieldsets = {}
         self.display_data = []
+        self.controls = dict(hide=[], show=[], set={})
         self.request = kwargs.pop('request', None)
         self.parse_json()
         if 'data' not in kwargs:
@@ -220,20 +289,23 @@ class Form(DjangoForm, FormMixin):
 
 
 class ModelForm(DjangoModelForm, FormMixin):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, instance=None, request=None, **kwargs):
         self.fieldsets = {}
         self.display_data = []
-        self.request = kwargs.pop('request', None)
+        self.controls = dict(hide=[], show=[], set={})
+        self.request = request
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
                 data = self.request.GET or None
             elif self.request.method.upper() == 'POST':
                 data = self.request.POST or {}
+            else:
+                data = None
         else:
             data = kwargs['data']
         kwargs.update(data=data)
-        super().__init__(*args, **kwargs)
+        super().__init__(instance=instance, **kwargs)
 
     def submit(self):
         pass

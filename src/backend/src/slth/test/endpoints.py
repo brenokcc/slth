@@ -1,5 +1,5 @@
 from slth.endpoints import Endpoint, ChildEndpoint, FormFactory
-from .forms import RegisterForm, UserForm
+from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Cidade
 from slth.serializer import Serializer, LinkField
@@ -175,6 +175,11 @@ class CadastrarCidade(Endpoint):
             .form()
             .display(Serializer(Pessoa.objects.first()).fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
         )
+
+class CadastrarCidade2(Endpoint):
+    def __init__(self, request):
+        super().__init__(request)
+        self.form = CadastrarCidadeForm(Cidade.objects.first(), request)
 
 
 class CidadesVizinhas(ChildEndpoint):
