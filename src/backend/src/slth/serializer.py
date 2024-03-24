@@ -210,7 +210,7 @@ class Serializer:
                     cls = item['cls']
                     if not only or key in only:
                         url = absolute_url(self.request, '?only={}'.format('__'.join(self.path + [key])))
-                        data = dict(type='fieldset', key=key, title=title, url=url)
+                        data = dict(type='fieldset', key=key, title=title)
                         if not lazy:
                             endpoint = cls(self.request, self.obj.pk)
                             if endpoint.check_permission():

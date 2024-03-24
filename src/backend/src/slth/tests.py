@@ -74,8 +74,8 @@ class HttpRequest:
                     self.GET.data[name] = []
                 self.GET.data[name].append(value)
 
-        def get_host(self):
-            return 'localhost'
+    def get_host(self):
+        return 'localhost'
 
 class ServerTestCase(StaticLiveServerTestCase):
 

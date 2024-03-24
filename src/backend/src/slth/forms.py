@@ -10,6 +10,8 @@ from .models import Token
 from django.db import transaction
 from django.db.models import Manager
 from .exceptions import JsonResponseException
+from .utils import absolute_url
+from .serializer import serialize, Serializer
 
 
 DjangoModelForm = ModelForm
@@ -58,14 +60,37 @@ class FormMixin:
                         d2[k] = v
                 d2._mutable = False
 
+    @classmethod
+    def get_metadata(cls, name, default=None):
+        metaclass = getattr(cls, 'Meta', None)
+        if metaclass:
+            return getattr(metaclass, name, default)
+        return default
+
     def serialize(self):
         try:
             return self.to_dict()
         except JsonResponseException as e:
             return e.data
+        
+    def display(self, serializable):
+        self.display_data.append(serializable)
+        return self
 
     def to_dict(self, prefix=None):
-        data = dict(type='form')
+        data = dict(type='form', title=self.get_metadata('title'), icon=self.get_metadata('icon'))
+        display = []
+        if self.display_data:
+            for serializable in self.display_data:
+                if isinstance(serializable, Serializer):
+                    serializable.request = self.request
+                    serialized = serializable.serialize(forward_exception=True)['data']
+                elif hasattr(serializable, 'serialize'):
+                    serialized = serializable.serialize()
+                else:
+                    serialized = serialize(serializable)
+                display.append(serialized)
+            data.update(display=display)
         choices_field_name = self.request.GET.get('choices')
         if self.fieldsets:
             fieldsets = []
@@ -118,7 +143,7 @@ class FormMixin:
                             qs = qs.apply_search(self.request.GET['q'])
                         raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
                     else:
-                        data['choices'] = build_url(self.request, choices=fname)
+                        data['choices'] = absolute_url(self.request, f'choices={fname}&q=')
                 else:
                     data['choices'] = [dict(id=k, value=v) for k, v in field.choices]
         return data
@@ -177,6 +202,7 @@ class FormMixin:
 class Form(DjangoForm, FormMixin):
     def __init__(self, *args, **kwargs):
         self.fieldsets = {}
+        self.display_data = []
         self.request = kwargs.pop('request', None)
         self.parse_json()
         if 'data' not in kwargs:
@@ -196,6 +222,7 @@ class Form(DjangoForm, FormMixin):
 class ModelForm(DjangoModelForm, FormMixin):
     def __init__(self, *args, **kwargs):
         self.fieldsets = {}
+        self.display_data = []
         self.request = kwargs.pop('request', None)
         self.parse_json()
         if 'data' not in kwargs:
@@ -237,13 +264,6 @@ class OneToOneField(InlineModelField):
     def __init__(self, model, fields='__all__', exclude=(), **kwargs):
         super().__init__(model, fields=fields, exclude=exclude, min=1, max=1)
 
-
-
-def build_url(request, **params):
-    url = "{}://{}{}".format(request.META.get('X-Forwarded-Proto', request.scheme), request.get_host(), request.path)
-    for k, v in params.items():
-        url = f'{url}&{k}={v}' if '?' in url else f'{url}?{k}={v}'
-    return url
 
 class LoginForm(Form):
     username = CharField(label=_('Username'))

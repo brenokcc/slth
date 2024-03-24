@@ -1,7 +1,9 @@
 
 
 def absolute_url(request, *querystrings):
-    url = request.path if request else ''
+    url = ''
+    if request:
+        url = "{}://{}{}".format(request.META.get('X-Forwarded-Proto', request.scheme), request.get_host(), request.path)
     for querystring in querystrings:
         if querystring:
             querystring = querystring.replace('?', '')

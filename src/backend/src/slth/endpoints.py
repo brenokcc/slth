@@ -68,8 +68,6 @@ class Endpoint(metaclass=EnpointMetaclass):
         return True
     
     def serialize(self):
-        if self.form and isinstance(self.form, FormFactory):
-            self.form = self.form.build()
         method = self.request.method.lower()
         if method == 'get':
             data = self.get()
@@ -163,11 +161,11 @@ class FormFactory:
                     self.fields.extend(names)
         return self
     
-    def build(self):
+    def form(self):
         class Form(ModelForm):
             class Meta:
                 model = type(self.instance)
-                fields = self.fields
+                fields = self.fields or '__all__'
         
         return Form(instance=self.instance, request=self.request)
 

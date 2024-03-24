@@ -1,7 +1,7 @@
 from slth.endpoints import Endpoint, ChildEndpoint, FormFactory
 from .forms import RegisterForm, UserForm
 from django.contrib.auth.models import User, Group
-from .models import Pessoa, Telefone
+from .models import Pessoa, Cidade
 from slth.serializer import Serializer, LinkField
 
 
@@ -61,6 +61,7 @@ class CadastrarPessoa(Endpoint):
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
+            .form()
         )
 
 class EditarPessoa(Endpoint):
@@ -76,6 +77,7 @@ class EditarPessoa(Endpoint):
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
+            .form()
         )
 
     def check_permission(self):
@@ -165,6 +167,14 @@ class VisualizarCidade(Endpoint):
             .endpoint('Cidades Vizinhas', CidadesVizinhas)
         )
 
+class CadastrarCidade(Endpoint):
+    def __init__(self, request):
+        super().__init__(request)
+        self.form = (
+            FormFactory(Cidade(), request)
+            .form()
+            .display(Serializer(Pessoa.objects.first()).fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
+        )
 
 
 class CidadesVizinhas(ChildEndpoint):
