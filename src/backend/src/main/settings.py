@@ -1,3 +1,4 @@
+from slth.conf import *
 """
 Django settings for app project.
 

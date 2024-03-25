@@ -3,7 +3,6 @@ from django.conf import settings
 from django.db.models import Model, QuerySet
 from django.db.models.fields import related_descriptors
 from django.db.models.signals import m2m_changed, post_save, post_delete
-from .models import Role
 
 ROLES = {}
 
@@ -28,6 +27,7 @@ def related_model(model, relation_name):
 
 
 def post_save_func(sender, **kwargs):
+    from .models import Role
     pk = kwargs['instance'].pk
     model = '{}.{}'.format(sender._meta.app_label, sender._meta.model_name)
     existing = set(Role.objects.filter(model=model, value=pk).values_list('pk', flat=True))
@@ -81,6 +81,7 @@ def m2m_save_func(sender, **kwargs):
 
 
 def post_delete_func(sender, **kwargs):
+    from .models import Role
     pk = kwargs['instance'].pk
     model = '{}.{}'.format(sender._meta.app_label, sender._meta.model_name)
     Role.objects.filter(model=model, value=pk).delete()
@@ -100,4 +101,3 @@ def role(name, username, email=None, active=None, inactive=None, **scopes):
 
         return cls
     return decorate
-

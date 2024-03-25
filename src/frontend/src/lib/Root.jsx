@@ -8,7 +8,7 @@ function Root(props){
         case 'form':
             return <Form data={props.data}/>
         default:
-            return <div>{props.data.toString()}</div> 
+            return <div>{JSON.stringify(props.data)}</div>
     }
 }
 

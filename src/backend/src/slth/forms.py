@@ -5,7 +5,7 @@ import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
-from django.forms.models import ModelChoiceIterator, ModelChoiceIteratorValue
+from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.db.models import Model, QuerySet, Manager
 from .models import Token
 from django.db import transaction
@@ -18,17 +18,12 @@ from .serializer import serialize, Serializer
 DjangoModelForm = ModelForm
 DjangoForm = Form
 
-FIELD_TYPES = {
-    CharField: 'text',
-    EmailField: 'email',
-    DecimalField: 'decimal',
-    BooleanField: 'boolean',
-    IntegerField: 'number',
-    ChoiceField: 'choice',
-    ModelChoiceField: 'choice',
-    MultipleChoiceField: 'choice',
-    ModelMultipleChoiceField: 'choice',
-}
+MASKS = dict(
+    cpf_cnpj='999.999.999-99|99.999.999/9999-99',
+    cpf='999.999.999-99',
+    cnpj='99.999.999/9999-99',
+    telefone='(99) 99999-9999',
+)
     
 
 class FormMixin:
@@ -66,9 +61,7 @@ class FormMixin:
     @classmethod
     def get_metadata(cls, name, default=None):
         metaclass = getattr(cls, 'Meta', None)
-        if metaclass:
-            return getattr(metaclass, name, default)
-        return default
+        return getattr(metaclass, name, default) if metaclass else default
     
     def on_change(self, field_name):
         self.controls['show'].clear()
@@ -95,7 +88,7 @@ class FormMixin:
 
     def to_dict(self, prefix=None):
         data = dict(
-            type='form', title=self.get_metadata('title'), icon=self.get_metadata('icon'),
+            type='form', title=self.get_metadata('title', 'Form'), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request)
         )
         data.update(controls=self.controls)
@@ -151,11 +144,12 @@ class FormMixin:
             value = field.initial or self.initial.get(name)
             if callable(value):
                 value = value()
-            if isinstance(value, list):
-                value = [obj.pk if isinstance(obj, Model) else obj for obj in value]
-            if value and isinstance(field, ModelChoiceField):
+            if value and isinstance(field, ModelMultipleChoiceField):
+                value = [dict(id=obj.id, label=str(obj)) for obj in value]
+            elif value and isinstance(field, ModelChoiceField):
                 obj = field.queryset.get(pk=value)
                 value = dict(id=obj.id, label=str(obj))
+            
             fname = name if prefix is None else f'{prefix}__{name}'
             data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, mask=None)
             if ftype == 'decimal':
@@ -231,7 +225,7 @@ class FormMixin:
                             # set one-to-many
                             if isinstance(relation, Manager):
                                 relation.add(obj)
-                    return dict(message='Action successfully performed.')
+                    return dict(type='message', text='Action successfully performed.')
                 else:
                     return self.submit()
                 
@@ -336,6 +330,15 @@ class OneToOneField(InlineModelField):
     def __init__(self, model, fields='__all__', exclude=(), **kwargs):
         super().__init__(model, fields=fields, exclude=exclude, min=1, max=1)
 
+class DecimalField(DecimalField):
+    def to_python(self, value):
+        if isinstance(value, str) and ',' in value:
+            value = value.replace('.', '').replace(',', '.')
+        return super().to_python(value)
+    
+class ColorField(CharField):
+    pass
+
 
 class LoginForm(Form):
     username = CharField(label=_('Username'))
@@ -356,3 +359,20 @@ class LoginForm(Form):
         
     def submit(self):
         return dict(token=self.token.key)
+
+
+FIELD_TYPES = {
+    CharField: 'text',
+    EmailField: 'email',
+    DecimalField: 'decimal',
+    BooleanField: 'boolean',
+    DateTimeField: 'datetime',
+    DateField: 'date',
+    IntegerField: 'number',
+    ChoiceField: 'choice',
+    TypedChoiceField : 'choice',
+    ModelChoiceField: 'choice',
+    MultipleChoiceField: 'choice',
+    ModelMultipleChoiceField: 'choice',
+    ColorField: 'color',
+}

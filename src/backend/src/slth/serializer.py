@@ -2,8 +2,8 @@ import re
 import slth
 import json
 import types
-from datetime import date, datetime, timedelta
 from decimal import Decimal
+from datetime import date, datetime, timedelta
 from django.template.loader import render_to_string
 from django.db.models import Model, QuerySet, Manager
 from django.db import models
@@ -25,6 +25,8 @@ def serialize(obj, primitive=False):
         return obj.strftime('%d/%m/%Y')
     elif isinstance(obj, datetime):
         return obj.strftime('%d/%m/%Y %H:%M:%S')
+    if isinstance(obj, Decimal) or isinstance(obj, float):
+        return str(obj).replace('.', ',')
     elif isinstance(obj, list):
         return [serialize(obj) for obj in obj]
     elif isinstance(obj, Model):

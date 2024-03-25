@@ -3,19 +3,19 @@
 import { useState, useEffect } from 'react'
 import {toLabelCase} from './Utils';
 
+const INPUT_TYPES = ["text", "password", "email", "number", "date", "datetime-regional",  "file", "image", "range", "search", "tel", "time", "url", "week", "hidden", "color"]
+
 function Field(props){
     function get_label(){
         return <label>{props.data.label}</label>
     }
     function get_input(){
-        switch(props.data.type) {
-            case 'text':
-                return <InputField data={props.data}/>
-            case 'choice':
-                return <SelectField data={props.data}/>
-            default:
-                return <span>{props.data.name}</span> 
-        }
+        if(INPUT_TYPES.indexOf(props.data.type)>=0) return <InputField data={props.data}/>
+        else if(props.data.type=='choice' && Array.isArray(props.data.choices)) return <Select data={props.data}/>
+        else if(props.data.type=='choice') return <Autocomplete data={props.data}/>
+        else if(props.data.type=='decimal') return <InputField data={props.data}/>
+        else if(props.data.type=='boolean') return <Boolean data={props.data}/>
+        else return <span>{props.data.name}</span> 
     }
     function render(){
         return <div className='form-field'>
@@ -59,13 +59,16 @@ function InputField(props){
     }, [])
 
     function render(){
-        return <input className={"form-control "+className} type={props.data.type} name={props.data.name} id={id} defaultValue={props.data.value} data-label={toLabelCase(props.data.label)} readOnly={props.data.read_only}/>
+        var type = props.data.type;
+        if(type=='datetime') type = 'datetime-regional'
+        if(type=='decimal') type = 'text'
+        return <input className={"form-control "+className} type={type} name={props.data.name} id={id} defaultValue={props.data.value} data-label={toLabelCase(props.data.label)} readOnly={props.data.read_only}/>
     }
 
     return render()
 }
 
-function SelectField(props){
+function Autocomplete(props){
     var initial = []
     if(Array.isArray(props.data.value)){
         props.data.value.forEach(function(option, i) {
@@ -99,10 +102,17 @@ function SelectField(props){
     }
 
     function getSelect(){
+        if(multiple){
+            var value = [];
+            selections.forEach(function(option){value.push(option.id)});
+        } else if (props.data.value) {
+            var value = props.data.value;
+        }
+        const style = {display: "none"}
         return (
-            <select id={id} name={props.data.name} multiple={multiple}>
+            <select id={id} name={props.data.name} multiple={multiple} readOnly value={value} style={style}>
                 {selections.map((option) => (
-                    <option selected key={Math.random()} value={option.id}>{option.value}</option>
+                    <option key={Math.random()} value={option.id}>{option.value}</option>
                 ))}
             </select>
         )
@@ -111,7 +121,7 @@ function SelectField(props){
     function getSelector(){
         const ul = {padding: 0, margin: 0, border: "solid 1px #CCC", width: 255}
         const li = {cursor: "pointer", padding: 5}
-        const defaultValue = initial.length>0 && initial[0]['value'] || '';
+        const defaultValue = !multiple && initial.length>0 && initial[0]['value'] || '';
         return (
             <div>
                 <input id={id2} type="text" className="form-control" onFocus={search} onChange={search} defaultValue={defaultValue}></input>
@@ -166,6 +176,106 @@ function Textarea(props){
             <textarea className="form-control" id={props.data.name} name={props.data.name} data-label={toLabelCase(props.data.label)} style={{height: 200}} defaultValue={props.data.value || ""}></textarea>
         )
     }
+}
+
+function Boolean(props){
+    var field = props.data;
+    field['choices'] = [{id:true, text:"Sim"}, {id:false, text:"Não"}];
+    return <Radio data={field}/>
+}
+
+function Radio(props){
+    var key = Math.random();
+    var field = props.data;
+
+    function checked(choice){
+        if(field.value!=null){
+            if(field.value == choice.id){
+                return true;
+            } else {
+                return field.value.id == choice.id
+            }
+        } else {
+            return false;
+        }
+    }
+
+    function toogle(id){
+        var radio = document.getElementById(id);
+        if(field['checked']) radio.checked = false;
+    }
+
+    function ischecked(id){
+        var radio = document.getElementById(id);
+        field['checked'] = radio.checked;
+    }
+
+    function render(){
+        return (
+            <div className="radio-group">
+                {field.choices.map((choice, i) => (
+                  <div key={key+i}>
+                    <input id={field.name+key+i} type="radio" name={field.name} defaultValue={choice.id} defaultChecked={checked(choice)} data-label={toLabelCase(choice.text)} onClick={function(){toogle(field.name+key+i)}} onMouseEnter={function(){ischecked(field.name+key+i)}}/>
+                    <label htmlFor={field.name+key+i}>{choice.text}</label>
+                  </div>
+                ))}
+            </div>
+        )
+    }
+    return render()
+}
+
+function Checkbox(props){
+    var key = Math.random();
+    var field = props.data;
+    function checked(choice){
+        var check = false;
+        if(field.value){
+            for(var i=0; i<field.value.length; i++){
+                var value = field.value[i];
+                if(value == choice.id){
+                    check = true;
+                } else if(value.id == choice.id){
+                    check = true;
+                }
+            }
+        }
+        return check;
+    }
+
+    function render(){
+        return (
+
+            <div className="checkbox-group">
+                {field.choices.map((choice, i) => (
+                  <div key={key+i}>
+                    <input id={field.name+key+i} type="checkbox" name={field.name} defaultValue={choice.id} defaultChecked={checked(choice)} data-label={toLabelCase(choice.text)}/>
+                    <label htmlFor={field.name+key+i}>{choice.text}</label>
+                  </div>
+                ))}
+            </div>
+        )
+    }
+    return render()
+}
+
+function Select(props){
+    var field = props.data;
+
+    function clear(){
+
+    }
+
+    return (
+        <>
+        <select className="form-control" id={field.name} name={field.name} data-label={toLabelCase(field.label)} defaultValue={field.value}>
+            {field.choices.map((choice) => (
+              <option key={Math.random()} value={choice.id}>{choice.value}</option>
+            ))}
+        </select>
+        <i className="fa-solid fa-chevron-down clearer" onClick={clear}/>
+        </>
+    )
 }
 
 function Form(props){
@@ -223,6 +333,11 @@ function Form(props){
         var button = form.querySelector(".btn.submit");
         var label = button.innerHTML;
         button.innerHTML = 'Aguarde...'
+        request('POST', props.data.url, function callback(data){
+            button.innerHTML = label;
+            if(data.type=="message") alert(data.text);
+            else console.log(data);
+        }, data);
     }
 
     return render()

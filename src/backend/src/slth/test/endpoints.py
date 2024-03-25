@@ -64,6 +64,15 @@ class CadastrarPessoa(Endpoint):
             .form()
         )
 
+class CadastrarPessoa2(Endpoint):
+    def __init__(self, request):
+        super().__init__(request)
+        self.form = (
+            FormFactory(instance=Pessoa(), request=request)
+            .fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
+            .form()
+        )
+
 class EditarPessoa(Endpoint):
 
     class Meta:

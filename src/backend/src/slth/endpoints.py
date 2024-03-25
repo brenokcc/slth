@@ -149,23 +149,27 @@ class FormFactory:
         self.instance = instance
         self.request = request
         self.fieldsets = {}
-        self.fields = []
+        self.fieldlist = []
+
+    def fields(self, *names):
+        self.fieldlist.extend(names)
+        return self
 
     def fieldset(self, title, *fields):
         self.fieldsets['title'] = title
         for names in fields:
             for name in names:
                 if isinstance(name, str):
-                    self.fields.append(name)
+                    self.fieldlist.append(name)
                 else:
-                    self.fields.extend(names)
+                    self.fieldlist.extend(names)
         return self
     
     def form(self):
         class Form(ModelForm):
             class Meta:
                 model = type(self.instance)
-                fields = self.fields or '__all__'
+                fields = self.fieldlist or '__all__'
         
         return Form(instance=self.instance, request=self.request)
 

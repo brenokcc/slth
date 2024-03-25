@@ -20,6 +20,10 @@ class Pessoa(models.Model):
     nome = models.CharField('Nome', max_length=255)
     sexo = models.CharField('Sexo', choices=[['M', 'Masculino'], ['F', 'Femino']], default='M')
     data_nascimento = models.DateField('Data de Nascimento', null=True, blank=True)
+    salario = models.DecimalField('Salário', null=True, blank=True)
+    casado = models.BooleanField('Casado?', blank=True, default=False)
+    sexo = models.CharField('Sexo', choices=[['M', 'Masculino'], ['F', 'Feminino']], null=True, blank=True)
+    cor_preferida = models.ColorField('Cor Preferida', null=True, blank=True)
     telefone_pessoal = models.OneToOneField(Telefone, verbose_name='Telefone Pessoal', related_name='p1', on_delete=models.CASCADE, null=True, blank=True)
     telefones_profissionais = models.OneToManyField(Telefone, verbose_name='Telefones Profissionais')
 
