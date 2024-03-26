@@ -40,8 +40,11 @@ class CadastrarCidadeForm(forms.ModelForm):
         print(queryset, values)
         return queryset
     
-    def on_prefeito_change(self, values):
+    def _on_prefeito_change(self, values):
         print(values)
-        self.hide('nome')
-        self.setdata(nome='Maria da Silva', prefeito=Pessoa.objects.first())
+        self.hide('vereadores')
+        self.setdata(nome='XXXXX')
+    
+    def on_nome_change(self, values):
+        self.setdata(prefeito=Pessoa.objects.last(), vereadores=Pessoa.objects.all()[0:3])
 

@@ -69,7 +69,7 @@ class FormMixin:
         self.controls['set'].clear()
         values = {}
         for name2 in self.fields:
-            value2 = self.getdata(name2, self.request.GET.get(name2))
+            value2 = self.getdata(name2, self.request.POST.get(name2))
             if value2:
                 values[name2] = value2
         getattr(self, f'on_{field_name}_change')(values)
@@ -77,8 +77,7 @@ class FormMixin:
 
     def serialize(self):
         try:
-            field_name = self.request.GET.get('on_change')
-            return self.on_change(field_name) if field_name else self.to_dict()
+            return self.to_dict()
         except JsonResponseException as e:
             return e.data
         
@@ -179,6 +178,11 @@ class FormMixin:
         return data
     
     def post(self):
+
+        field_name = self.request.GET.get('on_change')
+        if field_name:
+            return self.on_change(field_name)
+
         data = {}
         errors = {}
         inline_fields = {name: field for name, field in self.fields.items() if isinstance(field, InlineFormField) or isinstance(field, InlineModelField)}
@@ -238,9 +242,9 @@ class FormMixin:
     def setdata(self, **kwargs):
         for k, v in kwargs.items():
             if isinstance(v, Model):
-                v = dict(id=v.id, text=str(v))
+                v = dict(id=v.id, value=str(v))
             elif isinstance(v, QuerySet) or isinstance(v, Manager):
-                v = [dict(id=v.id, text=str(v)) for v in v]
+                v = [dict(id=v.id, value=str(v)) for v in v]
             elif isinstance(v, bool):
                 v = str(v).lower()
             elif isinstance(v, datetime.datetime):

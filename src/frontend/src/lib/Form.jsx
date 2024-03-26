@@ -5,20 +5,72 @@ import {toLabelCase} from './Utils';
 
 const INPUT_TYPES = ["text", "password", "email", "number", "date", "datetime-regional",  "file", "image", "range", "search", "tel", "time", "url", "week", "hidden", "color"]
 
+
+function formChange(form, url){
+    var data = new FormData(form);
+    request('POST', url, formControl, data);
+}
+function formHide(name){
+    if(name){
+        var fieldset = document.querySelector(".form-fieldset."+name);
+        if(fieldset) fieldset.style.display = 'none';
+        var field = document.querySelector(".form-group."+name);
+        if(field) field.style.display = 'none';
+    }
+}
+function formShow(name){
+    if(name){
+        var fieldset = document.querySelector(".form-fieldset."+name);
+        if(fieldset) fieldset.style.display = 'block';
+        var field = document.querySelector(".form-group."+name);
+        if(field) field.style.display = 'inline-block';
+    }
+}
+function formValue(name, value){
+    var group = document.querySelector(".form-group."+name);
+    var widget = group.querySelector('*[name="'+name+'"]');
+    if(widget.tagName == "INPUT"){
+        widget.value = value;
+    } else {
+        if(widget.tagName == "SELECT"){
+            if(widget.style.display!="none"){
+                widget.dispatchEvent(new CustomEvent('customchange', {detail: {value:value}}));
+            } else {
+                for (var i = 0; i < widget.options.length; i++) {
+                    if (widget.options[i].value == value) {
+                        widget.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+function formControl(controls){
+    if(controls){
+        for (var i = 0; i < controls.hide.length; i++) formHide(controls.hide[i]);
+        for (var i = 0; i < controls.show.length; i++) formShow(controls.show[i]);
+        for (var k in controls.set) formValue(k, controls.set[k]);
+    }
+}
+
+
 function Field(props){
+    const id = props.data.name+Math.random();
+
     function get_label(){
         return <label>{props.data.label}</label>
     }
     function get_input(){
         if(INPUT_TYPES.indexOf(props.data.type)>=0) return <InputField data={props.data}/>
         else if(props.data.type=='choice' && Array.isArray(props.data.choices)) return <Select data={props.data}/>
-        else if(props.data.type=='choice') return <Autocomplete data={props.data}/>
+        else if(props.data.type=='choice') return <Selector data={props.data}/>
         else if(props.data.type=='decimal') return <InputField data={props.data}/>
         else if(props.data.type=='boolean') return <Boolean data={props.data}/>
         else return <span>{props.data.name}</span> 
     }
     function render(){
-        return <div className='form-field'>
+        return <div id={id} className={'form-group '+props.data.name}>
             {get_label()}
             {get_input()}
         </div>
@@ -58,17 +110,30 @@ function InputField(props){
         }
     }, [])
 
+    function onBlur(e){
+        formChange(e.target.closest('form'), props.data.onchange)
+    }
+
     function render(){
         var type = props.data.type;
         if(type=='datetime') type = 'datetime-regional'
         if(type=='decimal') type = 'text'
-        return <input className={"form-control "+className} type={type} name={props.data.name} id={id} defaultValue={props.data.value} data-label={toLabelCase(props.data.label)} readOnly={props.data.read_only}/>
+        return (
+            <input
+                className={"form-control "+className}
+                type={type} name={props.data.name}
+                id={id} defaultValue={props.data.value}
+                data-label={toLabelCase(props.data.label)}
+                readOnly={props.data.read_only}
+                onBlur={props.data.onchange ? onBlur : null}
+            />
+        )
     }
 
     return render()
 }
 
-function Autocomplete(props){
+function Selector(props){
     var initial = []
     if(Array.isArray(props.data.value)){
         props.data.value.forEach(function(option, i) {
@@ -77,12 +142,19 @@ function Autocomplete(props){
     } else if(props.data.value!=null) {
         initial.push({id:props.data.value.id, value:props.data.value.label})
     }
-    const id = props.data.name+Math.random();
-    const id2 = props.data.name+Math.random();
+    const id = props.data.name;
+    const id2 = props.data.name+'input';
     const multiple = Array.isArray(props.data.value);
     const [options, setOptions] = useState([]);
     const [selections, setSelections] = useState(initial);
     const [seaching, setSearching] = useState(false);
+
+
+    useEffect(()=>{
+        document.getElementById(id).addEventListener('customchange',function(e){
+            select(e.detail.value)
+        });
+    }, [])
 
     function getSelections(){
         if(multiple){
@@ -108,7 +180,7 @@ function Autocomplete(props){
         } else if (props.data.value) {
             var value = props.data.value;
         }
-        const style = {display: "none"}
+        const style = {display: "block"}
         return (
             <select id={id} name={props.data.name} multiple={multiple} readOnly value={value} style={style}>
                 {selections.map((option) => (
@@ -142,16 +214,23 @@ function Autocomplete(props){
         request('GET', props.data.choices+'&q='+e.target.value, function callback(options){setOptions(options)});
     }
 
-    function select(option){
-        const input = document.getElementById(id2);
+    function select(value){
         setSearching(false)
+        const input = document.getElementById(id2);
         if(multiple){
-            selections.push(option);
+            if(Array.isArray(value)){
+                for(var i=0; i<value.length; i++) selections.push(value[i]);
+            } else {
+                selections.push(value);
+            }
             input.value = ''
         } else {
-            selections = [option]
-            input.value = option['value']
+            while(selections.length > 0) selections.pop()
+            selections.push(value)
+            input.value = value['value']
         }
+        if(props.data.onchange) formChange(input.closest('form'), props.data.onchange);
+        console.log(...selections)
         setSelections(selections);
     }
 
@@ -342,5 +421,6 @@ function Form(props){
 
     return render()
 }
+
 
 export default Form
