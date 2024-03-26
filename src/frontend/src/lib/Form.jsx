@@ -145,26 +145,34 @@ function Selector(props){
     const id = props.data.name;
     const id2 = props.data.name+'input';
     const multiple = Array.isArray(props.data.value);
-    const [options, setOptions] = useState([]);
-    const [selections, setSelections] = useState(initial);
     const [seaching, setSearching] = useState(false);
+    const [options, setOptions] = useState([]);
 
 
     useEffect(()=>{
+        select(initial);
         document.getElementById(id).addEventListener('customchange',function(e){
-            select(e.detail.value)
+            select(e.detail.value);
+            reactTriggerChange(document.getElementById(props.data.name));
         });
     }, [])
 
     function getSelections(){
+        const select = document.getElementById(id);
         if(multiple){
             const style1 = {padding: 5, display: "inline"}
             const style2 = {cursor: "pointer"}
             return (
                 <div>
-                    {selections.map((option, i) => (
+                    {select==null && initial.map((option, i) => (
                         <div key={Math.random()} style={style1}>
                             {option.value}
+                            <span onClick={()=>remove(i)} style={style2}>[X]</span>
+                        </div>
+                    ))}
+                    {select!=null && Array.from(select.options).map((option, i) => (
+                        <div key={Math.random()} style={style1}>
+                            {option.innerHTML}
                             <span onClick={()=>remove(i)} style={style2}>[X]</span>
                         </div>
                     ))}
@@ -173,19 +181,13 @@ function Selector(props){
         }
     }
 
+    function onChange(e){
+        setOptions([]);
+    }
+
     function getSelect(){
-        if(multiple){
-            var value = [];
-            selections.forEach(function(option){value.push(option.id)});
-        } else if (props.data.value) {
-            var value = props.data.value;
-        }
-        const style = {display: "block"}
         return (
-            <select id={id} name={props.data.name} multiple={multiple} readOnly value={value} style={style}>
-                {selections.map((option) => (
-                    <option key={Math.random()} value={option.id}>{option.value}</option>
-                ))}
+            <select onChange={onChange} id={id} name={props.data.name} multiple={multiple} readOnly style={{display: "contents"}}>
             </select>
         )
     }
@@ -196,12 +198,12 @@ function Selector(props){
         const defaultValue = !multiple && initial.length>0 && initial[0]['value'] || '';
         return (
             <div>
-                <input id={id2} type="text" className="form-control" onFocus={search} onChange={search} defaultValue={defaultValue}></input>
+                <input id={id2} type="text" className="form-control" onFocus={(e)=>{e.target.select(); search(e);}} onChange={search} defaultValue={defaultValue}></input>
                 {seaching &&
-                    <ul style={ul}>
+                    <ul style={ul} onMouseLeave={(e)=>setSearching(false)}>
                         {false && options.length==0 && <li>Nenhuma opção encontrada.</li>}
                         {options.map((option) => (
-                            <li key={Math.random()} onClick={()=>select(option)}  style={li}>{option.value}</li>
+                            <li key={Math.random()} onClick={()=>{setSearching(false);select(option)}}  style={li}>{option.value}</li>
                         ))}
                     </ul>
                 }
@@ -215,27 +217,32 @@ function Selector(props){
     }
 
     function select(value){
-        setSearching(false)
+        const widget = document.getElementById(id);
         const input = document.getElementById(id2);
-        if(multiple){
-            if(Array.isArray(value)){
-                for(var i=0; i<value.length; i++) selections.push(value[i]);
-            } else {
-                selections.push(value);
-            }
-            input.value = ''
+        if(widget.innerHTML==undefined) widget.innerHTML = '';
+        if(Array.isArray(value)){
+            widget.innerHTML = value.map(
+                (item)=>`<option selected value="${item.id}">${item.value}</option>`
+            ).join('')
         } else {
-            while(selections.length > 0) selections.pop()
-            selections.push(value)
-            input.value = value['value']
+            if(multiple){
+                widget.innerHTML += `<option selected value="${value.id}">${value.value}</option>`;
+                input.value = ''
+            } else {
+                widget.innerHTML = `<option selected value="${value.id}">${value.value}</option>`;
+                input.value = value.value
+            }
         }
-        if(props.data.onchange) formChange(input.closest('form'), props.data.onchange);
-        console.log(...selections)
-        setSelections(selections);
+        if(props.data.onchange) formChange(input.closest('form'), props.data.onchange)
     }
 
     function remove(i){
-        setSelections(selections.slice(0, i).concat(selections.slice(i+1)));
+        const select = document.getElementById(id);
+        var options = Array.from(select.options);
+        select.innerHTML = options.slice(0, i).concat(options.slice(i+1)).map(
+            (item)=>`<option selected value="${item.value}">${item.innerHTML}</option>`
+        ).join('')
+        setOptions([])
     }
 
     function render(){

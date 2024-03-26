@@ -7,13 +7,7 @@ function request(method, url, callback, data){
     url = url.replace('/app/', '/api/')
     if(url.indexOf(API_URL) == -1) url = API_URL + url;
     var params = {method: method, headers: new Headers(headers), ajax: 1};
-    if(data){
-        params['body'] = data;
-        var object = {};
-        data.forEach(function(value, key){object[key] = value;});
-        var json = JSON.stringify(object);
-        console.log(json);
-    }
+    if(data) params['body'] = data;
     var httpResponse = null;
     var contentType = null;
     fetch(url, params).then(
