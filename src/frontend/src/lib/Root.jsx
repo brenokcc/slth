@@ -1,15 +1,16 @@
+import { ComponentFactory } from "./Factory";
+import { Layer } from "./Modal";
+import { Form } from "./Form";
 
+ComponentFactory.register("form", (data) => <Form data={data} />);
 
-import { useState, useEffect } from 'react'
-import Form from './Form'
-
-function Root(props){
-    switch(props.data.type) {
-        case 'form':
-            return <Form data={props.data}/>
-        default:
-            return <div>{JSON.stringify(props.data)}</div>
-    }
+function Root(props) {
+  return (
+    <>
+      <ComponentFactory data={props.data} />
+      <Layer />
+    </>
+  );
 }
 
-export default Root
+export default Root;
