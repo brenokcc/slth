@@ -58,7 +58,7 @@ class Funcionario(models.Model):
     is_admin = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.nome
+        return self.email
 
 @role('Supervisor', username='supervisor__email', rede='pk')
 class Rede(models.Model):

@@ -6,6 +6,7 @@ function request(method, url, callback, data) {
     headers["Authorization"] = "Token " + token;
   url = url.replace(document.location.origin, "");
   url = url.replace("/app/", "/api/");
+  url = url + document.location.search;
   if (url.indexOf(API_URL) == -1) url = API_URL + url;
   var params = { method: method, headers: new Headers(headers), ajax: 1 };
   if (data) params["body"] = data;

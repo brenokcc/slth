@@ -14,17 +14,21 @@ from .serializer import serialize
 
 @csrf_exempt
 def dispatcher(request, **kwargs):
-    tokens = request.path.split('/')
-    cls = slth.ENDPOINTS.get(tokens[2].replace('-', ''))
-    if cls:
-        try:
-            return cls(request, *kwargs.values()).to_response()
-        except Exception as e:
-            traceback.print_exc() 
-            return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
+    if request.method == 'OPTIONS':
+        return ApiResponse({})
     else:
-        return ApiResponse({}, status=404)
-    
+        tokens = request.path.split('/')
+        cls = slth.ENDPOINTS.get(tokens[2].replace('-', ''))
+        if cls:
+            try:
+                return cls(request, *kwargs.values()).to_response()
+            except JsonResponseException as e:
+                return ApiResponse(e.data)
+            except Exception as e:
+                traceback.print_exc() 
+                return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
+        else:
+            return ApiResponse({}, status=404)
 
 class ApiResponse(JsonResponse):
     def __init__(self, *args, **kwargs):

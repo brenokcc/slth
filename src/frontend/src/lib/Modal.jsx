@@ -7,8 +7,17 @@ function URL(url) {
   return url ? url.replace("/api/", "/app/") : url;
 }
 
+function createLayer() {
+  if (document.querySelector(".layer") == null) {
+    createRoot(document.body.appendChild(document.createElement("div"))).render(
+      <Layer />
+    );
+  }
+}
+
 function openDialog(url, reloader) {
   hideMessages();
+  createLayer();
   window.reloader = reloader;
   var dialogs = document.getElementsByTagName("dialog");
   for (var i = 0; i < dialogs.length; i++) dialogs[i].style.display = "none";
@@ -19,6 +28,7 @@ function openDialog(url, reloader) {
 
 function openIFrameDialog(url) {
   hideMessages();
+  createLayer();
   createRoot(document.body.appendChild(document.createElement("div"))).render(
     <IDialog url={URL(url)} />
   );
@@ -34,8 +44,7 @@ function closeDialog(message) {
       dialog.classList.remove("opened");
       dialog.remove();
       if (i == 0) {
-        var layer = document.querySelector(".layer");
-        if (layer) layer.style.display = "none";
+        document.querySelector(".layer").style.display = "none";
         if (window.reloader) window.reloader();
       } else {
         dialogs[i - 1].style.display = "block";
@@ -72,8 +81,7 @@ function Dialog(props) {
 
   useEffect(() => {
     open(URL(props.url));
-    var layer = document.querySelector(".layer");
-    if (layer) layer.style.display = "block";
+    document.querySelector(".layer").style.display = "block";
   }, []);
 
   function open(url) {
@@ -122,8 +130,7 @@ function IDialog(props) {
   var key = Math.random();
 
   useEffect(() => {
-    var layer = document.querySelector(".layer");
-    if (layer) layer.style.display = "block";
+    document.querySelector(".layer").style.display = "block";
     var dialog = document.getElementById(key);
     $(dialog).css("top", document.documentElement.scrollTop + 100);
   }, []);

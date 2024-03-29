@@ -145,9 +145,9 @@ class ChildEndpoint(Endpoint):
 
 
 class FormFactory:
-    def __init__(self, instance, request):
-        self.instance = instance
+    def __init__(self, request, instance):
         self.request = request
+        self.instance = instance
         self.fieldsets = {}
         self.fieldlist = []
 

@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 var MAP = {};
 
 function ComponentFactory(props) {

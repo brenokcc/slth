@@ -57,7 +57,7 @@ class CadastrarPessoa(Endpoint):
     def __init__(self, request):
         super().__init__(request)
         self.form = (
-            FormFactory(instance=Pessoa(), request=request)
+            FormFactory(request, Pessoa())
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
@@ -68,7 +68,7 @@ class CadastrarPessoa2(Endpoint):
     def __init__(self, request):
         super().__init__(request)
         self.form = (
-            FormFactory(instance=Pessoa(), request=request)
+            FormFactory(request, instance=Pessoa())
             .fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
             .form()
         )
@@ -82,7 +82,7 @@ class EditarPessoa(Endpoint):
     def __init__(self, request, pk):
         super().__init__(request)
         self.form = (
-            FormFactory(instance=Pessoa.objects.get(pk=pk), request=request)
+            FormFactory(request, Pessoa.objects.get(pk=pk))
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
@@ -180,7 +180,7 @@ class CadastrarCidade(Endpoint):
     def __init__(self, request):
         super().__init__(request)
         self.form = (
-            FormFactory(Cidade(), request)
+            FormFactory(request, Cidade())
             .form()
             .display(Serializer(Pessoa.objects.first()).fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
         )
@@ -195,3 +195,15 @@ class CidadesVizinhas(ChildEndpoint):
 
     def get(self):
         return self.objects('test.cidade').all()
+    
+
+
+class ListarFuncionario(Endpoint):
+    def __init__(self, request):
+        super().__init__(request)
+        self.serializer = self.objects('test.funcionario').actions('slth.test.endpoints.cadastrarfuncionario').contextualize(request)
+    
+class CadastrarFuncionario(Endpoint):
+    def __init__(self, request):
+        super().__init__(request)
+        self.form = FormFactory(request, self.objects('test.funcionario').model()).form()

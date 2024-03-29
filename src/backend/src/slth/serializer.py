@@ -32,10 +32,7 @@ def serialize(obj, primitive=False):
     elif isinstance(obj, Model):
         return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
-        if primitive:
-            return [str(obj) for obj in obj.filter()]
-        else:
-            return [dict(pk=item.pk, str=str(item)) for item in obj.filter()]
+        return [str(obj) for obj in obj.filter()] if primitive else obj.serialize()
     return str(obj)
 
 def getfield(obj, name_or_names, request=None):

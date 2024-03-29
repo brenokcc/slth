@@ -16,6 +16,7 @@ from django.db.models import Model, QuerySet, Manager
 from django.db import models
 from .serializer import Serializer
 from .exceptions import JsonResponseException
+from .utils import absolute_url
 
 
 class QuerySet(models.QuerySet):
@@ -65,7 +66,8 @@ class QuerySet(models.QuerySet):
 
     def actions(self, *names):
         if 'actions' not in self.metadata:
-            self.metadata['actions'] = names
+            self.metadata['actions'] = []
+        self.metadata['actions'].extend(names)
         return self
 
     def subsets(self, *names):
@@ -108,6 +110,12 @@ class QuerySet(models.QuerySet):
         qs = self._clone()
         if pk:
             qs = qs.filter(pk=pk)
+    
+        if self.request and 'action' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('action')]
+            if cls and cls.get_qualified_name() in self.metadata.get('actions', ()):
+                raise JsonResponseException(cls(self.request, *((pk,) if pk else ())).serialize())
+
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
             if lookup.endswith('userrole'):
@@ -191,7 +199,8 @@ class QuerySet(models.QuerySet):
 
         for cls in queryset_actions:
             if cls(self.request).check_permission():
-                actions.append(cls.get_api_metadata(f'?e={cls.get_api_name()}'))
+                url = absolute_url(self.request, f'?action={cls.get_api_name()}')
+                actions.append(cls.get_api_metadata(url))
 
         subset = self.parameter('subset')
         subset = None if subset == 'all' else subset
