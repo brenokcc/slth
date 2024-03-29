@@ -12,40 +12,43 @@ class HealthCheck(Endpoint):
 
 
 class Register(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = RegisterForm(endpoint=self)
+    def get(self):
+        return RegisterForm(request=self.request)
 
 
 class AddUser(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = UserForm(instance=User(), request=request)
+    def get(self,):
+        return UserForm(instance=User(), request=self.request)
 
 class EditUser(Endpoint):
 
-    def __init__(self, request, pk):
-        super().__init__(request)
-        self.form = (
-            UserForm(instance=User.objects.get(pk=pk), request=request)
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
+        return (
+            UserForm(instance=User.objects.get(pk=self.pk), request=self.request)
             .fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email'))
             .fieldset('Grupos', ('groups',))
         )
 
 class ListUsers(Endpoint):
 
-    def __init__(self, request):
-        super().__init__(request)
-        self.serializer = (
-            User.objects.search('username').fields('username', 'is_superuser').filters('is_superuser', 'groups').contextualize(request)
+    def get(self):
+        return (
+            User.objects.search('username').fields('username', 'is_superuser').filters('is_superuser', 'groups')
         )
         
 
 class ViewUser(Endpoint):
-    def __init__(self, request, pk):
-        super().__init__(request)
-        self.serializer = (
-            Serializer(User.objects.get(pk=pk), request=request)
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
+        return (
+            Serializer(User.objects.get(pk=self.pk), request=self.request)
             .fieldset('Dados Gerais', (('username', 'email'),))
             .fieldset('Dados Pessoais', ('first_name', 'last_name'))
             .fields('password')
@@ -63,12 +66,10 @@ class CadastrarPessoa(Endpoint):
         )
 
 class CadastrarPessoa2(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = (
-            FormFactory(request, instance=Pessoa())
+    def get(self):
+        return (
+            FormFactory(Pessoa())
             .fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
-            .form()
         )
 
 class EditarPessoa(Endpoint):
@@ -77,14 +78,16 @@ class EditarPessoa(Endpoint):
         icon = 'edit'
         verbose_name = 'Editar Pessoa'
 
-    def __init__(self, request, pk):
-        super().__init__(request)
-        self.form = (
-            FormFactory(request, Pessoa.objects.get(pk=pk))
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
+        return (
+            FormFactory(Pessoa.objects.get(pk=self.pk))
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
-            .form()
         )
 
     def check_permission(self):
@@ -92,24 +95,25 @@ class EditarPessoa(Endpoint):
 
 
 class ListarPessoas(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.serializer = (
+    def get(self):
+        return (
             Pessoa.objects.search('nome')
             .subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
             .actions(
                 'slth.test.endpoints.cadastrarpessoa',
                 'slth.test.endpoints.editarpessoa'
             )
-            .contextualize(request)
         )
 
 
 class VisualizarPessoa(Endpoint):
-    def __init__(self, request, pk):
-        super().__init__(request)
-        self.serializer = (
-            Serializer(Pessoa.objects.get(pk=pk), request)
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
+        return (
+            Serializer(Pessoa.objects.get(pk=self.pk))
             .fields('id', 'nome', 'telefone_pessoal', 'telefones_profissionais')
         )
 
@@ -118,10 +122,13 @@ class VisualizarPessoa(Endpoint):
 
 
 class VisualizarPessoa2(Endpoint):
-    def __init__(self, request, pk):
-        super().__init__(request)
-        self.serializer = (
-            Serializer(Pessoa.objects.get(pk=pk), request)
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
+        return (
+            Serializer(Pessoa.objects.get(pk=self.pk))
             .actions('slth.test.endpoints.editarpessoa')
             .fieldset('Dados Gerais', ('id', 'nome'), 'slth.test.endpoints.editarpessoa')
             .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal')
@@ -133,10 +140,13 @@ class EstatisticaPessoal(Endpoint):
         return Pessoa.objects.counter('sexo') # 
 
 class VisualizarPessoa3(Endpoint):
-    def __init__(self, request, pk):
-        super().__init__(request)
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
         self.serializer = (
-            Serializer(Pessoa.objects.get(pk=pk), request)
+            Serializer(Pessoa.objects.get(pk=self.pk))
             .fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']])
             .fieldset('Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais'])
             .queryset('Telefones Profissionais', 'telefones_profissionais')

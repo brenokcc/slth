@@ -140,7 +140,7 @@ class ApiTestCase(ServerTestCase):
         maria = self.objects('test.pessoa').create(nome='Maria da Silva', data_nascimento=date.today())
         
         data = (
-            Serializer(juca, HttpRequest('?action=editarpessoa'))
+            Serializer(juca, HttpRequest(f'?id={maria.pk}&action=editarpessoa'))
             .actions('slth.test.endpoints.editarpessoa')
             .serialize(self.debug)
         )
@@ -149,7 +149,7 @@ class ApiTestCase(ServerTestCase):
         data = (
             self.objects('test.pessoa')
             .serializer(Serializer().actions('slth.test.endpoints.editarpessoa'))
-            .contextualize(HttpRequest(f'?pk={maria.pk}&action=editarpessoa')).serialize(debug=self.debug)
+            .contextualize(HttpRequest(f'?id={maria.pk}&action=editarpessoa')).serialize(debug=self.debug)
         )
         self.assertEquals(data['type'], 'form')
 
@@ -157,7 +157,7 @@ class ApiTestCase(ServerTestCase):
         data = (
             self.objects('test.pessoa')
             .serializer(Serializer().actions('slth.test.endpoints.editarpessoa'))
-            .contextualize(HttpRequest(f'?pk={maria.pk}&action=editarpessoa', data)).serialize(debug=self.debug)
+            .contextualize(HttpRequest(f'?id={maria.pk}&action=editarpessoa', data)).serialize(debug=self.debug)
         )
         data = Serializer(self.objects('test.pessoa').get(pk=maria.pk)).serialize(self.debug)
         self.assertEquals(data['title'], 'Maria da Silva 2')

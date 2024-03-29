@@ -54,8 +54,7 @@ def getfield(obj, name_or_names, request=None):
         value = getattr(obj, name_or_names.name) if obj else None
         field = dict(type='field', name=name_or_names.name, value=serialize(value, primitive=True))
         if value:
-            endpoint = name_or_names.endpoint(request, value.id)
-            if endpoint.check_permission():
+            if name_or_names.endpoint(value.id).contextualize(request).check_permission():
                 field.update(url=name_or_names.endpoint.get_api_url(value.id))
         return field
     else:
@@ -151,7 +150,7 @@ class Serializer:
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls and cls.get_qualified_name() in self.metadata['allow']:
-                raise JsonResponseException(cls(self.obj.pk).contextualize().serialize())
+                raise JsonResponseException(cls(self.obj.pk).contextualize(self.request).serialize())
 
         if not self.metadata['content']:
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
