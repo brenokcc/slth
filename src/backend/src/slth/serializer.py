@@ -1,12 +1,10 @@
-import re
 import slth
 import json
 import types
 from decimal import Decimal
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from django.template.loader import render_to_string
 from django.db.models import Model, QuerySet, Manager
-from django.db import models
 from django.utils.text import slugify
 from .exceptions import JsonResponseException
 from .utils import absolute_url
@@ -33,6 +31,8 @@ def serialize(obj, primitive=False):
         return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
         return [str(obj) for obj in obj.filter()] if primitive else obj.serialize()
+    elif hasattr(obj, 'serialize'):
+        return obj.serialize()
     return str(obj)
 
 def getfield(obj, name_or_names, request=None):
@@ -70,7 +70,7 @@ class LinkField:
         self.endpoint = endpoint
 
 class Serializer:
-    def __init__(self, obj=None, request=None, serializer=None, type='instance', title=None):
+    def __init__(self, obj=None, request=None, serializer=None, type='object', title=None):
         self.path = serializer.path.copy() if serializer else []
         self.obj = obj
         self.lazy = False
@@ -122,6 +122,10 @@ class Serializer:
         self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self)))
         return self.serializer
     
+    def contextualize(self, request):
+        self.request = request
+        return self
+    
     def serialize(self, debug=False, forward_exception=False):
         try:
             return self.to_dict(debug=debug)
@@ -147,7 +151,7 @@ class Serializer:
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls and cls.get_qualified_name() in self.metadata['allow']:
-                raise JsonResponseException(cls(self.request, self.obj.pk).serialize())
+                raise JsonResponseException(cls(self.obj.pk).contextualize().serialize())
 
         if not self.metadata['content']:
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
@@ -184,7 +188,7 @@ class Serializer:
                             if not only:
                                 for qualified_name in item['actions']:
                                     cls = slth.ENDPOINTS[qualified_name]
-                                    if cls(self.request, self.obj.pk).check_permission():
+                                    if cls(self.obj.pk).contextualize(self.request).check_permission():
                                         actions.append(cls.get_api_metadata(f'?e={cls.get_api_name()}'))
                             data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
                         if leaf: raise JsonResponseException(data)
@@ -211,10 +215,14 @@ class Serializer:
                         url = absolute_url(self.request, '?only={}'.format('__'.join(self.path + [key])))
                         data = dict(type='fieldset', key=key, title=title)
                         if not lazy:
-                            endpoint = cls(self.request, self.obj.pk)
+                            endpoint = cls(self.obj.pk).contextualize(self.request)
                             if endpoint.check_permission():
                                 returned = endpoint.get()
-                                data.update(data=returned.serialize() if hasattr(returned, 'serialize') else serialize(returned))
+                                if isinstance(returned, QuerySet):
+                                    returned = returned.attrname(key).contextualize(self.request)
+                                elif isinstance(returned, Serializer):
+                                    returned = returned.contextualize(self.request)
+                                data.update(data=serialize(returned))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':
                     serializer = item['serializer']
@@ -230,7 +238,7 @@ class Serializer:
         if not only and not self.lazy:
             for qualified_name in self.metadata['actions']:
                 cls = slth.ENDPOINTS[qualified_name]
-                if cls(self.request, self.obj.pk).check_permission():
+                if cls(self.obj.pk).contextualize(self.request).check_permission():
                     url = absolute_url(self.request, f'?action={cls.get_api_name()}')
                     actions.append(cls.get_api_metadata(url))
         

@@ -48,3 +48,6 @@ class CadastrarCidadeForm(forms.ModelForm):
     def on_nome_change(self, values):
         self.setdata(prefeito=Pessoa.objects.last(), vereadores=Pessoa.objects.all()[0:3])
 
+    def clean(self):
+        raise forms.ValidationError('xxxxx')
+

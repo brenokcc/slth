@@ -18,10 +18,10 @@ def dispatcher(request, **kwargs):
         return ApiResponse({})
     else:
         tokens = request.path.split('/')
-        cls = slth.ENDPOINTS.get(tokens[2].replace('-', ''))
+        cls = slth.ENDPOINTS.get(tokens[2])
         if cls:
             try:
-                return cls(request, *kwargs.values()).to_response()
+                return cls(*kwargs.values()).contextualize(request).to_response()
             except JsonResponseException as e:
                 return ApiResponse(e.data)
             except Exception as e:

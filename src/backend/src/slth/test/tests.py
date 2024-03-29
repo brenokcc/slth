@@ -105,7 +105,7 @@ class ApiTestCase(ServerTestCase):
         for numero in ('11111-1111', '22222-2222'):
             juca.telefones_profissionais.add(self.objects('test.telefone').create(ddd=84, numero=numero))
         querystrings = {
-            None: 'instance',
+            None: 'object',
             '?only=recursos_humanos__ponto__get_usuarios': 'queryset',
             '?only=recursos_humanos__ponto__afastamentos': 'fieldset',
             '?only=ensino__projetos_finais': 'fieldset',

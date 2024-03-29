@@ -82,27 +82,19 @@ class FormMixin:
             return e.data
         
     def display(self, serializable):
-        self.display_data.append(serializable)
+        self.display_data = serializable
         return self
 
     def to_dict(self, prefix=None):
         data = dict(
-            type='form', title=self.get_metadata('title', 'Form'), icon=self.get_metadata('icon'),
+            type='form', title=self.get_metadata('title', type(self).__name__), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request)
         )
         data.update(controls=self.controls)
-        display = []
         if self.display_data:
-            for serializable in self.display_data:
-                if isinstance(serializable, Serializer):
-                    serializable.request = self.request
-                    serialized = serializable.serialize(forward_exception=True)['data']
-                elif hasattr(serializable, 'serialize'):
-                    serialized = serializable.serialize()
-                else:
-                    serialized = serialize(serializable)
-                display.append(serialized)
-            data.update(display=display)
+            if isinstance(self.display_data, Serializer):
+                # self.display_data.request = self.request
+                data.update(display=self.display_data.serialize(forward_exception=True)['data'])
         choices_field_name = self.request.GET.get('choices')
         if self.fieldsets:
             fieldsets = []
@@ -210,7 +202,7 @@ class FormMixin:
                     else:
                         errors.update({f'{inline_field_name}__{i}__{name}': error for name, error in inline_form.errors.items()}) 
         if errors:
-            return dict(message='Please correct the errors.', errors=errors)
+            return dict(type='error', text='Please correct the errors.', errors=errors)
         else:
             data.update({field_name: self.cleaned_data.get(field_name) for field_name in self.fields if field_name not in inline_fields})
             with transaction.atomic():
@@ -222,7 +214,7 @@ class FormMixin:
                             # set one-to-one
                             if hasattr(self.instance, f'{inline_field_name}_id'):
                                 setattr(self.instance, inline_field_name, obj)
-                    self.save()
+                    self.submit()
                     for inline_field_name in inline_fields:
                         relation = getattr(self.instance, inline_field_name)
                         for obj in self.cleaned_data[inline_field_name]:
@@ -287,11 +279,12 @@ class Form(DjangoForm, FormMixin):
 
 
 class ModelForm(DjangoModelForm, FormMixin):
-    def __init__(self, instance=None, request=None, **kwargs):
+    def __init__(self, instance=None, request=None, delete=False, **kwargs):
         self.fieldsets = {}
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
         self.request = request
+        self.delete = delete
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
@@ -306,7 +299,7 @@ class ModelForm(DjangoModelForm, FormMixin):
         super().__init__(instance=instance, **kwargs)
 
     def submit(self):
-        pass
+        self.instance.delete() if self.delete else self.save()
 
 class InlineFormField(Field):
     def __init__(self, *args, form=None, min=1, max=3, **kwargs):

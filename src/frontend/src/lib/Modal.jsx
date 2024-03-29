@@ -100,27 +100,20 @@ function Dialog(props) {
             <Icon icon="x" onClick={() => closeDialog()} />
           </div>
           <ComponentFactory data={data} />
-          <a
-            className="btn"
-            onClick={() => openDialog("/app/cadastrarpessoa/")}
-          >
-            XXXX
-          </a>
         </div>
       );
     }
   }
 
+  const style = {
+    minWidth: "50%",
+    display: data ? "block" : "none",
+    maxWidth: "90%",
+    top: window.scrollY + 40,
+  };
+
   return (
-    <dialog
-      className={"dialog " + (window.innerWidth > 600 ? "small" : "big")}
-      key={key}
-      style={{
-        display: data ? "block" : "none",
-        maxWidth: "90%",
-        top: window.scrollY + 40,
-      }}
-    >
+    <dialog style={style} key={key}>
       {content()}
     </dialog>
   );

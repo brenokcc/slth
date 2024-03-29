@@ -9,6 +9,7 @@ from django.db.models.base import ModelBase
 from .queryset import QuerySet
 from functools import reduce
 from django.utils.translation import gettext_lazy as _
+from .serializer import Serializer
 
 warnings.filterwarnings('ignore', module='urllib3')
 
@@ -49,6 +50,9 @@ class ModelMixin(object):
         for attr_name in username_lookup.split('__'):
             obj = getattr(obj, attr_name)
         return apps.get_model('auth.user').objects.get(username=obj)
+    
+    def serializer(self) -> Serializer:
+        return Serializer(self)
 
 
 class BaseManager(manager.BaseManager):

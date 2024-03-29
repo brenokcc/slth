@@ -1,6 +1,6 @@
 import { openDialog } from "./Modal";
 
-function Button(props) {
+function Action(props) {
   const url = "/app/" + props.data.url.split("/api/")[1];
 
   function onClick(e) {
@@ -9,8 +9,9 @@ function Button(props) {
   }
 
   function render() {
+    const style = { padding: 5 };
     return (
-      <a href={url} onClick={onClick}>
+      <a href={url} onClick={onClick} style={style}>
         {props.data.name}
       </a>
     );
@@ -18,5 +19,5 @@ function Button(props) {
   return render();
 }
 
-export { Button };
-export default { Button };
+export { Action };
+export default { Action };

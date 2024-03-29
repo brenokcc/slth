@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { toLabelCase } from "./Utils";
 import { Icon, Icons } from "./Icon";
-import { openDialog } from "./Modal";
+import { closeDialog, openDialog } from "./Modal";
+import { ComponentFactory } from "./Factory";
+import { showMessage } from "./Message";
 
 const INPUT_TYPES = [
   "text",
@@ -83,10 +85,11 @@ function formControl(controls) {
 function Field(props) {
   const id = props.data.name + Math.random();
 
-  function get_label() {
-    return <label>{props.data.label}</label>;
+  function renderLabel() {
+    const style = { fontWeight: props.data.required ? "bold" : "normal" };
+    return <label style={style}>{props.data.label}</label>;
   }
-  function get_input() {
+  function renderInput() {
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
       return <InputField data={props.data} />;
     else if (props.data.type == "choice" && Array.isArray(props.data.choices))
@@ -97,6 +100,12 @@ function Field(props) {
     else if (props.data.type == "boolean") return <Boolean data={props.data} />;
     else return <span>{props.data.name}</span>;
   }
+
+  function renderError() {
+    const style = { color: "red", display: "none" };
+    return <div style={style} id={props.data.name + "_error"}></div>;
+  }
+
   function render() {
     const style = {
       display: "flex",
@@ -105,8 +114,9 @@ function Field(props) {
     };
     return (
       <div id={id} className={"form-group " + props.data.name} style={style}>
-        {get_label()}
-        {get_input()}
+        {renderLabel()}
+        {renderInput()}
+        {renderError()}
       </div>
     );
   }
@@ -511,15 +521,27 @@ function Form(props) {
     return <h1>{props.data.title}</h1>;
   }
 
+  function getDisplay() {
+    if (props.data.display) {
+      return (
+        <>
+          {props.data.display.map((data) => (
+            <ComponentFactory key={Math.random()} data={data} />
+          ))}
+          <div style={{ marginTop: 30 }}></div>
+        </>
+      );
+    }
+  }
+
   function getButtons() {
     return (
       <div className="right" style={{ marginTop: 20, textAlign: "right" }}>
         <a
           className="btn"
-          //onClick={cancel}
+          onClick={cancel}
           data-label={toLabelCase("Cancelar")}
           style={BUTTON_STYLE}
-          onClick={() => openDialog("/app/listarpessoas/")}
         >
           Cancelar
         </a>
@@ -549,23 +571,26 @@ function Form(props) {
     //<Icons />
     return (
       <form id={id}>
-        <p>{JSON.stringify(props.data)}</p>
+        <div>{false && JSON.stringify(props.data)}</div>
         {getTitle()}
+        {getDisplay()}
         {getFields()}
         {getButtons()}
       </form>
     );
   }
 
-  function cancel() {}
+  function cancel() {
+    closeDialog();
+  }
 
   function submit(e) {
     e.preventDefault();
     var form = document.getElementById(id);
     var data = new FormData(form);
-    for (var pair of data.entries()) {
-      console.log(pair[0] + ", " + pair[1]);
-    }
+    // for (var pair of data.entries()) {
+    //   console.log(pair[0] + ", " + pair[1]);
+    // }
     var button = form.querySelector(".btn.submit");
     var label = button.innerHTML;
     button.innerHTML = "Aguarde...";
@@ -574,8 +599,23 @@ function Form(props) {
       props.data.url,
       function callback(data) {
         button.innerHTML = label;
-        if (data.type == "message") alert(data.text);
-        else console.log(data);
+        if (data.type == "message") {
+          closeDialog();
+          showMessage(data.text);
+        } else {
+          var message = data.text;
+          console.log(data);
+          Object.keys(data.errors).map(function (k) {
+            if (k == "__all__") {
+              message = data.errors[k];
+            } else {
+              const div = document.getElementById(k + "_error");
+              div.innerHTML = data.errors[k];
+              div.style.display = "block";
+            }
+          });
+          showMessage(message, true);
+        }
       },
       data
     );

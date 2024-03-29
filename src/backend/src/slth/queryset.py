@@ -75,8 +75,8 @@ class QuerySet(models.QuerySet):
             self.metadata['subsets'] = names
         return self
 
-    def title(self, name):
-        self.metadata['title'] = name
+    def title(self, name=None):
+        self.metadata['title'] = name or str(self.model._meta.verbose_name_plural)
         return self
     
     def attrname(self, name):
@@ -105,7 +105,7 @@ class QuerySet(models.QuerySet):
         return self
 
     def contextualize(self, request):
-        pk = request and request.GET.get('pk')
+        pk = request and request.GET.get('id')
         self.request = request
         qs = self._clone()
         if pk:
@@ -114,7 +114,7 @@ class QuerySet(models.QuerySet):
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls and cls.get_qualified_name() in self.metadata.get('actions', ()):
-                raise JsonResponseException(cls(self.request, *((pk,) if pk else ())).serialize())
+                raise JsonResponseException(cls(*((pk,) if pk else ())).contextualize(self.request).serialize())
 
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
@@ -170,9 +170,8 @@ class QuerySet(models.QuerySet):
             return e.data
     
     def to_dict(self, debug=False):
-        title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
+        title = self.metadata.get('title')
         attrname = self.metadata.get('attrname')
-        url = '?only={}'.format(attrname) if attrname else ''
         subset = None
         actions = []
         filters = []
@@ -200,7 +199,9 @@ class QuerySet(models.QuerySet):
         for cls in queryset_actions:
             if cls(self.request).check_permission():
                 url = absolute_url(self.request, f'?action={cls.get_api_name()}')
-                actions.append(cls.get_api_metadata(url))
+                action = cls.get_api_metadata(url)
+                action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
+                actions.append(action)
 
         subset = self.parameter('subset')
         subset = None if subset == 'all' else subset
@@ -269,11 +270,17 @@ class QuerySet(models.QuerySet):
                 serializer = Serializer(obj, self.request).fields(*fields)
             serialized = serializer.serialize(forward_exception=True)
             for cls in instance_actions:
-                if cls(self.request, obj.pk).check_permission():
-                    serialized['actions'].append(cls.get_api_metadata(f'?e={cls.get_api_name()}&id={obj.pk}'))
+                if cls(obj.pk).contextualize(self.request).check_permission():
+                    url = absolute_url(self.request, f'action={cls.get_api_name()}&id={obj.pk}')
+                    action = cls.get_api_metadata(url)
+                    action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
+                    serialized['actions'].append(action)
             objs.append(serialized)
 
+        url = absolute_url(self.request, 'only={}'.format(attrname) if attrname else '')
         data = dict(type='queryset', title=title, key=attrname, url=url, total=total, count=count, icon=None, actions=actions, filters=filters, search=search)
+        if attrname:
+            data.update(attrname=attrname)
         if calendar:
             data.update(calendar=calendar)
             data['filters'].extend([

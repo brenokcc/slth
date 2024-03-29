@@ -5,12 +5,10 @@ from django.apps import apps
 from typing import Any
 from django.conf import settings
 from django.db import transaction, models
-from django.forms import modelform_factory
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .forms import LoginForm, ModelForm
-from .exceptions import JsonResponseException
-from .serializer import serialize
+from .forms import LoginForm, ModelForm, Form
+from . import serializer
 
 
 import slth
@@ -36,30 +34,26 @@ class EnpointMetaclass(type):
 
 class Endpoint(metaclass=EnpointMetaclass):
 
-    def __init__(self, request, *args):
-        self.form = None
-        self.serializer = None
+    def __init__(self, *args):
+        self.request = None
+
+    def contextualize(self, request):
         self.request = request
+        return self
 
     def objects(self, model):
         return apps.get_model(model).objects
         
     def get(self):
-        if self.form:
-            return self.form.serialize()
-        elif self.serializer:
-            if isinstance(self.serializer, dict):
-                return self.serializer
-            else:
-                return self.serializer.serialize()
-        else:
-            return {}
+        return {}
     
     def post(self):
-        if self.form:
-            return self.form.post()
-        else:
-            return {}
+        data = self.get()
+        if isinstance(data, FormFactory):
+            data = data.form(self.request).post()
+        if isinstance(data, Form) or isinstance(data, ModelForm):
+            data = data.post()
+        return data
     
     def save(self, data):
         pass
@@ -68,14 +62,21 @@ class Endpoint(metaclass=EnpointMetaclass):
         return True
     
     def serialize(self):
-        method = self.request.method.lower()
-        if method == 'get':
+        if self.request.method == 'GET':
             data = self.get()
-        elif method == 'post':
+        elif self.request.method == 'POST':
             data = self.post()
         else:
             data = {}
-        return serialize(data)
+       
+        if isinstance(data, models.QuerySet):
+            data = data.contextualize(self.request)
+        elif isinstance(data, serializer.Serializer):
+            data = data.contextualize(self.request)
+        elif isinstance(data, FormFactory):
+            data = data.form(self.request)
+        
+        return serializer.serialize(data)
     
     def to_response(self):
         return ApiResponse(self.serialize(), safe=False)
@@ -112,11 +113,11 @@ class Endpoint(metaclass=EnpointMetaclass):
     
     @classmethod
     def has_args(cls):
-        return len(inspect.getfullargspec(cls.__init__).args) > 2
+        return len(inspect.getfullargspec(cls.__init__).args) > 1
     
     @classmethod
     def get_api_url_pattern(cls):
-        args = inspect.getfullargspec(cls.__init__).args[2:]
+        args = inspect.getfullargspec(cls.__init__).args[1:]
         pattern = '{}/'.format(cls.get_api_name())
         for arg in args:
             pattern = '{}{}/'.format(pattern, '<int:{}>'.format(arg))
@@ -125,7 +126,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     @classmethod
     def get_api_metadata(cls, url):
         action_name = cls.get_metadata('verbose_name')
-        return dict(type='action', name=action_name, url=url, key=cls.get_api_name())
+        return dict(type='action', title=action_name, name=action_name, url=url, key=cls.get_api_name())
     
     @classmethod
     def get_metadata(cls, key):
@@ -139,17 +140,16 @@ class Endpoint(metaclass=EnpointMetaclass):
         
 
 class ChildEndpoint(Endpoint):
-    def __init__(self, request, parent, *args):
-        self.parent = parent
-        super().__init__(request, *args)
+    pass
 
 
 class FormFactory:
-    def __init__(self, request, instance):
-        self.request = request
+    def __init__(self, instance, delete=False):
         self.instance = instance
         self.fieldsets = {}
         self.fieldlist = []
+        self.serializer = None
+        self.delete = delete
 
     def fields(self, *names):
         self.fieldlist.extend(names)
@@ -165,16 +165,26 @@ class FormFactory:
                     self.fieldlist.extend(names)
         return self
     
-    def form(self):
+    def display(self, serializer):
+        self.serializer = serializer
+        return self
+
+    def form(self, request):
         class Form(ModelForm):
             class Meta:
+                title = '{} {}'.format(
+                    'Excluir' if self.delete else ('Editar' if self.instance.pk else 'Cadastrar'),
+                    type(self.instance)._meta.verbose_name
+                )
                 model = type(self.instance)
-                fields = self.fieldlist or '__all__'
+                fields = () if self.delete else (self.fieldlist or '__all__')
         
-        return Form(instance=self.instance, request=self.request)
+        form = Form(instance=self.instance, request=request, delete=self.delete)
+        if self.serializer:
+            form.display(self.serializer)
+        return form
 
 class Login(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = LoginForm(request=request)
+    def get(self):
+        return LoginForm(request=self.request)
 

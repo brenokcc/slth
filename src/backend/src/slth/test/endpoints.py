@@ -54,14 +54,12 @@ class ViewUser(Endpoint):
     
 
 class CadastrarPessoa(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = (
-            FormFactory(request, Pessoa())
+    def get(self):
+        return (
+            FormFactory(Pessoa())
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
-            .form()
         )
 
 class CadastrarPessoa2(Endpoint):
@@ -117,7 +115,8 @@ class VisualizarPessoa(Endpoint):
 
     def check_permission(self):
         return True
-    
+
+
 class VisualizarPessoa2(Endpoint):
     def __init__(self, request, pk):
         super().__init__(request)
@@ -130,9 +129,8 @@ class VisualizarPessoa2(Endpoint):
         )
 
 class EstatisticaPessoal(Endpoint):
-    def __init__(self, request, *args):
-        super().__init__(request)
-        self.serializer = Pessoa.objects.counter('sexo')
+    def get(self):
+        return Pessoa.objects.counter('sexo') # 
 
 class VisualizarPessoa3(Endpoint):
     def __init__(self, request, pk):
@@ -166,44 +164,69 @@ class VisualizarPessoa3(Endpoint):
         )
     
 
+class EditarCidade(Endpoint):
+    def __init__(self, pk):
+        super().__init__()
+        self.obj = self.objects('test.cidade').get(pk=pk)
+
+    def get(self):
+        return CadastrarCidadeForm(request=self.request)
+
 class VisualizarCidade(Endpoint):
-    def __init__(self, request, pk):
-        super().__init__(request)
-        self.serializer = (
-            Serializer(self.objects('test.cidade').get(pk=pk), self.request)
+    def __init__(self, pk):
+        super().__init__()
+        self.obj = self.objects('test.cidade').get(pk=pk)
+    
+    def get(self):
+        return  (
+            self.obj.serializer()
             .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa)))
-            .fieldset('Prefeito', ('id', 'nome'), attr='prefeito')
+            .fieldset('Prefeito', [('id', 'nome')], attr='prefeito')
+            .queryset('Vereadores', 'vereadores')
             .endpoint('Cidades Vizinhas', CidadesVizinhas)
         )
 
+
+class ExcluirCidade(Endpoint):
+    def __init__(self, pk):
+        super().__init__()
+        self.obj = self.objects('test.cidade').get(pk=pk)
+
+    def get(self):
+        return FormFactory(self.obj, delete=True)
+
 class CadastrarCidade(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = (
-            FormFactory(request, Cidade())
-            .form()
-            .display(Serializer(Pessoa.objects.first()).fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
+    def get(self):
+        return (
+            FormFactory(Cidade()).display(Pessoa.objects.first().serializer().fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
         )
 
 class CadastrarCidade2(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = CadastrarCidadeForm(Cidade.objects.first(), request)
+    
+    def get(self):
+        return CadastrarCidadeForm(Cidade.objects.first(), self.request)
 
 
 class CidadesVizinhas(ChildEndpoint):
 
     def get(self):
-        return self.objects('test.cidade').all()
+        return self.objects('test.cidade').all().actions(
+            'slth.test.endpoints.cadastrarcidade',
+            'slth.test.endpoints.editarcidade',
+            'slth.test.endpoints.excluircidade'
+        )
     
 
 
 class ListarFuncionario(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.serializer = self.objects('test.funcionario').actions('slth.test.endpoints.cadastrarfuncionario').contextualize(request)
+    def get(self):
+        return (
+            self.objects('test.funcionario')
+            .actions('slth.test.endpoints.cadastrarfuncionario')
+        )
     
 class CadastrarFuncionario(Endpoint):
-    def __init__(self, request):
-        super().__init__(request)
-        self.form = FormFactory(request, self.objects('test.funcionario').model()).form()
+    def get(self):
+        return FormFactory(
+            self.objects('test.funcionario').model()
+        )
