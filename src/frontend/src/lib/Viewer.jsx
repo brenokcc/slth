@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
 import { request } from "./Request.jsx";
+import { format } from "./Formatter.jsx";
 
 function Field(props) {
   function render() {
@@ -10,7 +11,7 @@ function Field(props) {
         <div style={style}>
           <strong>{props.data.label}</strong>
           <br></br>
-          <span>{props.data.value}</span>
+          {format(props.data.value)}
         </div>
       </>
     );
@@ -55,7 +56,6 @@ function Fieldset(props) {
   }
 
   function loadContent(url) {
-    console.log(url);
     request("GET", url, function (data) {
       console.log(data);
       setContent(data);
@@ -230,5 +230,5 @@ function Dimension(props) {
   return render();
 }
 
-export { Fieldset, Object, Section, Group, Dimension };
+export { Fieldset, Field, Object, Section, Group, Dimension };
 export default Object;

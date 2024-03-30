@@ -3,11 +3,7 @@ import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
 import { hideMessages } from "./Message";
 import { Icon } from "./Icon";
-import { request } from "./Request.jsx";
-
-function URL(url) {
-  return url ? url.replace("/api/", "/app/") : url;
-}
+import { request, apiurl } from "./Request.jsx";
 
 function createLayer() {
   if (document.querySelector(".layer") == null) {
@@ -24,7 +20,7 @@ function openDialog(url, reloader) {
   var dialogs = document.getElementsByTagName("dialog");
   for (var i = 0; i < dialogs.length; i++) dialogs[i].style.display = "none";
   createRoot(document.body.appendChild(document.createElement("div"))).render(
-    <Dialog url={URL(url)} />
+    <Dialog url={apiurl(url)} />
   );
 }
 
@@ -32,7 +28,7 @@ function openIFrameDialog(url) {
   hideMessages();
   createLayer();
   createRoot(document.body.appendChild(document.createElement("div"))).render(
-    <IDialog url={URL(url)} />
+    <IDialog url={apiurl(url)} />
   );
 }
 
@@ -82,12 +78,12 @@ function Dialog(props) {
   const [key, setkey] = useState(0);
 
   useEffect(() => {
-    open(URL(props.url));
+    open(apiurl(props.url));
     document.querySelector(".layer").style.display = "block";
   }, []);
 
   function open(url) {
-    request("GET", URL(url), function (data) {
+    request("GET", apiurl(url), function (data) {
       setdata(data);
       setkey(key + 1);
     });
@@ -135,7 +131,7 @@ function IDialog(props) {
       className={"dialog " + (window.innerWidth > 600 ? "small" : "big")}
       id={key}
     >
-      <iframe src={URL(props.url)} width="100%" height={500}></iframe>
+      <iframe src={apiurl(props.url)} width="100%" height={500}></iframe>
     </dialog>
   );
 }

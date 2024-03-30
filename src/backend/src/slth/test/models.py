@@ -1,4 +1,5 @@
 from slth.db import models, role, meta
+from slth.components import Image, Banner, Map, Steps, QrCode, Badge, Status
 from django.contrib.auth.models import Group, User
 
 class Telefone(models.Model):
@@ -52,6 +53,41 @@ class Cidade(models.Model):
     def __str__(self):
         return self.nome
     
+    @meta('Imagem')
+    def get_imagem(self):
+        return Image('https://static.vecteezy.com/ti/vetor-gratis/t2/1591382-banner-vermelho-de-feliz-natal-e-feliz-ano-novo-vetor.jpg')
+    
+    @meta('Banner')
+    def get_banner(self):
+        return Banner('https://static.vecteezy.com/ti/vetor-gratis/t2/1591382-banner-vermelho-de-feliz-natal-e-feliz-ano-novo-vetor.jpg')
+    
+    @meta('Mapa')
+    def get_mapa(self):
+        return Map('-5.8496847', '-35.2038551')
+    
+    @meta('Steps')
+    def get_steps(self):
+        steps = Steps()
+        steps.append('Passo 01', True)
+        steps.append('Descrição do Passo 02', True)
+        steps.append('Passo 03', False)
+        steps.append('Passo 04', False)
+        steps.append('Passo 03', False)
+        steps.append('Passo 04', False)
+        return steps
+    
+    @meta('QrCode')
+    def get_qrcode(self):
+        return QrCode('Teste')
+    
+    @meta('Badge')
+    def get_badge(self):
+        return Badge('green', 'Aprovado')
+    
+    @meta('Status')
+    def get_status(self):
+        return Status('warning', 'Pendente')
+
 @role('Administrador', username='email', active='is_admin')
 class Funcionario(models.Model):
     email = models.CharField('E-mail')

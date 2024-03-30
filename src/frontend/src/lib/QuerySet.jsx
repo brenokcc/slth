@@ -25,7 +25,7 @@ function QuerySet(props) {
             </th>
           );
         })}
-        <th></th>
+        <th style={style}></th>
       </tr>
     );
   }

@@ -1,12 +1,16 @@
 const API_URL = "http://localhost:8000";
 
+function apiurl(url) {
+  return url.replace("/app/", "/api/");
+}
+
 function request(method, url, callback, data) {
   const token = localStorage.getItem("token");
   var headers = { Accept: "application/json" };
   if (token && url.indexOf("/logout/") == -1)
     headers["Authorization"] = "Token " + token;
   url = url.replace(document.location.origin, "");
-  url = url.replace("/app/", "/api/");
+  url = apiurl(url);
   url = url + document.location.search;
   if (url.indexOf(API_URL) == -1) url = API_URL + url;
   var params = { method: method, headers: new Headers(headers), ajax: 1 };
@@ -53,5 +57,5 @@ function request(method, url, callback, data) {
     });
 }
 
-export { request };
+export { request, apiurl };
 export default request;

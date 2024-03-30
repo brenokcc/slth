@@ -1,3 +1,5 @@
+import { ComponentFactory } from "./Factory";
+
 function format(obj) {
   if (obj === null) return "-";
   if (obj === "") return "-";
@@ -25,6 +27,9 @@ function format(obj) {
     }
     return obj;
   }
+  if (typeof obj == "object" && obj.type) {
+    return <ComponentFactory data={obj} />;
+  }
   if (typeof obj == "object" && Array.isArray(obj)) {
     return obj.join(", ");
   }
@@ -36,4 +41,5 @@ function format(obj) {
   }
   return JSON.stringify(obj);
 }
+export { format };
 export default format;

@@ -197,7 +197,9 @@ class VisualizarCidade(Endpoint):
     def get(self):
         return  (
             self.obj.serializer()
-            .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa)))
+            .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa), 'get_imagem'))
+            # .fields('get_mapa')
+            .fields('get_banner', 'get_steps', 'get_qrcode', 'get_badge', 'get_status')
             .fieldset('Prefeito', [('id', 'nome')], attr='prefeito')
             .queryset('Vereadores', 'vereadores')
             .endpoint('Cidades Vizinhas', CidadesVizinhas)

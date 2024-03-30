@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { toLabelCase } from "./Utils";
-import { Icon, Icons } from "./Icon";
 import { closeDialog, openDialog } from "./Modal";
 import { ComponentFactory } from "./Factory";
 import { showMessage } from "./Message";
