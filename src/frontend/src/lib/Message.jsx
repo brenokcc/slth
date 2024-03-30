@@ -18,6 +18,7 @@ function Message(props) {
 
 function showMessage(text, isError = false) {
   const div = document.createElement("div");
+  div.classList.add("message");
   createRoot(document.body.appendChild(div)).render(
     <Message text={text} isError={isError} />
   );
@@ -26,5 +27,11 @@ function showMessage(text, isError = false) {
   }, 3000);
 }
 
-export { showMessage };
+function hideMessages() {
+  document.querySelectorAll(".message").forEach(function (div) {
+    div.remove();
+  });
+}
+
+export { showMessage, hideMessages };
 export default Message;

@@ -167,7 +167,7 @@ class Serializer:
                     data = []
                     if not lazy:
                         for name in item['names']:
-                            if not only or name in only:
+                            if key is None or not only or name in only:
                                 data.append(getfield(self.obj, name, self.request))
                         if only and only[-1] == name: raise JsonResponseException(data)
                 elif datatype == 'fieldset':
@@ -192,11 +192,11 @@ class Serializer:
                             data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':
+                    title = item['title']
                     if not only or key in only:
                         attr = getattr(self.obj, key)
                         if type(attr) == types.MethodType:
                             value = attr()
-                            title = key
                         else:
                             value = attr
                             title = getattr(type(self.obj), key).field.verbose_name
@@ -222,6 +222,8 @@ class Serializer:
                                 elif isinstance(returned, Serializer):
                                     returned = returned.contextualize(self.request)
                                 data.update(data=serialize(returned))
+                        path = self.path + [key]
+                        data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':
                     serializer = item['serializer']

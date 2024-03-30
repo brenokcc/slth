@@ -255,10 +255,10 @@ class QuerySet(models.QuerySet):
         end = start + page_size
         serializer:Serializer = qs.metadata.get('serializer')
 
-        if self.request and 'e' in self.request.GET:
-            cls = slth.ENDPOINTS[self.request.GET.get('e')]
+        if self.request and 'action' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls in instance_actions:
-                raise JsonResponseException(cls(self.request, qs.get(pk=self.request.GET.get('id')).pk).serialize())
+                raise JsonResponseException(cls(qs.get(pk=self.request.GET.get('id')).pk).contextualize(self.request).serialize())
 
         for obj in qs[start:end]:
             if serializer:

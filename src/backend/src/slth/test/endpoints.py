@@ -137,7 +137,7 @@ class VisualizarPessoa2(Endpoint):
 
 class EstatisticaPessoal(Endpoint):
     def get(self):
-        return Pessoa.objects.counter('sexo') # 
+        return Pessoa.objects.counter('sexo', chart='donut') 
 
 class VisualizarPessoa3(Endpoint):
     def __init__(self, pk):
@@ -145,8 +145,8 @@ class VisualizarPessoa3(Endpoint):
         super().__init__()
 
     def get(self):
-        self.serializer = (
-            Serializer(Pessoa.objects.get(pk=self.pk))
+        return (
+            Serializer(Pessoa.objects.get(pk=self.pk), request=self.request)
             .fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']])
             .fieldset('Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais'])
             .queryset('Telefones Profissionais', 'telefones_profissionais')
@@ -155,8 +155,13 @@ class VisualizarPessoa3(Endpoint):
                 .fieldset('Projetos Finais', ())
             .parent()
             .group('Group A')
-                .fieldset('Fieldset A1', ())
-                .fieldset('Fieldset A2', ())
+                .fieldset('Fieldset A1', (['id']))
+                .fieldset('Fieldset A2', (['sexo']))
+                .section('Section A3')
+                    .fieldset('Frequências', ())
+                    .fieldset('Afastamentos', ())
+                    .queryset('Usuários', 'get_usuarios')
+                .parent()
             .parent()
             .dimention('Recursos Humanos')
                 .section('Ponto')
@@ -164,9 +169,11 @@ class VisualizarPessoa3(Endpoint):
                     .fieldset('Afastamentos', ())
                     .queryset('Usuários', 'get_usuarios')
                 .parent()
-                .fieldset('XXXXX', ())
-                .endpoint('Estatística', 'slth.test.endpoints.estatisticapessoal')
-                .queryset('Telefones Profissionais', 'telefones_profissionais')
+                .section('Detalhamento')
+                    .fieldset('XXXXX', ())
+                    .endpoint('Estatística', 'slth.test.endpoints.estatisticapessoal')
+                    .queryset('Telefones Profissionais', 'telefones_profissionais')
+                .parent()
                 .section('PGD')
                     .fieldset('Adesões', ())
                 .parent()

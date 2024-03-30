@@ -11,7 +11,11 @@ function QuerySet(props) {
   }
 
   function renderHeader(data) {
-    const style = { textAlign: "left" };
+    const style = {
+      textAlign: "left",
+      backgroundColor: "#EEE",
+      verticalAlign: "middle",
+    };
     return (
       <tr>
         {data.map(function (item) {
@@ -44,7 +48,14 @@ function QuerySet(props) {
   function renderRows() {
     if (props.data.data.length > 0) {
       return (
-        <table style={{ width: "100%", lineHeight: "2rem" }}>
+        <table
+          style={{
+            width: "100%",
+            lineHeight: "2rem",
+            borderSpacing: 0,
+            overflowX: "scroll",
+          }}
+        >
           <thead>{renderHeader(props.data.data[0].data)}</thead>
           <tbody>
             {props.data.data.map(function (item) {
@@ -54,6 +65,7 @@ function QuerySet(props) {
         </table>
       );
     } else {
+      return <center>Nenhum registro encontrado.</center>;
     }
   }
 

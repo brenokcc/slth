@@ -4,6 +4,8 @@ import { Icon, Icons } from "./Icon";
 import { closeDialog, openDialog } from "./Modal";
 import { ComponentFactory } from "./Factory";
 import { showMessage } from "./Message";
+import { request } from "./Request.jsx";
+import { reloadState } from "./Reloader.jsx";
 
 const INPUT_TYPES = [
   "text",
@@ -602,6 +604,7 @@ function Form(props) {
         if (data.type == "message") {
           closeDialog();
           showMessage(data.text);
+          reloadState();
         } else {
           var message = data.text;
           console.log(data);

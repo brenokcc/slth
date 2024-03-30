@@ -1,7 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
+import { hideMessages } from "./Message";
 import { Icon } from "./Icon";
+import { request } from "./Request.jsx";
 
 function URL(url) {
   return url ? url.replace("/api/", "/app/") : url;
