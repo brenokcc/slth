@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { Icon } from "./Icon";
-import { apiurl } from "./Request";
+import { apiurl, appurl } from "./Request";
 import { COLORS } from "./Theme";
 import { toLabelCase } from "./Utils";
 import { openIFrameDialog } from "./Modal";
+import { ComponentFactory } from "./Factory";
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -222,7 +223,7 @@ function Boxes(props) {
           {props.data.items.map((item) => (
             <a
               key={Math.random()}
-              href={apiurl(item.url)}
+              href={appurl(item.url)}
               style={box}
               data-label={toLabelCase(item.label)}
             >
@@ -337,6 +338,25 @@ function Indicators(props) {
   }
 }
 
+function Grid(props) {
+  function render() {
+    const container = {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(395px, 1fr))",
+    };
+    return (
+      <div style={container}>
+        {props.data.items.map((data, i) => (
+          <div key={Math.random()}>
+            <ComponentFactory data={data} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return render();
+}
+
 export {
   Banner,
   Image,
@@ -351,5 +371,6 @@ export {
   QrCode,
   Indicators,
   Link,
+  Grid,
 };
 export default Html;

@@ -9,8 +9,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import LoginForm, ModelForm, Form
 from .serializer import serialize, Serializer
-from .components import Application as Application_, Navbar, Footer
+from .components import Application as Application_, Navbar, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
+from .utils import build_url, absolute_url
 from slth import APPLICATON
 
 
@@ -137,14 +138,14 @@ class Endpoint(metaclass=EnpointMetaclass):
         return dict(type='action', title=action_name, name=action_name, url=url, key=cls.get_api_name())
     
     @classmethod
-    def get_metadata(cls, key):
+    def get_metadata(cls, key, default=None):
         value = None
         metaclass = getattr(cls, 'Meta', None)
         if metaclass:
             value = getattr(metaclass, key, None)
         if value is None and key == 'verbose_name':
             value = cls.get_pretty_name()
-        return value
+        return value or default
         
 
 class ChildEndpoint(Endpoint):
@@ -196,11 +197,33 @@ class Login(Endpoint):
     def get(self):
         return LoginForm(request=self.request)
 
+class Logout(Endpoint):
+    def get(self):
+        return Response(message='Logout realizado com sucesso.', redirect='/api/login/', store=dict(token=None))
+
+
+class Icons(Endpoint):
+    class Meta:
+        modal = True
+        verbose_name = 'Icons'
+
+    def get(self):
+        return IconSet()
     
 class Dashboard(Endpoint):
     def get(self):
-        if self.request.user.is_authenticated:
+        if 1 or self.request.user.is_authenticated:
             serializer = Serializer(request=self.request)
+            if APPLICATON['dashboard']['boxes']:
+                boxes = Boxes('Acesso Rápido')
+                for endpoint in APPLICATON['dashboard']['boxes']:
+                    cls = slth.ENDPOINTS[endpoint]
+                    if cls().contextualize(self.request).check_permission():
+                        icon = cls.get_metadata('icon', 'check')
+                        label = cls.get_metadata('verbose_name')
+                        url = build_url(self.request, cls.get_api_url())
+                        boxes.append(icon, label, url)
+                serializer.append('Acesso Rápido', boxes)
             if APPLICATON['dashboard']['top']:
                 group = serializer.group('Teste')
                 for endpoint in APPLICATON['dashboard']['top']:
@@ -216,6 +239,18 @@ class Dashboard(Endpoint):
     
 class Application(Endpoint):
     def get(self):
-        navbar = Navbar(APPLICATON['title'], APPLICATON['subtitle'], APPLICATON['icon'])
+        navbar = None
+        if self.request.user.is_authenticated:
+            navbar = Navbar(
+                title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
+                logo=APPLICATON['logo'], user=self.request.user.username
+            )
+            for endpoint in APPLICATON['dashboard']['usermenu']:
+                cls = slth.ENDPOINTS[endpoint]
+                if cls().contextualize(self.request).check_permission():
+                    label = cls.get_metadata('verbose_name')
+                    url = build_url(self.request, cls.get_api_url())
+                    modal = cls.get_metadata('modal', False)
+                    navbar.add_action(label, url, modal)
         footer = Footer(APPLICATON['version'])
         return Application_(navbar=navbar, footer=footer)

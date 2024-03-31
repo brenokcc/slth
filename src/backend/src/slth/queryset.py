@@ -170,7 +170,7 @@ class QuerySet(models.QuerySet):
             return e.data
     
     def to_dict(self, debug=False):
-        title = self.metadata.get('title')
+        title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
         attrname = self.metadata.get('attrname')
         subset = None
         actions = []

@@ -12,7 +12,8 @@ from django.db import transaction
 from django.db.models import Manager
 from .exceptions import JsonResponseException
 from .utils import absolute_url
-from .serializer import serialize, Serializer
+from .serializer import Serializer
+from .components import Response
 
 
 DjangoModelForm = ModelForm
@@ -90,7 +91,7 @@ class FormMixin:
             type='form', title=self.get_metadata('title', type(self).__name__), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request)
         )
-        data.update(controls=self.controls)
+        data.update(controls=self.controls, width=self.get_metadata('width', '100%'))
         if self.display_data:
             if isinstance(self.display_data, Serializer):
                 # self.display_data.request = self.request
@@ -221,7 +222,7 @@ class FormMixin:
                             # set one-to-many
                             if isinstance(relation, Manager):
                                 relation.add(obj)
-                    return dict(type='message', text='Action successfully performed.')
+                    return Response(message='Action successfully performed.')
                 else:
                     return self.submit()
                 
@@ -341,6 +342,10 @@ class LoginForm(Form):
     username = CharField(label=_('Username'))
     password = CharField(label=_('Password'))
 
+    class Meta:
+        title = 'Acesso ao Sistema'
+        width = 300
+
     def __init__(self, *args, **kwargs):
         self.token = None
         super().__init__(*args, **kwargs)
@@ -355,7 +360,7 @@ class LoginForm(Form):
             return cleaned_data
         
     def submit(self):
-        return dict(type='message', text='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key))
+        return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key))
 
 
 FIELD_TYPES = {

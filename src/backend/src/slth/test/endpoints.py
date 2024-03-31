@@ -3,6 +3,7 @@ from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Cidade
 from slth.serializer import Serializer, LinkField
+from slth.components import Grid
 
 
 class HealthCheck(Endpoint):
@@ -152,7 +153,15 @@ class VisualizarPessoa2(Endpoint):
 
 class EstatisticaPessoal(Endpoint):
     def get(self):
-        return Pessoa.objects.counter('sexo', chart='donut') 
+        return Pessoa.objects.counter('sexo', chart='donut')
+
+class Estatisticas(Endpoint):
+    def get(self):
+        grid = Grid()
+        grid.append(Pessoa.objects.counter('sexo', chart='donut', title='Pessoas por Sexo'))
+        grid.append(Pessoa.objects.counter('cor_preferida', chart='bar', title='Pessoas por Cor'))
+        grid.append(Cidade.objects.counter('prefeito', chart='line', title='Cidades por Prefeito'))
+        return grid 
 
 class VisualizarPessoa3(Endpoint):
     def __init__(self, pk):
@@ -261,6 +270,10 @@ class CidadesVizinhas(ChildEndpoint):
 
 
 class ListarFuncionario(Endpoint):
+    class Meta:
+        icon = 'people-roof'
+        verbose_name = 'Listar Funcionários'
+    
     def get(self):
         return (
             self.objects('test.funcionario')
@@ -268,6 +281,9 @@ class ListarFuncionario(Endpoint):
         )
     
 class CadastrarFuncionario(Endpoint):
+    class Meta:
+        verbose_name = 'Cadastrar Funcionário'
+    
     def get(self):
         return FormFactory(
             self.objects('test.funcionario').model()

@@ -3,6 +3,7 @@ import os
 import yaml
 import warnings
 from django.apps import apps
+from pathlib import Path
 from django.db import models
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import manager, Q, CharField, ForeignKey, DecimalField, OneToOneField, ManyToManyField, TextField, CASCADE
@@ -11,6 +12,7 @@ from django.db.models.base import ModelBase
 from .queryset import QuerySet
 from functools import reduce
 from django.utils.translation import gettext_lazy as _
+from django.utils.autoreload import autoreload_started
 from .serializer import Serializer
 
 warnings.filterwarnings('ignore', module='urllib3')
@@ -104,3 +106,8 @@ def __new__(mcs, name, bases, attrs, **kwargs):
 ModelBase.__new__ = __new__
 models.QuerySet = QuerySet
 models.Manager = Manager
+
+def api_watchdog(sender, **kwargs):
+    sender.extra_files.add(Path('application.yml'))
+
+autoreload_started.connect(api_watchdog)

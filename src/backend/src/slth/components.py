@@ -180,11 +180,16 @@ class WebConf(dict):
         self['receiver'] = receiver
 
 class Navbar(dict):
-    def __init__(self, title, subtitle=None, logo=None):
+    def __init__(self, title, subtitle=None, logo=None, user=None):
         self['type'] = 'navbar'
         self['title'] = title
         self['subtitle'] = subtitle
         self['logo'] = logo
+        self['user'] = user
+        self['actions'] = []
+
+    def add_action(self, name, url, modal=True):
+        self['actions'].append(dict(name=name, url=url, modal=modal))
 
 
 class Footer(dict):
@@ -197,3 +202,25 @@ class Application(dict):
         self['type'] = 'application'
         self['navbar'] = navbar
         self['footer'] = footer
+
+class Response(dict):
+
+    def __init__(self, message=None, redirect=None, store=None):
+        self['type'] = 'response'
+        self['message'] = message
+        self['redirect'] = redirect
+        self['store'] = store or {}
+
+
+class IconSet(dict):
+    def __init__(self):
+        self['type'] = 'iconset'
+
+
+class Grid(dict):
+    def __init__(self):
+        self['type'] = 'grid'
+        self['items'] = []
+
+    def append(self, component):
+        self['items'].append(component)

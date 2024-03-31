@@ -3,7 +3,7 @@ import { toLabelCase } from "./Utils";
 import { closeDialog, openDialog } from "./Modal";
 import { ComponentFactory } from "./Factory";
 import { showMessage } from "./Message";
-import { request } from "./Request.jsx";
+import { request, response } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 
 const INPUT_TYPES = [
@@ -493,8 +493,6 @@ function Checkbox(props) {
 function Select(props) {
   var field = props.data;
 
-  function clear() {}
-
   return (
     <>
       <select
@@ -503,6 +501,7 @@ function Select(props) {
         name={field.name}
         data-label={toLabelCase(field.label)}
         defaultValue={field.value}
+        style={INPUT_STYLE}
       >
         {field.choices.map((choice) => (
           <option key={Math.random()} value={choice.id}>
@@ -510,7 +509,6 @@ function Select(props) {
           </option>
         ))}
       </select>
-      <i className="fa-solid fa-chevron-down clearer" onClick={clear} />
     </>
   );
 }
@@ -571,7 +569,11 @@ function Form(props) {
   function render() {
     //<Icons />
     return (
-      <form id={id} action={props.data.url}>
+      <form
+        id={id}
+        action={props.data.url}
+        style={{ margin: "auto", width: props.data.width }}
+      >
         <div>{false && JSON.stringify(props.data)}</div>
         {getTitle()}
         {getDisplay()}
@@ -600,20 +602,11 @@ function Form(props) {
       props.data.url,
       function callback(data) {
         button.innerHTML = label;
-        if (data.type == "message") {
+        if (data.type == "response") {
           closeDialog();
           reloadState();
-          if (data.store) {
-            Object.keys(data.store).map(function (k) {
-              localStorage.setItem(k, data.store[k]);
-            });
-          }
-          if (data.redirect) {
-            localStorage.setItem("message", data.text);
-            document.location.href = data.redirect;
-          } else {
-            showMessage(data.text);
-          }
+          console.log(data);
+          return response(data);
         } else {
           var message = data.text;
           console.log(data);

@@ -110,6 +110,9 @@ class Serializer:
         self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap)))
         return self
     
+    def append(self, title, component):
+        self.metadata['content'].append(('component', to_snake_case(title), dict(title=title, component=component)))
+    
     def section(self, title):
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title)
     
@@ -229,6 +232,15 @@ class Serializer:
                             data['title'] = title
                         data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
+                elif datatype == 'component':
+                    title = item['title']
+                    component = item['component']
+                    data = {}
+                    if not only or key in only:
+                        data = serialize(component)
+                    path = self.path + [key]
+                    data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
+                    if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':
                     serializer = item['serializer']
                     serializer.lazy = lazy

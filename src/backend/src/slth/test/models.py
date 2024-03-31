@@ -115,6 +115,10 @@ class Funcionario(models.Model):
     email = models.CharField('E-mail')
     is_admin = models.BooleanField(default=False)
 
+    class Meta:
+        verbose_name = 'Funcionário'
+        verbose_name_plural = 'Funcionários'
+
     def __str__(self):
         return self.email
 

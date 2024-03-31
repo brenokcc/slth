@@ -1,8 +1,16 @@
-function Icons(props) {
+import { showMessage } from "./Message";
+
+function IconSet(props) {
   function click(icon) {
     navigator.clipboard.writeText(icon);
+    showMessage('Icon "' + icon + '" copied to clipboard!');
   }
-  const style1 = { display: "inline-block", width: 150, textAlign: "center" };
+  const style1 = {
+    display: "inline-block",
+    width: 150,
+    textAlign: "center",
+    cursor: "pointer",
+  };
   const style2 = { fontSize: "1.5rem" };
   return (
     <div style={{ marginTop: 30 }}>
@@ -30,7 +38,7 @@ function Icon(props) {
   );
 }
 
-export { Icon, Icons };
+export { Icon, IconSet };
 export default Icon;
 
 const ICONS = [

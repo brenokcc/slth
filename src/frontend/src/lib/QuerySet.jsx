@@ -99,9 +99,6 @@ function QuerySet(props) {
         {renderTitle()}
         {renderActions()}
         {renderRows()}
-        <button type="button" onClick={reload}>
-          Reload
-        </button>
       </div>
     );
   }

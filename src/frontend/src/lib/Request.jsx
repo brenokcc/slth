@@ -1,19 +1,32 @@
+import { showMessage } from "./Message";
+
 const API_URL = "http://localhost:8000";
+
+function Response(props) {
+  return response(props.data);
+}
 
 function apiurl(url) {
   return url.replace("/app/", "/api/");
 }
 
+function appurl(url) {
+  return document.location.origin + "/app/" + url.split("/api/")[1];
+}
+
 function request(method, url, callback, data) {
   const token = localStorage.getItem("token");
   var headers = { Accept: "application/json" };
-  if (token && url.indexOf("/logout/") == -1)
-    headers["Authorization"] = "Token " + token;
+  if (token) headers["Authorization"] = "Token " + token;
   url = url.replace(document.location.origin, "");
   url = apiurl(url);
   url = url + document.location.search;
   if (url.indexOf(API_URL) == -1) url = API_URL + url;
-  var params = { method: method, headers: new Headers(headers), ajax: 1 };
+  var params = {
+    method: method,
+    headers: new Headers(headers),
+    ajax: 1,
+  };
   if (data) params["body"] = data;
   var httpResponse = null;
   var contentType = null;
@@ -33,7 +46,7 @@ function request(method, url, callback, data) {
       if (contentType == "application/json") {
         var data = JSON.parse(result || "{}");
         if (typeof data == "object" && data.type == "redirect") {
-          document.location.href = data.url;
+          document.location.href = appurl(data.url);
         } else {
           if (callback) callback(data, httpResponse);
         }
@@ -61,5 +74,20 @@ function request(method, url, callback, data) {
     });
 }
 
-export { request, apiurl };
+function response(data) {
+  if (data.store) {
+    Object.keys(data.store).map(function (k) {
+      if (data.store[k]) localStorage.setItem(k, data.store[k]);
+      else localStorage.removeItem(k, data.store[k]);
+    });
+  }
+  if (data.redirect) {
+    if (data.message) localStorage.setItem("message", data.message);
+    document.location.href = data.redirect;
+  } else {
+    if (data.message) showMessage(data.message);
+  }
+}
+
+export { Response, apiurl, appurl, request, response };
 export default request;

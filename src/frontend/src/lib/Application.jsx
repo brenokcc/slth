@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
 import request from "./Request.jsx";
 import { showMessage } from "./Message";
+import { Dropdown } from "./Action.jsx";
+import { Grid } from "./Library.jsx";
 
 function Application(props) {
   const [content, setContent] = useState();
@@ -12,13 +14,11 @@ function Application(props) {
       localStorage.removeItem("message");
       showMessage(message);
     }
+    setTimeout(
+      () => (document.getElementById("application").style.display = "block"),
+      500
+    );
   }, []);
-
-  function logout(e) {
-    e.preventDefault();
-    localStorage.removeItem("token");
-    document.location.href = "/app/login/";
-  }
 
   function renderNavbar() {
     const style = {
@@ -33,22 +33,22 @@ function Application(props) {
             <a href="/">{props.data.navbar.title}</a>
           </div>
           <div style={{ display: "flex" }}>
-            <div>
-              <a href="#" onClick={logout}>
-                Sair
-              </a>
-            </div>
-            <div>Menu do Usuário</div>
+            <Dropdown actions={props.data.navbar.actions}>
+              {props.data.navbar.user}
+            </Dropdown>
           </div>
         </div>
       </div>
     ) : null;
   }
   function renderContent() {
+    const style = { minHeight: 400 };
     return content == null ? (
-      <div style={{ minHeight: 400 }}>Loading...</div>
+      <div style={style}>Loading...</div>
     ) : (
-      <ComponentFactory data={content} />
+      <div style={style}>
+        <ComponentFactory data={content} />
+      </div>
     );
   }
   function renderFooter() {
@@ -67,11 +67,11 @@ function Application(props) {
       });
     }
     return (
-      <>
+      <div id="application" style={{ display: "none" }}>
         {renderNavbar()}
         {renderContent()}
         {renderFooter()}
-      </>
+      </div>
     );
   }
   return render();
