@@ -32,7 +32,11 @@ function request(method, url, callback, data) {
     .then((result) => {
       if (contentType == "application/json") {
         var data = JSON.parse(result || "{}");
-        if (callback) callback(data, httpResponse);
+        if (typeof data == "object" && data.type == "redirect") {
+          document.location.href = data.url;
+        } else {
+          if (callback) callback(data, httpResponse);
+        }
       } else if (
         contentType.indexOf("text") < 0 ||
         contentType.indexOf("csv") >= 0

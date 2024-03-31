@@ -9,7 +9,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import LoginForm, ModelForm, Form
 from .serializer import serialize, Serializer
-from .components import Application as Application_, Navbar
+from .components import Application as Application_, Navbar, Footer
+from .exceptions import JsonResponseException
 from slth import APPLICATON
 
 
@@ -62,6 +63,9 @@ class Endpoint(metaclass=EnpointMetaclass):
     
     def check_permission(self):
         return True
+    
+    def redirect(self, url):
+        raise JsonResponseException(dict(type='redirect', url=url))
     
     def getdata(self):
         if self.request.method == 'GET':
@@ -191,22 +195,27 @@ class FormFactory:
 class Login(Endpoint):
     def get(self):
         return LoginForm(request=self.request)
+
     
 class Dashboard(Endpoint):
     def get(self):
-        serializer = Serializer(request=self.request)
-        if APPLICATON['dashboard']['top']:
-            group = serializer.group('Teste')
-            for endpoint in APPLICATON['dashboard']['top']:
+        if self.request.user.is_authenticated:
+            serializer = Serializer(request=self.request)
+            if APPLICATON['dashboard']['top']:
+                group = serializer.group('Teste')
+                for endpoint in APPLICATON['dashboard']['top']:
+                    cls = slth.ENDPOINTS[endpoint]
+                    group.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
+                group.parent()
+            for endpoint in APPLICATON['dashboard']['center']:
                 cls = slth.ENDPOINTS[endpoint]
-                group.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
-            group.parent()
-        for endpoint in APPLICATON['dashboard']['center']:
-            cls = slth.ENDPOINTS[endpoint]
-            serializer.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
-        return serializer
+                serializer.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
+            return serializer
+        else:
+            self.redirect('/api/login/')
     
 class Application(Endpoint):
     def get(self):
-        navbar=Navbar(APPLICATON['title'], APPLICATON['subtitle'], APPLICATON['icon'])
-        return Application_(navbar)
+        navbar = Navbar(APPLICATON['title'], APPLICATON['subtitle'], APPLICATON['icon'])
+        footer = Footer(APPLICATON['version'])
+        return Application_(navbar=navbar, footer=footer)

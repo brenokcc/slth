@@ -355,7 +355,7 @@ class LoginForm(Form):
             return cleaned_data
         
     def submit(self):
-        return dict(token=self.token.key)
+        return dict(type='message', text='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key))
 
 
 FIELD_TYPES = {

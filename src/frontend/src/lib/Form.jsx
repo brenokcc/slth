@@ -602,8 +602,18 @@ function Form(props) {
         button.innerHTML = label;
         if (data.type == "message") {
           closeDialog();
-          showMessage(data.text);
           reloadState();
+          if (data.store) {
+            Object.keys(data.store).map(function (k) {
+              localStorage.setItem(k, data.store[k]);
+            });
+          }
+          if (data.redirect) {
+            localStorage.setItem("message", data.text);
+            document.location.href = data.redirect;
+          } else {
+            showMessage(data.text);
+          }
         } else {
           var message = data.text;
           console.log(data);

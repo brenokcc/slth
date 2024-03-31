@@ -187,7 +187,13 @@ class Navbar(dict):
         self['logo'] = logo
 
 
+class Footer(dict):
+    def __init__(self, version):
+        self['type'] = 'navbar'
+        self['version'] = version
+
 class Application(dict):
-    def __init__(self, navbar):
+    def __init__(self, navbar=None, footer=None):
         self['type'] = 'application'
         self['navbar'] = navbar
+        self['footer'] = footer

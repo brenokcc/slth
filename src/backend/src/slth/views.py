@@ -1,7 +1,8 @@
 
+import sys
 import slth
 import traceback
-from django.apps import apps
+from .models import Token
 from typing import Any
 from django.conf import settings
 from django.db import transaction, models
@@ -17,7 +18,11 @@ def dispatcher(request, **kwargs):
     if request.method == 'OPTIONS':
         return ApiResponse({})
     else:
-        # if('application' not in request.path): import time; time.sleep(2)
+        if('application' not in request.path and 'test' not in sys.argv): import time; time.sleep(0.5)
+        if 'HTTP_AUTHORIZATION' in request.META:
+            token = Token.objects.filter(key=request.META['HTTP_AUTHORIZATION'].split()[1]).first()
+            if token:
+                request.user = token.user
         tokens = request.path.split('/')
         cls = slth.ENDPOINTS.get(tokens[2])
         if cls:

@@ -4,9 +4,7 @@ application:
   subtitle: Take your time!
   icon: /api/static/images/icon.svg
   logo: /api/static/images/logo.svg
-  footer:
-    logo: /api/static/images/govbr.png
-    version: 1.0.5
+  version: 1.0.5
   theme:
     primary: 1351b4
     secondary: 071e41
