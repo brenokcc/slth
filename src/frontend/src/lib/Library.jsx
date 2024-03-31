@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Icon } from "./Icon";
 import { apiurl } from "./Request";
+import { COLORS } from "./Theme";
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -119,13 +120,29 @@ function Steps(props) {
 
 function Progress(props) {
   function render() {
+    const progress = {
+      display: "inline-block",
+      width: "100%",
+      backgroundColor: "#DDD",
+      borderRadius: 5,
+      marginTop: 5,
+    };
+    const percentage = {
+      marginLeft: 10,
+    };
+    const value = {
+      display: "block",
+      paddingTop: 5,
+      paddingBottom: 5,
+      color: "white",
+      borderRadius: 5,
+      width: props.data.value + "%",
+      backgroundColor: COLORS[props.data.style],
+    };
     return (
-      <span className="progress ">
-        <span
-          style={{ width: props.data.value + "%" }}
-          className={"value " + (props.data.style || "primary")}
-        >
-          <span className="percentage">{props.data.value}%</span>
+      <span style={progress}>
+        <span style={value}>
+          <span style={percentage}>{props.data.value}%</span>
         </span>
       </span>
     );
@@ -135,13 +152,7 @@ function Progress(props) {
 
 function Status(props) {
   function render() {
-    const colors = {
-      success: "green",
-      warning: "orange",
-      info: "blue",
-      danger: "red",
-    };
-    props.data.color = colors[props.data.style];
+    props.data.color = COLORS[props.data.style];
     return <Badge data={props.data} />;
   }
   return render();

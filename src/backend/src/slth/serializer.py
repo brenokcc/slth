@@ -23,6 +23,8 @@ def serialize(obj, primitive=False):
         return obj.strftime('%d/%m/%Y')
     elif isinstance(obj, datetime):
         return obj.strftime('%d/%m/%Y %H:%M:%S')
+    elif isinstance(obj, bool):
+        return obj
     if isinstance(obj, Decimal) or isinstance(obj, float):
         return str(obj).replace('.', ',')
     elif isinstance(obj, list):

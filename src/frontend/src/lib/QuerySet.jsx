@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { format } from "./Formatter.jsx";
 import { Action } from "./Action";
 
 function QuerySet(props) {
@@ -34,7 +34,7 @@ function QuerySet(props) {
     return (
       <tr key={Math.random()}>
         {row.data.map(function (field) {
-          return <td key={Math.random()}>{field.value}</td>;
+          return <td key={Math.random()}>{format(field.value)}</td>;
         })}
         <td>
           {row.actions.map(function (action) {

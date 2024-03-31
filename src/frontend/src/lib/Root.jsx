@@ -3,7 +3,17 @@ import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
 import { Object, Fieldset, Field, Section, Group, Dimension } from "./Viewer";
 import { Statistics } from "./Statistics";
-import { Image, Banner, Map, Steps, QrCode, Badge, Status } from "./Library";
+import { Color } from "./Theme";
+import {
+  Image,
+  Banner,
+  Map,
+  Steps,
+  QrCode,
+  Badge,
+  Status,
+  Progress,
+} from "./Library";
 
 ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
@@ -21,6 +31,8 @@ ComponentFactory.register("steps", (data) => <Steps data={data} />);
 ComponentFactory.register("qrcode", (data) => <QrCode data={data} />);
 ComponentFactory.register("badge", (data) => <Badge data={data} />);
 ComponentFactory.register("status", (data) => <Status data={data} />);
+ComponentFactory.register("progress", (data) => <Progress data={data} />);
+ComponentFactory.register("color", (data) => <Color data={data} />);
 
 function Root(props) {
   console.log(props.data);

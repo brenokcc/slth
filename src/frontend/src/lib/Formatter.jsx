@@ -17,7 +17,9 @@ function format(obj) {
     }
   }
   if (typeof obj === "string") {
-    if (obj.length == 19 && obj[13] == ":" && obj[16] == ":") {
+    if (obj.length == 7 && obj[0] == "#") {
+      return <ComponentFactory data={{ type: "color", value: obj }} />;
+    } else if (obj.length == 19 && obj[13] == ":" && obj[16] == ":") {
       var tokens = obj.split("T");
       var data = tokens[0].split("-");
       var hora = tokens[1];

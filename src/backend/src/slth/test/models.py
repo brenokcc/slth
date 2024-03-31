@@ -1,5 +1,5 @@
 from slth.db import models, role, meta
-from slth.components import Image, Banner, Map, Steps, QrCode, Badge, Status
+from slth.components import Image, Banner, Map, Steps, QrCode, Badge, Status, Progress
 from django.contrib.auth.models import Group, User
 
 class Telefone(models.Model):
@@ -87,6 +87,11 @@ class Cidade(models.Model):
     @meta('Status')
     def get_status(self):
         return Status('warning', 'Pendente')
+    
+
+    @meta('Progresso')
+    def get_progresso(self):
+        return Progress(89)
 
 @role('Administrador', username='email', active='is_admin')
 class Funcionario(models.Model):
