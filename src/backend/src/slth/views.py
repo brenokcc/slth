@@ -17,6 +17,7 @@ def dispatcher(request, **kwargs):
     if request.method == 'OPTIONS':
         return ApiResponse({})
     else:
+        # if('application' not in request.path): import time; time.sleep(2)
         tokens = request.path.split('/')
         cls = slth.ENDPOINTS.get(tokens[2])
         if cls:

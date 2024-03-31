@@ -68,12 +68,20 @@ class CadastrarPessoa(Endpoint):
 class CadastrarPessoa2(Endpoint):
     class Meta:
         verbose_name = 'Cadastrar Pessoa'
-        entrypoints = 'dashboard.center',
+
     def get(self):
         return (
             FormFactory(Pessoa())
             .fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
         )
+    
+class ExcluirPessoa(Endpoint):
+    def __init__(self, pk):
+        super().__init__()
+        self.obj = self.objects('test.pessoa').get(pk=pk)
+
+    def get(self):
+        return FormFactory(self.obj, delete=True)
 
 class EditarPessoa(Endpoint):
 
@@ -100,7 +108,6 @@ class EditarPessoa(Endpoint):
 class ListarPessoas(Endpoint):
     class Meta:
         verbose_name = 'Pessoas'
-        entrypoints = 'dashboard.center',
     
     def get(self):
         return (
@@ -108,7 +115,8 @@ class ListarPessoas(Endpoint):
             .subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
             .actions(
                 'slth.test.endpoints.cadastrarpessoa',
-                'slth.test.endpoints.editarpessoa'
+                'slth.test.endpoints.editarpessoa',
+                'slth.test.endpoints.excluirpessoa',
             )
         )
 
@@ -231,6 +239,14 @@ class CadastrarCidade2(Endpoint):
     
     def get(self):
         return CadastrarCidadeForm(Cidade.objects.first(), self.request)
+
+
+class ListarCidades(Endpoint):
+    class Meta:
+        verbose_name = 'Cidades'
+
+    def get(self):
+        return self.objects('test.cidade').all()
 
 
 class CidadesVizinhas(ChildEndpoint):

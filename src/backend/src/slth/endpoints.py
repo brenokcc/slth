@@ -9,6 +9,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import LoginForm, ModelForm, Form
 from .serializer import serialize, Serializer
+from .components import Application as Application_, Navbar
+from slth import APPLICATON
 
 
 import slth
@@ -29,9 +31,6 @@ class EnpointMetaclass(type):
         if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
             slth.ENDPOINTS[cls.__name__.lower()] = cls
             slth.ENDPOINTS[cls.get_qualified_name()] = cls
-        if hasattr(cls, 'Meta'):
-            for entrypoint in getattr(cls.Meta, 'entrypoints', ()):
-                slth.ENTRYPOINTS[entrypoint].append(cls)
         return cls
 
 
@@ -195,7 +194,19 @@ class Login(Endpoint):
     
 class Dashboard(Endpoint):
     def get(self):
-        serializer = Serializer()
-        for cls in slth.ENTRYPOINTS['dashboard.center']:
+        serializer = Serializer(request=self.request)
+        if APPLICATON['dashboard']['top']:
+            group = serializer.group('Teste')
+            for endpoint in APPLICATON['dashboard']['top']:
+                cls = slth.ENDPOINTS[endpoint]
+                group.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
+            group.parent()
+        for endpoint in APPLICATON['dashboard']['center']:
+            cls = slth.ENDPOINTS[endpoint]
             serializer.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
         return serializer
+    
+class Application(Endpoint):
+    def get(self):
+        navbar=Navbar(APPLICATON['title'], APPLICATON['subtitle'], APPLICATON['icon'])
+        return Application_(navbar)

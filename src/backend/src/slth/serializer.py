@@ -221,8 +221,6 @@ class Serializer:
                             endpoint = cls(*args).contextualize(self.request)
                             if endpoint.check_permission():
                                 returned = endpoint.getdata()
-                                if isinstance(returned, QuerySet):
-                                    returned = returned.attrname(key)
                         path = self.path + [key]
                         if wrap:
                             data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))

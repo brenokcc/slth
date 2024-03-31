@@ -178,3 +178,16 @@ class WebConf(dict):
         self['type'] = 'webconf'
         self['caller'] = caller
         self['receiver'] = receiver
+
+class Navbar(dict):
+    def __init__(self, title, subtitle=None, logo=None):
+        self['type'] = 'navbar'
+        self['title'] = title
+        self['subtitle'] = subtitle
+        self['logo'] = logo
+
+
+class Application(dict):
+    def __init__(self, navbar):
+        self['type'] = 'application'
+        self['navbar'] = navbar

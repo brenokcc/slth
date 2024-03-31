@@ -1,12 +1,17 @@
+import { useState, useEffect } from "react";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action";
+import { request } from "./Request.jsx";
 
 function QuerySet(props) {
+  var id = Math.random();
+  const [data, setData] = useState(props.data);
+
   function renderTitle() {
-    if (props.data.attrname) {
-      return <h2>{props.data.title}</h2>;
+    if (data.attrname) {
+      return <h2>{data.title}</h2>;
     } else {
-      return <h1>{props.data.title}</h1>;
+      return <h1>{data.title}</h1>;
     }
   }
 
@@ -46,7 +51,7 @@ function QuerySet(props) {
   }
 
   function renderRows() {
-    if (props.data.data.length > 0) {
+    if (data.data.length > 0) {
       return (
         <table
           style={{
@@ -56,9 +61,9 @@ function QuerySet(props) {
             overflowX: "scroll",
           }}
         >
-          <thead>{renderHeader(props.data.data[0].data)}</thead>
+          <thead>{renderHeader(data.data[0].data)}</thead>
           <tbody>
-            {props.data.data.map(function (item) {
+            {data.data.map(function (item) {
               return renderRow(item);
             })}
           </tbody>
@@ -72,21 +77,32 @@ function QuerySet(props) {
   function renderActions() {
     return (
       <div align="right" style={{ margin: 10 }}>
-        {props.data.actions.map(function (action) {
+        {data.actions.map(function (action) {
           return <Action key={Math.random()} data={action} />;
         })}
       </div>
     );
   }
 
+  function reload() {
+    request("GET", data.url, function (data) {
+      console.log(data);
+      setData(data);
+    });
+  }
+
   function render() {
+    window[id] = () => reload();
     return (
-      <>
-        <div>{false && JSON.stringify(props.data)}</div>
+      <div className="reloadable" id={id}>
+        <div>{false && JSON.stringify(data)}</div>
         {renderTitle()}
         {renderActions()}
         {renderRows()}
-      </>
+        <button type="button" onClick={reload}>
+          Reload
+        </button>
+      </div>
     );
   }
 

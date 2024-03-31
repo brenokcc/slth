@@ -1,4 +1,6 @@
-
+import re
+import os
+import yaml
 import warnings
 from django.apps import apps
 from django.db import models
@@ -13,12 +15,17 @@ from .serializer import Serializer
 
 warnings.filterwarnings('ignore', module='urllib3')
 
+FILENAME = 'application.yml'
 ENDPOINTS = {}
-ENTRYPOINTS = {
-    'dashboard.center': []
-}
 PROXIED_MODELS = []
+APPLICATON = None
 
+if APPLICATON is None and os.path.exists(FILENAME):
+    with open(FILENAME) as file:
+        content = file.read()
+        for variable in re.findall(r'\$[a-zA-z0-9_]+', content):
+            content = content.replace(variable, os.environ.get(variable[1:], ''))
+    APPLICATON = yaml.safe_load(content).get('application')
 
 class ModelMixin(object):
 
