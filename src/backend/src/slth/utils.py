@@ -9,9 +9,12 @@ def absolute_url(request, *querystrings):
     for querystring in querystrings:
         if querystring:
             querystring = querystring.replace('?', '')
-            if '?' not in url:
-                url = f'{url}?{querystring}'
-            else:
-                url = f'{url}&{querystring}'
+            url = f'{url}?{querystring}' if '?' not in url else f'{url}&{querystring}'
     return url
-        
+
+def append_url(url, *querystrings):
+    for querystring in querystrings:
+        if querystring:
+            querystring = querystring.replace('?', '')
+            url = f'{url}?{querystring}' if '?' not in url else f'{url}&{querystring}'
+    return url

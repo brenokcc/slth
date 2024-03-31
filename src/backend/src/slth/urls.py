@@ -7,7 +7,7 @@ from . import views
 
 urlpatterns = [
     # re_path(r'^(?P<path>.*)/$', views.dispatcher),
-] + static('/api/media/', document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 for app_label in settings.INSTALLED_APPS:
     try:

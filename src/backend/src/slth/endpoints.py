@@ -8,7 +8,7 @@ from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import LoginForm, ModelForm, Form
-from . import serializer
+from .serializer import serialize, Serializer
 
 
 import slth
@@ -29,6 +29,9 @@ class EnpointMetaclass(type):
         if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
             slth.ENDPOINTS[cls.__name__.lower()] = cls
             slth.ENDPOINTS[cls.get_qualified_name()] = cls
+        if hasattr(cls, 'Meta'):
+            for entrypoint in getattr(cls.Meta, 'entrypoints', ()):
+                slth.ENTRYPOINTS[entrypoint].append(cls)
         return cls
 
 
@@ -61,7 +64,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     def check_permission(self):
         return True
     
-    def serialize(self):
+    def getdata(self):
         if self.request.method == 'GET':
             data = self.get()
         elif self.request.method == 'POST':
@@ -71,12 +74,14 @@ class Endpoint(metaclass=EnpointMetaclass):
        
         if isinstance(data, models.QuerySet):
             data = data.contextualize(self.request)
-        elif isinstance(data, serializer.Serializer):
+        elif isinstance(data, Serializer):
             data = data.contextualize(self.request)
         elif isinstance(data, FormFactory):
             data = data.form(self.request)
-        
-        return serializer.serialize(data)
+        return data
+    
+    def serialize(self):
+        return serialize(self.getdata())
     
     def to_response(self):
         return ApiResponse(self.serialize(), safe=False)
@@ -187,4 +192,10 @@ class FormFactory:
 class Login(Endpoint):
     def get(self):
         return LoginForm(request=self.request)
-
+    
+class Dashboard(Endpoint):
+    def get(self):
+        serializer = Serializer()
+        for cls in slth.ENTRYPOINTS['dashboard.center']:
+            serializer.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
+        return serializer

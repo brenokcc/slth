@@ -66,6 +66,9 @@ class CadastrarPessoa(Endpoint):
         )
 
 class CadastrarPessoa2(Endpoint):
+    class Meta:
+        verbose_name = 'Cadastrar Pessoa'
+        entrypoints = 'dashboard.center',
     def get(self):
         return (
             FormFactory(Pessoa())
@@ -95,6 +98,10 @@ class EditarPessoa(Endpoint):
 
 
 class ListarPessoas(Endpoint):
+    class Meta:
+        verbose_name = 'Pessoas'
+        entrypoints = 'dashboard.center',
+    
     def get(self):
         return (
             Pessoa.objects.search('nome')
@@ -199,7 +206,7 @@ class VisualizarCidade(Endpoint):
             self.obj.serializer()
             .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa), 'get_imagem'))
             # .fields('get_mapa')
-            .fields('get_banner', 'get_steps', 'get_qrcode', 'get_badge', 'get_status', 'get_progresso')
+            .fields('get_banner', 'get_steps', 'get_qrcode', 'get_badge', 'get_status', 'get_progresso', 'get_boxes', 'get_shell', 'get_link')
             .fieldset('Prefeito', [('id', 'nome')], attr='prefeito')
             .queryset('Vereadores', 'vereadores')
             .endpoint('Cidades Vizinhas', CidadesVizinhas)

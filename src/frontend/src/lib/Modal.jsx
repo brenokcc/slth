@@ -90,11 +90,11 @@ function Dialog(props) {
   }
 
   function content() {
-    const style = { float: "right", cursor: "pointer" };
+    const close = { float: "right", cursor: "pointer", marginTop: -20 };
     if (data) {
       return (
         <div>
-          <div style={style}>
+          <div style={close}>
             <Icon icon="x" onClick={() => closeDialog()} />
           </div>
           <ComponentFactory data={data} />
@@ -123,17 +123,33 @@ function IDialog(props) {
   useEffect(() => {
     document.querySelector(".layer").style.display = "block";
     var dialog = document.getElementById(key);
-    $(dialog).css("top", document.documentElement.scrollTop + 100);
+    dialog.style.top = document.documentElement.scrollTop + 100;
   }, []);
 
-  return (
-    <dialog
-      className={"dialog " + (window.innerWidth > 600 ? "small" : "big")}
-      id={key}
-    >
-      <iframe src={apiurl(props.url)} width="100%" height={500}></iframe>
-    </dialog>
-  );
+  function render() {
+    const style = {
+      minWidth: "50%",
+      display: "block",
+      maxWidth: "90%",
+      top: window.scrollY + 40,
+    };
+    const close = { float: "right", cursor: "pointer", marginTop: -20 };
+    return (
+      <dialog style={style} id={key}>
+        <div style={close}>
+          <Icon icon="x" onClick={() => closeDialog()} />
+        </div>
+        <iframe
+          src={apiurl(props.url)}
+          width="100%"
+          height={500}
+          style={{ border: 0 }}
+        ></iframe>
+      </dialog>
+    );
+  }
+
+  return render();
 }
 
 export { openDialog, openIFrameDialog, closeDialog, Layer };

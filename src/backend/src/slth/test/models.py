@@ -1,5 +1,6 @@
 from slth.db import models, role, meta
-from slth.components import Image, Banner, Map, Steps, QrCode, Badge, Status, Progress
+from slth.components import Image, Banner, Map, Steps, QrCode,\
+    Badge, Status, Progress, Boxes, Shell, Link
 from django.contrib.auth.models import Group, User
 
 class Telefone(models.Model):
@@ -92,6 +93,22 @@ class Cidade(models.Model):
     @meta('Progresso')
     def get_progresso(self):
         return Progress(89)
+    
+    @meta('Boxes')
+    def get_boxes(self):
+        boxes = Boxes('Acesso Rápido')
+        boxes.append('user', 'Pessoas', '#')
+        boxes.append('check', 'Verificar', '#')
+        return boxes
+    
+    @meta('Shell')
+    def get_shell(self):
+        return Shell("print('Hello World!')")
+    
+    @meta('Link')
+    def get_link(self):
+        return Link('http://localhost:8000/api/media/teste.pdf')
+    
 
 @role('Administrador', username='email', active='is_admin')
 class Funcionario(models.Model):

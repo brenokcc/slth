@@ -14,6 +14,9 @@ from .serializer import Serializer
 warnings.filterwarnings('ignore', module='urllib3')
 
 ENDPOINTS = {}
+ENTRYPOINTS = {
+    'dashboard.center': []
+}
 PROXIED_MODELS = []
 
 

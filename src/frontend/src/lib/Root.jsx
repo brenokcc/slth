@@ -13,6 +13,9 @@ import {
   Badge,
   Status,
   Progress,
+  Boxes,
+  Shell,
+  Link,
 } from "./Library";
 
 ComponentFactory.register("form", (data) => <Form data={data} />);
@@ -33,6 +36,9 @@ ComponentFactory.register("badge", (data) => <Badge data={data} />);
 ComponentFactory.register("status", (data) => <Status data={data} />);
 ComponentFactory.register("progress", (data) => <Progress data={data} />);
 ComponentFactory.register("color", (data) => <Color data={data} />);
+ComponentFactory.register("boxes", (data) => <Boxes data={data} />);
+ComponentFactory.register("shell", (data) => <Shell data={data} />);
+ComponentFactory.register("link", (data) => <Link data={data} />);
 
 function Root(props) {
   console.log(props.data);

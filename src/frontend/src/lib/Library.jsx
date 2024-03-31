@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Icon } from "./Icon";
 import { apiurl } from "./Request";
 import { COLORS } from "./Theme";
+import { toLabelCase } from "./Utils";
+import { openIFrameDialog } from "./Modal";
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -176,23 +178,58 @@ function Badge(props) {
 
 function Boxes(props) {
   function render() {
+    const boxes = {
+      padding: 20,
+      marginLeft: 0,
+      marginRight: 0,
+      textAlign: "center",
+      backgroundColor: "#f8f8f8",
+    };
+    const h2 = {
+      color: "blue",
+      paddingTop: 25,
+      fontSize: "1.5rem",
+    };
+    const box = {
+      padding: 20,
+      display: "inline-flex",
+      flexDirection: "column",
+      width: 250,
+      height: 250,
+      backgroundColor: "white",
+      boxShadow: "0px 15px 10px -15px #DDD",
+      margin: 10,
+      textDecoration: "none",
+    };
+    const i = {
+      marginTop: 30,
+      fontSize: "3rem",
+      color: "blue",
+    };
+    const text = {
+      marginTop: 40,
+      fontWeight: "bold",
+      fontSize: "1.2rem",
+      textTransform: "uppercase",
+      height: 70,
+      color: "blue",
+    };
+
     return props.data.items.length ? (
-      <div className="boxes">
+      <div style={boxes}>
         <h2>{props.data.title}</h2>
         <div>
           {props.data.items.map((item) => (
             <a
               key={Math.random()}
               href={apiurl(item.url)}
-              className="item"
+              style={box}
               data-label={toLabelCase(item.label)}
             >
-              <div className={"icon " + (item.style || "primary")}>
-                <Icon icon={item.icon} />
+              <div>
+                <Icon style={i} icon={item.icon} />
               </div>
-              <div className={"text " + (item.style || "primary")}>
-                {item.label}
-              </div>
+              <div style={text}>{item.label}</div>
             </a>
           ))}
         </div>
@@ -216,7 +253,7 @@ function Shell(props) {
         }}
       >
         {props.data.output.split("\n").map((line) => (
-          <div>{line}</div>
+          <div key={Math.random()}>{line}</div>
         ))}
       </div>
     );
@@ -232,17 +269,13 @@ function Link(props) {
   }
 
   function onClick() {
-    imodal(apiurl(props.data.url));
+    openIFrameDialog(apiurl(props.data.url));
     event.preventDefault();
   }
 
   function render() {
     return (
-      <a
-        href={apiurl(props.data.url)}
-        target={props.data.target}
-        onClick={onClick}
-      >
+      <a href={apiurl(props.data.url)} onClick={onClick}>
         {content()}
       </a>
     );
@@ -317,5 +350,6 @@ export {
   Shell,
   QrCode,
   Indicators,
+  Link,
 };
 export default Html;

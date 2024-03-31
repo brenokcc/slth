@@ -76,7 +76,7 @@ function Fieldset(props) {
 //<div>{JSON.stringify(props.data.data)}</div>
 function Object(props) {
   function renderTitle() {
-    return <h1>{props.data.title}</h1>;
+    return props.data.title ? <h1>{props.data.title}</h1> : null;
   }
 
   function renderContent() {

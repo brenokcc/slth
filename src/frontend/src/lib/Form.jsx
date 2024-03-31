@@ -571,7 +571,7 @@ function Form(props) {
   function render() {
     //<Icons />
     return (
-      <form id={id}>
+      <form id={id} action={props.data.url}>
         <div>{false && JSON.stringify(props.data)}</div>
         {getTitle()}
         {getDisplay()}

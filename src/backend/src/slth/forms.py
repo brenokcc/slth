@@ -347,7 +347,7 @@ class LoginForm(Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        user = authenticate(self.request, username=cleaned_data['username'], password=cleaned_data['password'])
+        user = authenticate(self.request, username=cleaned_data.get('username'), password=cleaned_data.get('password'))
         if user is None:
             raise ValidationError(_('Username or password are incorect'))
         else:

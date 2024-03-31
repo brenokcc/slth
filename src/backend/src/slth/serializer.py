@@ -84,7 +84,7 @@ class Serializer:
             self.title = title
             self.path.append(to_snake_case(title))
         else:
-            self.title = str(obj)
+            self.title = str(obj) if obj else None
 
     def actions(self, *actions):
         self.metadata['actions'].extend(actions)
@@ -104,10 +104,10 @@ class Serializer:
         self.metadata['content'].append(('queryset', name, dict(title=title)))
         return self
     
-    def endpoint(self, title, cls):
+    def endpoint(self, title, cls, wrap=True):
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
-        self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls)))
+        self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap)))
         return self
     
     def section(self, title):
@@ -210,21 +210,25 @@ class Serializer:
                         data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'endpoint':
+                    from .endpoints import FormFactory
                     title = item['title']
                     cls = item['cls']
+                    wrap = item['wrap']
                     if not only or key in only:
-                        url = absolute_url(self.request, '?only={}'.format('__'.join(self.path + [key])))
-                        data = dict(type='fieldset', key=key, title=title)
+                        returned = {}
                         if not lazy:
-                            endpoint = cls(self.obj.pk).contextualize(self.request)
+                            args = (self.obj.pk,) if self.obj else ()
+                            endpoint = cls(*args).contextualize(self.request)
                             if endpoint.check_permission():
-                                returned = endpoint.get()
+                                returned = endpoint.getdata()
                                 if isinstance(returned, QuerySet):
-                                    returned = returned.attrname(key).contextualize(self.request)
-                                elif isinstance(returned, Serializer):
-                                    returned = returned.contextualize(self.request)
-                                data.update(data=serialize(returned))
+                                    returned = returned.attrname(key)
                         path = self.path + [key]
+                        if wrap:
+                            data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))
+                        else:
+                            data = serialize(returned)
+                            data['title'] = title
                         data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':

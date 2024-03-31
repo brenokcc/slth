@@ -16,7 +16,7 @@ from django.db.models import Model, QuerySet, Manager
 from django.db import models
 from .serializer import Serializer
 from .exceptions import JsonResponseException
-from .utils import absolute_url
+from .utils import absolute_url, append_url
 
 
 class QuerySet(models.QuerySet):
@@ -184,6 +184,8 @@ class QuerySet(models.QuerySet):
         instance_actions = []
         queryset_actions = []
 
+        base_url = absolute_url(self.request, 'only={}'.format(attrname) if attrname else '')
+
         for qualified_name in self.metadata.get('actions', ()):
             cls = slth.ENDPOINTS[qualified_name]
             if cls.has_args():
@@ -198,7 +200,7 @@ class QuerySet(models.QuerySet):
 
         for cls in queryset_actions:
             if cls(self.request).check_permission():
-                url = absolute_url(self.request, f'?action={cls.get_api_name()}')
+                url = append_url(base_url, f'?action={cls.get_api_name()}')
                 action = cls.get_api_metadata(url)
                 action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                 actions.append(action)
@@ -271,14 +273,13 @@ class QuerySet(models.QuerySet):
             serialized = serializer.serialize(forward_exception=True)
             for cls in instance_actions:
                 if cls(obj.pk).contextualize(self.request).check_permission():
-                    url = absolute_url(self.request, f'action={cls.get_api_name()}&id={obj.pk}')
+                    url = append_url(base_url, f'action={cls.get_api_name()}&id={obj.pk}')
                     action = cls.get_api_metadata(url)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                     serialized['actions'].append(action)
             objs.append(serialized)
 
-        url = absolute_url(self.request, 'only={}'.format(attrname) if attrname else '')
-        data = dict(type='queryset', title=title, key=attrname, url=url, total=total, count=count, icon=None, actions=actions, filters=filters, search=search)
+        data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=count, icon=None, actions=actions, filters=filters, search=search)
         if attrname:
             data.update(attrname=attrname)
         if calendar:
