@@ -30,7 +30,7 @@ def dispatcher(request, **kwargs):
                 try:
                     return cls(*kwargs.values()).contextualize(request).to_response()
                 except JsonResponseException as e:
-                    return ApiResponse(e.data)
+                    return ApiResponse(e.data, safe=False)
                 except Exception as e:
                     traceback.print_exc() 
                     return ApiResponse(data=dict(error=str(e)), safe=False, status=500)

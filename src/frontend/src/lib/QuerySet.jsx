@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action";
+import { Field } from "./Form.jsx";
 import { request } from "./Request.jsx";
 
 function QuerySet(props) {
@@ -84,9 +85,50 @@ function QuerySet(props) {
     );
   }
 
+  function renderSearchFilterPanel() {
+    const style = {
+      display: "inline-block",
+      width: 250,
+      marginRight: 5,
+      verticalAlign: "middle",
+    };
+    const searching = data.search.length > 0;
+    const filtering = data.filters.length > 0;
+    if (searching || filtering) {
+      const field = {
+        name: "q",
+        value: "",
+        mask: null,
+        type: "text",
+        label: "Palavras-chaves",
+      };
+      return (
+        <div>
+          <div style={style}>{searching && <Field data={field} />}</div>
+          {filtering &&
+            data.filters.map(function (field) {
+              return (
+                <div key={Math.random()} style={style}>
+                  <Field data={field} />
+                </div>
+              );
+            })}
+          <div style={style}>
+            <button type="button" onClick={reload}>
+              Filtrar
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
+
   function reload() {
-    request("GET", data.url, function (data) {
-      console.log(data);
+    const queryString = new URLSearchParams(
+      new FormData(document.getElementById("form-" + id))
+    ).toString();
+    const url = props.data.url.split("?")[0] + "?" + queryString;
+    request("GET", url, function (data) {
       setData(data);
     });
   }
@@ -95,10 +137,13 @@ function QuerySet(props) {
     window[id] = () => reload();
     return (
       <div className="reloadable" id={id}>
-        <div>{false && JSON.stringify(data)}</div>
-        {renderTitle()}
-        {renderActions()}
-        {renderRows()}
+        <form id={"form-" + id}>
+          <div>{false && JSON.stringify(data)}</div>
+          {renderTitle()}
+          {renderActions()}
+          {renderSearchFilterPanel()}
+          {renderRows()}
+        </form>
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { ComponentFactory } from "./Factory";
 import { showMessage } from "./Message";
 import { request, response } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
+import { Icon } from "./Icon.jsx";
 
 const INPUT_TYPES = [
   "text",
@@ -203,10 +204,11 @@ function Selector(props) {
     initial.push({ id: props.data.value.id, value: props.data.value.label });
   }
   const id = props.data.name;
-  const id2 = props.data.name + "input";
+  const id2 = props.data.name + "__autocomplete";
   const multiple = Array.isArray(props.data.value);
   const [seaching, setSearching] = useState(false);
   const [options, setOptions] = useState([]);
+  var choosing = false;
 
   useEffect(() => {
     select(initial);
@@ -220,25 +222,26 @@ function Selector(props) {
     const select = document.getElementById(id);
     if (multiple) {
       const style1 = { padding: 5, display: "inline" };
-      const style2 = { cursor: "pointer" };
+      const style2 = { cursor: "pointer", marginRight: 5 };
+      const style3 = { fontSize: "0.8rem" };
       return (
         <div>
           {select == null &&
             initial.map((option, i) => (
               <div key={Math.random()} style={style1}>
-                {option.value}
                 <span onClick={() => remove(i)} style={style2}>
-                  [X]
+                  <Icon icon="trash-can" style={style3} />
                 </span>
+                {option.value}
               </div>
             ))}
           {select != null &&
             Array.from(select.options).map((option, i) => (
               <div key={Math.random()} style={style1}>
-                {option.innerHTML}
                 <span onClick={() => remove(i)} style={style2}>
-                  [X]
+                  <Icon icon="trash-can" style={style3} />
                 </span>
+                {option.innerHTML}
               </div>
             ))}
         </div>
@@ -271,8 +274,12 @@ function Selector(props) {
       marginTop: -1,
       borderRadius: 5,
       maxHeight: 150,
-      overflowY: "scroll",
+      overflowY: "auto",
     };
+    ul.position = "absolute";
+    ul.marginTop = 55;
+    ul.backgroundColor = "white";
+    ul.width = 250;
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
       (!multiple && initial.length > 0 && initial[0]["value"]) || "";
@@ -280,6 +287,7 @@ function Selector(props) {
       <>
         <input
           id={id2}
+          name={id2}
           type="text"
           className="form-control"
           onFocus={(e) => {
@@ -287,12 +295,22 @@ function Selector(props) {
             search(e);
           }}
           onChange={search}
+          onMouseLeave={onLeaveInput}
+          onBlur={onLeaveInput}
           defaultValue={defaultValue}
           style={INPUT_STYLE}
         ></input>
         {seaching && (
-          <ul style={ul} onMouseLeave={(e) => setSearching(false)}>
-            {false && options.length == 0 && <li>Nenhuma opção encontrada.</li>}
+          <ul
+            style={ul}
+            onMouseLeave={hide}
+            onMouseEnter={function (e) {
+              choosing = true;
+            }}
+          >
+            {options.length == 0 && (
+              <li style={li}>Nenhuma opção encontrada.</li>
+            )}
             {options.map((option) => (
               <li
                 key={Math.random()}
@@ -311,11 +329,38 @@ function Selector(props) {
     );
   }
 
+  function onLeaveInput(e) {
+    choosing = false;
+    setTimeout(function () {
+      hide(e);
+    }, 250);
+  }
+
+  function hide(e) {
+    const widget = document.getElementById(id);
+    const input = document.getElementById(id2);
+    if (!multiple) {
+      if (
+        widget.options.length > 0 &&
+        input.value != widget.options[0].innerHTML
+      ) {
+        widget.innerHTML = "";
+        input.value = "";
+        setSearching(false);
+      }
+    }
+    if (e.target.tagName == "UL") {
+      setSearching(false);
+    } else {
+      if (!choosing) setSearching(false);
+    }
+  }
+
   function search(e) {
     setSearching(true);
     request(
       "GET",
-      props.data.choices + "&q=" + e.target.value,
+      props.data.choices + "&term=" + e.target.value,
       function callback(options) {
         setOptions(options);
       }
@@ -629,5 +674,5 @@ function Form(props) {
   return render();
 }
 
-export { Form };
+export { Field, Form };
 export default Form;

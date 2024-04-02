@@ -106,6 +106,7 @@ class QuerySet(models.QuerySet):
 
     def contextualize(self, request):
         pk = request and request.GET.get('id')
+        choices_field_name = request and request.GET.get('choices')
         self.request = request
         qs = self._clone()
         if pk:
@@ -126,11 +127,21 @@ class QuerySet(models.QuerySet):
                         **{'{}__in'.format(lookup[0:-10]):
                         Role.objects.filter(name=rolename).values_list('username', flat=True)}
                     )
-            elif request and lookup in request.GET:
+            elif request and lookup in request.GET and lookup != choices_field_name:
                 qs = qs.apply_filter(lookup, request.GET[lookup])
         search = qs.metadata.get('search', ())
         if request and search and 'q' in request.GET:
             qs = qs.apply_search(request.GET['q'], search)
+
+        if choices_field_name:
+            field = qs.model._meta.get_field(choices_field_name)
+            choices = field.related_model.objects.filter(pk__in=qs.values_list(choices_field_name, flat=True))
+            term = self.request.GET.get('term')
+            if term:
+                choices = choices.apply_search(term)
+            raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in choices[0:20]])
+
+
         return qs
 
     def apply_filter(self, lookup, value):
@@ -193,7 +204,7 @@ class QuerySet(models.QuerySet):
             else:
                 queryset_actions.append(cls)
 
-        if self.request and 'e' in self.request.GET:
+        if self.request and 'e' in self.request.GET: ### TODO
             cls = slth.ENDPOINTS[self.request.GET.get('e')]
             if cls in queryset_actions:
                 raise JsonResponseException(cls(self.request).serialize())
@@ -304,7 +315,7 @@ class QuerySet(models.QuerySet):
         value = self.parameter('userrole')
         choices = [{'id': '', 'text': ''}]
         choices.extend({'id': k, 'text': v} for k, v in ['adm', 'Administrador'])
-        return dict(name='userrole', type='select', value=value, label='Papel', choices=choices)
+        return dict(name='userrole', type='choice', value=value, label='Papel', required=False, mask=None, choices=choices)
 
     def filter_field(self, lookups):
         name = lookups.strip()
@@ -321,27 +332,36 @@ class QuerySet(models.QuerySet):
                 tmp.append(lookup)
         field = self.model.get_field('__'.join(tmp)) if tmp else None
         if field:
-            if getattr(field, 'choices'):
-                field_type = 'select'
-                choices = [{'id': k, 'text': v} for k, v in field.choices]
-            elif isinstance(field, models.CharField):
+            if isinstance(field, models.CharField):
                 field_type = 'text'
                 value = self.parameter(name)
             elif isinstance(field, models.BooleanField):
-                field_type = 'boolean'
+                field_type = 'choice'
                 value = self.parameter(name)
                 if value:
                     value = value == 'true'
+                choices = [dict(id='', value=''), dict(id='true', value='Sim'), dict(id='false', value='Não'), dict(id='null', value='Nulo')]
             elif isinstance(field, models.DateField):
                 field_type = 'text' if suffix in ('year', 'month') else 'date'
+                value = self.parameter(name)
             elif isinstance(field, models.ForeignKey):
-                field_type = 'select'
+                field_type = 'choice'
                 value = self.parameter(name)
                 if value:
-                    value = dict(id=value, text=self.parameter(f'{name}__autocomplete'))
+                    value = dict(id=value, label=self.parameter(f'{name}__autocomplete'))
+                choices = absolute_url(self.request, f'choices={name}')
             elif isinstance(field, models.ManyToManyField):
-                field_type = 'select'
-            return dict(name=name, type=field_type, value=value, label=str(field.verbose_name))
+                field_type = 'choice'
+                choices = absolute_url(self.request, f'choices={name}')
+            if getattr(field, 'choices'):
+                field_type = 'choice'
+                choices = [{'id': '', 'value':''}]
+                choices.extend([{'id': k, 'value': v} for k, v in field.choices])
+                choices.append({'id': 'null', 'value':'Nulo'})
+            data = dict(name=name, type=field_type, value=value, label=str(field.verbose_name), required=False, mask=None)
+            if choices:
+                data.update(choices=choices)
+            return data
         return None
 
     def to_calendar(self, attr_name):

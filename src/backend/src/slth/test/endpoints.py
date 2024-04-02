@@ -112,7 +112,7 @@ class ListarPessoas(Endpoint):
     
     def get(self):
         return (
-            Pessoa.objects.search('nome')
+            Pessoa.objects.search('nome').filters('data_nascimento', 'casado', 'sexo')
             .subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
             .actions(
                 'slth.test.endpoints.cadastrarpessoa',
@@ -211,7 +211,7 @@ class EditarCidade(Endpoint):
         self.obj = self.objects('test.cidade').get(pk=pk)
 
     def get(self):
-        return CadastrarCidadeForm(request=self.request)
+        return CadastrarCidadeForm(self.obj, request=self.request)
 
 class VisualizarCidade(Endpoint):
     def __init__(self, pk):
@@ -255,7 +255,7 @@ class ListarCidades(Endpoint):
         verbose_name = 'Cidades'
 
     def get(self):
-        return self.objects('test.cidade').all()
+        return self.objects('test.cidade').search('nome').filters('prefeito')
 
 
 class CidadesVizinhas(ChildEndpoint):

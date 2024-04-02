@@ -144,6 +144,12 @@ class FormMixin:
             
             fname = name if prefix is None else f'{prefix}__{name}'
             data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, mask=None)
+            for word in MASKS:
+                if word in name:
+                    data.update(mask=MASKS[word])
+            for word in ('password', 'senha'):
+                if word in name:
+                    data.update(type='password')
             if ftype == 'decimal':
                 data.update(mask='decimal')
             elif ftype == 'choice':
@@ -360,7 +366,7 @@ class LoginForm(Form):
             return cleaned_data
         
     def submit(self):
-        return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key))
+        return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key, application=None))
 
 
 FIELD_TYPES = {
