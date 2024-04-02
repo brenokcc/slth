@@ -39,17 +39,13 @@ def serialize(obj, primitive=False):
 
 def getfield(obj, name_or_names, request=None):
     if isinstance(name_or_names, str):
-        if obj:
-            attr = getattr(obj, name_or_names)
-            if type(attr) == types.MethodType:
-                value = attr()
-                label = getattr(attr, 'verbose_name', name_or_names)
-            else:
-                value = attr
-                label = getattr(type(obj), name_or_names).field.verbose_name
+        attr = getattr(obj, name_or_names)
+        if type(attr) == types.MethodType:
+            value = attr()
+            label = getattr(attr, 'verbose_name', name_or_names)
         else:
-            value = None
-            label = None
+            value = attr
+            label = getattr(type(obj), name_or_names).field.verbose_name
         field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True))
         return field
     elif isinstance(name_or_names, LinkField):
@@ -95,9 +91,9 @@ class Serializer:
         self.metadata['content'].append(('fields', None, dict(names=names)))
         return self
     
-    def fieldset(self, title, names=(), *actions, attr=None):
+    def fieldset(self, title, fields=(), actions=(), attr=None):
         self.metadata['allow'].extend(actions)
-        self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=names, attr=attr, actions=actions)))
+        self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=fields, attr=attr, actions=actions)))
         return self
         
     def queryset(self, title, name):
@@ -118,9 +114,6 @@ class Serializer:
     
     def group(self, title):
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title)
-    
-    def dimention(self, title):
-        return Serializer(obj=self.obj, request=self.request, serializer=self, type='dimension', title=title)
 
     def parent(self):
         self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self)))
@@ -166,7 +159,7 @@ class Serializer:
         if not self.lazy:
             for i, (datatype, key, item) in enumerate(self.metadata['content']):
                 leaf = only and only[-1] == key
-                lazy = i and self.type in ('group', 'dimension') and not leaf
+                lazy = i and self.type == 'group' and not leaf
                 data = None
                 if datatype == 'fields':
                     data = []
@@ -187,13 +180,17 @@ class Serializer:
                             data = dict(type='fieldset', title=title, key=key, url=url)
                         else:
                             obj = getattr(self.obj, attr) if attr else self.obj
-                            for name in names:
-                                fields.append(getfield(obj, name, self.request))
+                            if obj:
+                                for name in names:
+                                    fields.append(getfield(obj, name, self.request))
                             if not only:
                                 for qualified_name in item['actions']:
                                     cls = slth.ENDPOINTS[qualified_name]
                                     if cls(self.obj.pk).contextualize(self.request).check_permission():
-                                        actions.append(cls.get_api_metadata(f'?e={cls.get_api_name()}'))
+                                        action = cls.get_api_metadata('')
+                                        action['url'] = f'{url}&action={cls.get_api_name()}'
+                                        actions.append(action)
+                                        
                             data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':

@@ -1,7 +1,7 @@
-from slth.endpoints import Endpoint, ChildEndpoint, FormFactory
+from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, FormFactory, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
-from .models import Pessoa, Cidade
+from .models import Pessoa, Cidade, Funcionario
 from slth.serializer import Serializer, LinkField
 from slth.components import Grid
 
@@ -11,143 +11,85 @@ class HealthCheck(Endpoint):
     def get(self):
         return dict(version='1.0.0')
 
+class CadastrarGrupo(AddEndpoint[Group]): pass
+class EditarGrupo(EditEndpoint[Group]): pass
+class VisualizarGrupo(ViewEndpoint[Group]): pass
+class ExcluirGrupo(DeleteEndpoint[Group]): pass
+class ListarGrupo(ListEndpoint[Group]): pass
 
-class Register(Endpoint):
+
+class Register(FormEndpoint[RegisterForm]): pass
+
+
+class AddUser(FormEndpoint[UserForm]): pass
+class EditUser(InstanceFormEndpoint[UserForm]):
     def get(self):
-        return RegisterForm(request=self.request)
+        super().get().fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email')).fieldset('Grupos', ('groups',))
 
-
-class AddUser(Endpoint):
-    def get(self,):
-        return UserForm(instance=User(), request=self.request)
-
-class EditUser(Endpoint):
-
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
-
+class ListUsers(ListEndpoint[User]):
     def get(self):
-        return (
-            UserForm(instance=User.objects.get(pk=self.pk), request=self.request)
-            .fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email'))
-            .fieldset('Grupos', ('groups',))
-        )
+        return super().get().search('username').fields('username', 'is_superuser').filters('is_superuser', 'groups')
 
-class ListUsers(Endpoint):
+
+class ViewUser(ViewEndpoint[User]):
 
     def get(self):
         return (
-            User.objects.search('username').fields('username', 'is_superuser').filters('is_superuser', 'groups')
-        )
-        
-
-class ViewUser(Endpoint):
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
-
-    def get(self):
-        return (
-            Serializer(User.objects.get(pk=self.pk), request=self.request)
+            super().get()
             .fieldset('Dados Gerais', (('username', 'email'),))
             .fieldset('Dados Pessoais', ('first_name', 'last_name'))
             .fields('password')
             .queryset('Grupos', 'groups')
         )
-    
 
-class CadastrarPessoa(Endpoint):
+class CadastrarPessoa(AddEndpoint[Pessoa]):
     def get(self):
         return (
-            FormFactory(Pessoa())
+            super().get()
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
 
-class CadastrarPessoa2(Endpoint):
+class CadastrarPessoa2(AddEndpoint[Pessoa]):
     class Meta:
         verbose_name = 'Cadastrar Pessoa'
 
     def get(self):
-        return (
-            FormFactory(Pessoa())
-            .fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
-        )
-    
-class ExcluirPessoa(Endpoint):
-    def __init__(self, pk):
-        super().__init__()
-        self.obj = self.objects('test.pessoa').get(pk=pk)
+        return super().get().fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
 
-    def get(self):
-        return FormFactory(self.obj, delete=True)
+class ExcluirPessoa(DeleteEndpoint[Pessoa]): pass
 
-class EditarPessoa(Endpoint):
-
-    class Meta:
-        icon = 'edit'
-        verbose_name = 'Editar Pessoa'
-
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
-
+class EditarPessoa(EditEndpoint[Pessoa]):
     def get(self):
         return (
-            FormFactory(Pessoa.objects.get(pk=self.pk))
+            super().get()
             .fieldset('Dados Gerais', ('nome',))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
 
-    def check_permission(self):
-        return True
+class ListarPessoas(ListEndpoint[Pessoa]):
 
-
-class ListarPessoas(Endpoint):
-    class Meta:
-        verbose_name = 'Pessoas'
-    
     def get(self):
         return (
-            Pessoa.objects.search('nome').filters('data_nascimento', 'casado', 'sexo')
+            super().get().search('nome').filters('data_nascimento', 'casado', 'sexo')
             .subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
-            .actions(
-                'slth.test.endpoints.cadastrarpessoa',
-                'slth.test.endpoints.editarpessoa',
-                'slth.test.endpoints.excluirpessoa',
-            )
+            .actions('visualizarpessoa2')
         )
 
 
-class VisualizarPessoa(Endpoint):
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
+class VisualizarPessoa(ViewEndpoint[Pessoa]): pass
+
+
+class VisualizarPessoa2(InstanceEndpoint[Pessoa]):
 
     def get(self):
         return (
-            Serializer(Pessoa.objects.get(pk=self.pk))
-            .fields('id', 'nome', 'telefone_pessoal', 'telefones_profissionais')
-        )
-
-    def check_permission(self):
-        return True
-
-
-class VisualizarPessoa2(Endpoint):
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
-
-    def get(self):
-        return (
-            Serializer(Pessoa.objects.get(pk=self.pk))
-            .actions('slth.test.endpoints.editarpessoa')
-            .fieldset('Dados Gerais', ('id', 'nome'), 'slth.test.endpoints.editarpessoa')
-            .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal')
+            super().get()
+            .actions('editarpessoa')
+            .fieldset('Dados Gerais', fields=[('id', 'nome')])
+            .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal', actions=['editarpessoa'])
             .queryset('Telefones Profissionais', 'telefones_profissionais')
         )
 
@@ -163,14 +105,11 @@ class Estatisticas(Endpoint):
         grid.append(Cidade.objects.counter('prefeito', chart='line', title='Cidades por Prefeito'))
         return grid 
 
-class VisualizarPessoa3(Endpoint):
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
+class VisualizarPessoa3(InstanceEndpoint[Pessoa]):
 
     def get(self):
         return (
-            Serializer(Pessoa.objects.get(pk=self.pk), request=self.request)
+            super().get()
             .fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']])
             .fieldset('Dados para Contato', ['telefone_pessoal', 'get_qtd_telefones_profissionais'])
             .queryset('Telefones Profissionais', 'telefones_profissionais')
@@ -187,7 +126,7 @@ class VisualizarPessoa3(Endpoint):
                     .queryset('Usuários', 'get_usuarios')
                 .parent()
             .parent()
-            .dimention('Recursos Humanos')
+            .group('Group B')
                 .section('Ponto')
                     .fieldset('Frequências', ())
                     .fieldset('Afastamentos', ())
@@ -195,7 +134,7 @@ class VisualizarPessoa3(Endpoint):
                 .parent()
                 .section('Detalhamento')
                     .fieldset('XXXXX', ())
-                    .endpoint('Estatística', 'slth.test.endpoints.estatisticapessoal')
+                    .endpoint('Estatística', 'estatisticapessoal')
                     .queryset('Telefones Profissionais', 'telefones_profissionais')
                 .parent()
                 .section('PGD')
@@ -205,22 +144,12 @@ class VisualizarPessoa3(Endpoint):
         )
     
 
-class EditarCidade(Endpoint):
-    def __init__(self, pk):
-        super().__init__()
-        self.obj = self.objects('test.cidade').get(pk=pk)
+class EditarCidade(EditEndpoint[Cidade]): pass
 
-    def get(self):
-        return CadastrarCidadeForm(self.obj, request=self.request)
-
-class VisualizarCidade(Endpoint):
-    def __init__(self, pk):
-        super().__init__()
-        self.obj = self.objects('test.cidade').get(pk=pk)
-    
+class VisualizarCidade(ViewEndpoint[Cidade]):
     def get(self):
         return  (
-            self.obj.serializer()
+            super().get()
             .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa), 'get_imagem'))
             # .fields('get_mapa')
             .fields('get_banner', 'get_steps', 'get_qrcode', 'get_badge', 'get_status', 'get_progresso', 'get_boxes', 'get_shell', 'get_link')
@@ -230,30 +159,16 @@ class VisualizarCidade(Endpoint):
         )
 
 
-class ExcluirCidade(Endpoint):
-    def __init__(self, pk):
-        super().__init__()
-        self.obj = self.objects('test.cidade').get(pk=pk)
-
-    def get(self):
-        return FormFactory(self.obj, delete=True)
-
-class CadastrarCidade(Endpoint):
+class ExcluirCidade(DeleteEndpoint[Cidade]): pass
+class CadastrarCidade(AddEndpoint[Cidade]):
     def get(self):
         return (
-            FormFactory(Cidade()).display(Pessoa.objects.first().serializer().fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
+            super().get().display(Pessoa.objects.first().serializer().fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
         )
 
-class CadastrarCidade2(Endpoint):
-    
-    def get(self):
-        return CadastrarCidadeForm(Cidade.objects.first(), self.request)
-
+class CadastrarCidade2(FormEndpoint[CadastrarCidadeForm]): pass
 
 class ListarCidades(Endpoint):
-    class Meta:
-        verbose_name = 'Cidades'
-
     def get(self):
         return self.objects('test.cidade').search('nome').filters('prefeito')
 
@@ -262,29 +177,16 @@ class CidadesVizinhas(ChildEndpoint):
 
     def get(self):
         return self.objects('test.cidade').all().actions(
-            'slth.test.endpoints.cadastrarcidade',
-            'slth.test.endpoints.editarcidade',
-            'slth.test.endpoints.excluircidade'
+            'cadastrarcidade',
+            'editarcidade',
+            'excluircidade'
         )
     
 
 
 class ListarFuncionario(Endpoint):
-    class Meta:
-        icon = 'people-roof'
-        verbose_name = 'Listar Funcionários'
     
     def get(self):
-        return (
-            self.objects('test.funcionario')
-            .actions('slth.test.endpoints.cadastrarfuncionario')
-        )
+        return self.objects('test.funcionario').actions('cadastrarfuncionario')
     
-class CadastrarFuncionario(Endpoint):
-    class Meta:
-        verbose_name = 'Cadastrar Funcionário'
-    
-    def get(self):
-        return FormFactory(
-            self.objects('test.funcionario').model()
-        )
+class CadastrarFuncionario(AddEndpoint[Funcionario]): pass

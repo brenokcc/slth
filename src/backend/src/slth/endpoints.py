@@ -1,5 +1,5 @@
 
-import json
+from typing import TypeVar, Generic
 import inspect
 from django.apps import apps
 from typing import Any
@@ -12,11 +12,13 @@ from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
 from .utils import build_url, absolute_url
-from slth import APPLICATON
+from slth import APPLICATON, ENDPOINTS, DEFAULT_ENDPOINTS
 
 
 import slth
 
+
+T = TypeVar("T")
 
 class ApiResponse(JsonResponse):
     def __init__(self, *args, **kwargs):
@@ -31,8 +33,11 @@ class EnpointMetaclass(type):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
         if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
-            slth.ENDPOINTS[cls.__name__.lower()] = cls
-            slth.ENDPOINTS[cls.get_qualified_name()] = cls
+            ENDPOINTS[cls.__name__.lower()] = cls
+            ENDPOINTS[cls.get_qualified_name()] = cls
+        if bases and bases[0].__name__ in ['ListEndpoint', 'AddEndpoint', 'EditEndpoint', 'ViewEndpoint', 'DeleteEndpoint']:
+            model = attrs['__orig_bases__'][0].__args__[0]
+            DEFAULT_ENDPOINTS[bases[0].__name__][model] = cls
         return cls
 
 
@@ -193,6 +198,64 @@ class FormFactory:
             form.display(self.serializer)
         return form
 
+class ModelEndpoint(Endpoint):
+    def __init__(self):
+        self.model = self.__orig_bases__[0].__args__[0]
+        if isinstance(self.model, str):
+            self.model = self.objects(self.model).get(pk=self.pk)
+        super().__init__()
+
+class ListEndpoint(Generic[T], ModelEndpoint):
+    def get(self):
+        actions = []
+        for name in ('AddEndpoint', 'ViewEndpoint', 'EditEndpoint', 'DeleteEndpoint'):
+            action = DEFAULT_ENDPOINTS[name].get(self.model)
+            if action:
+                actions.append(action.__name__.lower())
+        return self.model.objects.all().actions(*actions)
+
+class AddEndpoint(Generic[T], ModelEndpoint):
+    def get(self):
+        return FormFactory(self.model())
+
+class ModelInstanceEndpoint(ModelEndpoint):
+    def __init__(self, pk):
+        super().__init__()
+        self.instance = self.model.objects.get(pk=pk)
+
+class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
+    def get(self) -> Serializer:
+        return self.instance.serializer().contextualize(self.request)
+
+class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
+    def get(self):
+        return self.instance.serializer().contextualize(self.request)
+        
+class EditEndpoint(Generic[T], ModelInstanceEndpoint):
+    def get(self):
+        return FormFactory(self.instance)
+    
+class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
+    def get(self):
+        return FormFactory(self.instance, delete=True)
+    
+
+class FormEndpoint(Generic[T], Endpoint):
+
+    def get(self):
+        cls = self.__orig_bases__[0].__args__[0]
+        return cls(request=self.request)
+    
+class InstanceFormEndpoint(Generic[T], Endpoint):
+    def __init__(self, pk):
+        self.pk = pk
+        super().__init__()
+
+    def get(self):
+        cls = self.__orig_bases__[0].__args__[0]
+        return cls(cls.Meta.model.objects.get(pk=self.pk), request=self.request)
+
+
 class Login(Endpoint):
     def get(self):
         return LoginForm(request=self.request)
@@ -217,7 +280,7 @@ class Dashboard(Endpoint):
             if APPLICATON['dashboard']['boxes']:
                 boxes = Boxes('Acesso Rápido')
                 for endpoint in APPLICATON['dashboard']['boxes']:
-                    cls = slth.ENDPOINTS[endpoint]
+                    cls = ENDPOINTS[endpoint]
                     if cls().contextualize(self.request).check_permission():
                         icon = cls.get_metadata('icon', 'check')
                         label = cls.get_metadata('verbose_name')
@@ -227,11 +290,11 @@ class Dashboard(Endpoint):
             if APPLICATON['dashboard']['top']:
                 group = serializer.group('Teste')
                 for endpoint in APPLICATON['dashboard']['top']:
-                    cls = slth.ENDPOINTS[endpoint]
+                    cls = ENDPOINTS[endpoint]
                     group.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
                 group.parent()
             for endpoint in APPLICATON['dashboard']['center']:
-                cls = slth.ENDPOINTS[endpoint]
+                cls = ENDPOINTS[endpoint]
                 serializer.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
             return serializer
         else:
@@ -246,7 +309,7 @@ class Application(Endpoint):
                 logo=APPLICATON['logo'], user=self.request.user.username
             )
             for endpoint in APPLICATON['dashboard']['usermenu']:
-                cls = slth.ENDPOINTS[endpoint]
+                cls = ENDPOINTS[endpoint]
                 if cls().contextualize(self.request).check_permission():
                     label = cls.get_metadata('verbose_name')
                     url = build_url(self.request, cls.get_api_url())

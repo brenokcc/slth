@@ -1,7 +1,7 @@
 import { ComponentFactory } from "./Factory";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
-import { Object, Fieldset, Field, Section, Group, Dimension } from "./Viewer";
+import { Object, Fieldset, Field, Section, Group } from "./Viewer";
 import { Statistics } from "./Statistics";
 import { Color } from "./Theme";
 import { Application } from "./Application";
@@ -29,7 +29,6 @@ ComponentFactory.register("field", (data) => <Field data={data} />);
 ComponentFactory.register("object", (data) => <Object data={data} />);
 ComponentFactory.register("section", (data) => <Section data={data} />);
 ComponentFactory.register("group", (data) => <Group data={data} />);
-ComponentFactory.register("dimension", (data) => <Dimension data={data} />);
 ComponentFactory.register("statistics", (data) => <Statistics data={data} />);
 ComponentFactory.register("image", (data) => <Image data={data} />);
 ComponentFactory.register("banner", (data) => <Banner data={data} />);

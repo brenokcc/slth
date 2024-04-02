@@ -90,7 +90,7 @@ function Dialog(props) {
   }
 
   function content() {
-    const close = { float: "right", cursor: "pointer", marginTop: -20 };
+    const close = { textAlign: "right", cursor: "pointer" };
     if (data) {
       return (
         <div>

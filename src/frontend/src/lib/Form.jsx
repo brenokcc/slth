@@ -112,7 +112,7 @@ function Field(props) {
     const style = {
       display: "flex",
       flexDirection: "column",
-      paddingBottom: 10,
+      padding: 5,
     };
     return (
       <div id={id} className={"form-group " + props.data.name} style={style}>
@@ -279,7 +279,8 @@ function Selector(props) {
     ul.position = "absolute";
     ul.marginTop = 55;
     ul.backgroundColor = "white";
-    ul.width = 250;
+    const widget = document.getElementById(id2);
+    if (widget) ul.width = widget.getBoundingClientRect().width;
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
       (!multiple && initial.length > 0 && initial[0]["value"]) || "";
@@ -602,13 +603,37 @@ function Form(props) {
   }
 
   function getFields() {
-    return (
-      <div className="form-fields">
-        {props.data.fields.map((field) => (
-          <Field key={Math.random()} data={field} />
-        ))}
-      </div>
-    );
+    if (props.data.fields) {
+      return (
+        <div className="form-fields">
+          {props.data.fields.map((field) => (
+            <Field key={Math.random()} data={field} />
+          ))}
+        </div>
+      );
+    } else {
+      return props.data.fieldsets.map((fieldset) => (
+        <div key={Math.random()} className="form-fieldset">
+          <h2>{fieldset.title}</h2>
+          <div className="fieldset-fields">
+            {fieldset.fields.map((list) => (
+              <div key={Math.random()}>
+                {list.map((field) => (
+                  <div
+                    style={{
+                      width: 100 / list.length + "%",
+                      display: "inline-block",
+                    }}
+                  >
+                    <Field key={Math.random()} data={field} />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      ));
+    }
   }
 
   function render() {
