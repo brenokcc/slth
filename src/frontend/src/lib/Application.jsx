@@ -25,24 +25,23 @@ function Application(props) {
       display: "flex",
       width: "100%",
       justifyContent: "space-between",
+      boxShadow: "0px 15px 10px -15px #DDD",
     };
     return props.data.navbar ? (
-      <div>
-        <div style={style}>
-          <div>
-            <a href="/">{props.data.navbar.title}</a>
-          </div>
-          <div style={{ display: "flex" }}>
-            <Dropdown actions={props.data.navbar.actions}>
-              {props.data.navbar.user}
-            </Dropdown>
-          </div>
+      <div style={style}>
+        <div style={{ padding: 20 }}>
+          <a href="/">{props.data.navbar.title}</a>
+        </div>
+        <div style={{ display: "flex", padding: 20 }}>
+          <Dropdown actions={props.data.navbar.actions}>
+            {props.data.navbar.user}
+          </Dropdown>
         </div>
       </div>
     ) : null;
   }
   function renderContent() {
-    const style = { minHeight: 400 };
+    const style = { minHeight: 400, margin: 20 };
     return content == null ? (
       <div style={style}>Loading...</div>
     ) : (

@@ -181,8 +181,8 @@ function Boxes(props) {
   function render() {
     const boxes = {
       padding: 20,
-      marginLeft: 0,
-      marginRight: 0,
+      marginLeft: -20,
+      marginRight: -20,
       textAlign: "center",
       backgroundColor: "#f8f8f8",
     };
@@ -205,7 +205,7 @@ function Boxes(props) {
     const i = {
       marginTop: 30,
       fontSize: "3rem",
-      color: "blue",
+      color: "#2670e8",
     };
     const text = {
       marginTop: 40,
@@ -213,7 +213,7 @@ function Boxes(props) {
       fontSize: "1.2rem",
       textTransform: "uppercase",
       height: 70,
-      color: "blue",
+      color: "#0c326f",
     };
 
     return props.data.items.length ? (

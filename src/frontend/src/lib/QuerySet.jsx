@@ -19,7 +19,6 @@ function QuerySet(props) {
   function renderHeader(data) {
     const style = {
       textAlign: "left",
-      backgroundColor: "#EEE",
       verticalAlign: "middle",
     };
     return (
@@ -37,12 +36,13 @@ function QuerySet(props) {
   }
 
   function renderRow(row) {
+    const td = { paddingBottom: 15 };
     return (
       <tr key={Math.random()}>
         {row.data.map(function (field) {
           return <td key={Math.random()}>{format(field.value)}</td>;
         })}
-        <td>
+        <td style={td}>
           {row.actions.map(function (action) {
             return <Action key={Math.random()} data={action} />;
           })}
@@ -60,6 +60,8 @@ function QuerySet(props) {
             lineHeight: "2rem",
             borderSpacing: 0,
             overflowX: "scroll",
+            backgroundColor: "white",
+            padding: 20,
           }}
         >
           <thead>{renderHeader(data.data[0].data)}</thead>
@@ -130,7 +132,7 @@ function QuerySet(props) {
     ).toString();
     if (props.data.url.indexOf("?") > 0)
       url = props.data.url + "&" + queryString;
-    else props.data.url + "?" + queryString;
+    else url = props.data.url + "?" + queryString;
     request("GET", url, function (data) {
       setData(data);
     });

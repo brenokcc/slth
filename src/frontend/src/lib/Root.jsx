@@ -48,7 +48,6 @@ ComponentFactory.register("iconset", (data) => <IconSet data={data} />);
 ComponentFactory.register("grid", (data) => <Grid data={data} />);
 
 function Root(props) {
-  console.log(props.data);
   return (
     <>
       <ComponentFactory data={props.data} />

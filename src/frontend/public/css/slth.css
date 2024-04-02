@@ -1,0 +1,35 @@
+@font-face {
+    font-display: swap;
+    font-family: Eina02-SemiBold;
+    src:
+        local('Eina02'),
+        local('Eina02-SemiBold'),
+        url(./fonts/Eina02-SemiBold.c5f9b8e3.ttf)
+        ;
+}
+@font-face {
+    font-display: swap;
+    font-family: Eina02-Regular;
+    src:
+            local('Eina02'),
+            local('Eina02-Regular'),
+            url(./fonts/Eina02-Regular.2e682693.ttf)
+        ;
+}
+@font-face {
+    font-display: swap;
+    font-family: Eina02-Bold;
+    src:
+            local('Eina02'),
+            local('Eina02-Bold'),
+            url(./fonts/Eina02-Bold.f8011405.ttf)
+        ;
+}
+body{
+    margin: 0px;
+    background-color: #FCFCFC;
+    font-family: Eina02-Regular;
+}
+h1, h2, h3, h4, h5, dt, strong, th{
+    font-family: Eina02-Bold;
+}

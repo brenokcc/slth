@@ -6,6 +6,7 @@ import { showMessage } from "./Message";
 import { request, response } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
+import { Action } from "./Action.jsx";
 
 const INPUT_TYPES = [
   "text",
@@ -25,14 +26,7 @@ const INPUT_TYPES = [
   "hidden",
   "color",
 ];
-const INPUT_STYLE = { padding: 10, border: "solid 1px #CCC", borderRadius: 5 };
-const BUTTON_STYLE = {
-  padding: 10,
-  border: "solid 1px #CCC",
-  borderRadius: 5,
-  marginLeft: 10,
-  cursor: "pointer",
-};
+const INPUT_STYLE = { padding: 15, border: "solid 1px #CCC", borderRadius: 5 };
 
 function formChange(form, url) {
   var data = new FormData(form);
@@ -563,7 +557,8 @@ function Form(props) {
   const id = Math.random();
 
   function getTitle() {
-    return <h1>{props.data.title}</h1>;
+    const style = { margin: 0 };
+    return <h1 style={style}>{props.data.title}</h1>;
   }
 
   function getDisplay() {
@@ -581,23 +576,9 @@ function Form(props) {
 
   function getButtons() {
     return (
-      <div className="right" style={{ marginTop: 20, textAlign: "right" }}>
-        <a
-          className="btn"
-          onClick={cancel}
-          data-label={toLabelCase("Cancelar")}
-          style={BUTTON_STYLE}
-        >
-          Cancelar
-        </a>
-        <a
-          className="btn submit primary"
-          onClick={submit}
-          data-label={toLabelCase("Enviar")}
-          style={BUTTON_STYLE}
-        >
-          Enviar
-        </a>
+      <div style={{ marginTop: 20, textAlign: "right" }}>
+        <Action onClick={cancel} data={{ name: "Cancelar" }} />
+        <Action onClick={submit} data={{ name: "Enviar" }} />
       </div>
     );
   }
@@ -642,13 +623,19 @@ function Form(props) {
       <form
         id={id}
         action={props.data.url}
-        style={{ margin: "auto", width: props.data.width }}
+        style={{
+          margin: "auto",
+          width: props.data.width,
+          backgroundColor: "white",
+        }}
       >
         <div>{false && JSON.stringify(props.data)}</div>
-        {getTitle()}
-        {getDisplay()}
-        {getFields()}
-        {getButtons()}
+        <div style={{ padding: 20 }}>
+          {getTitle()}
+          {getDisplay()}
+          {getFields()}
+          {getButtons()}
+        </div>
       </form>
     );
   }
@@ -661,17 +648,10 @@ function Form(props) {
     e.preventDefault();
     var form = document.getElementById(id);
     var data = new FormData(form);
-    // for (var pair of data.entries()) {
-    //   console.log(pair[0] + ", " + pair[1]);
-    // }
-    var button = form.querySelector(".btn.submit");
-    var label = button.innerHTML;
-    button.innerHTML = "Aguarde...";
     request(
       "POST",
       props.data.url,
       function callback(data) {
-        button.innerHTML = label;
         if (data.type == "response") {
           closeDialog();
           reloadState();

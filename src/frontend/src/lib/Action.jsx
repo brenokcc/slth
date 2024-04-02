@@ -1,21 +1,43 @@
 import { useState } from "react";
 import { openDialog } from "./Modal";
+import { toLabelCase } from "./Utils";
 
 function Action(props) {
-  const url = "/app/" + props.data.url.split("/api/")[1];
+  const [label, setLabel] = useState(props.data.name);
+  const url = props.data.url
+    ? "/app/" + props.data.url.split("/api/")[1]
+    : null;
 
   function onClick(e) {
     e.preventDefault();
-    props.data.modal == false
-      ? (document.location.href = url)
-      : openDialog(url);
+    if (props.onClick) {
+      setLabel("Aguarde....");
+      props.onClick(e);
+    } else {
+      props.data.modal == false
+        ? (document.location.href = url)
+        : openDialog(url);
+    }
   }
 
   function render() {
-    const style = { padding: 5, textDecoration: "none" };
+    const style = {
+      padding: 12,
+      textDecoration: "none",
+      whiteSpace: "nowrap",
+      borderRadius: 5,
+      backgroundColor: "#1351b4",
+      color: "white",
+      margin: 5,
+    };
     return (
-      <a href={url} onClick={onClick} style={style}>
-        {props.data.name}
+      <a
+        href={url || "#"}
+        onClick={onClick}
+        style={style}
+        data-label={toLabelCase(props.data.name)}
+      >
+        {label}
       </a>
     );
   }
@@ -36,9 +58,10 @@ function Dropdown(props) {
       width: 150,
       right: 0,
       textAlign: "center",
-      border: "solid 1px #DDD",
+      backgroundColor: "white",
+      boxShadow: "0px 15px 10px -15px #DDD",
     };
-    const li = { listStyleType: "none", padding: 5 };
+    const li = { listStyleType: "none", padding: 10 };
     return (
       <>
         <div onClick={onClick} style={{ cursor: "pointer" }}>

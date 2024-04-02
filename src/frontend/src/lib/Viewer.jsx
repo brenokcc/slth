@@ -131,8 +131,13 @@ function Section(props) {
   }
 
   function renderContent() {
+    const style = { backgroundColor: white };
     return props.data.data.map(function (item, i) {
-      return <ComponentFactory key={Math.random()} data={item} />;
+      return (
+        <div style={style}>
+          <ComponentFactory key={Math.random()} data={item} />
+        </div>
+      );
     });
   }
 
@@ -167,7 +172,10 @@ function Tabs(props) {
               style={{
                 padding: 5,
                 fontWeight: active == i ? "bold" : "normal",
-                textDecoration: active == i ? "underline" : "none",
+                borderBottom:
+                  active == i ? "solid 3px #2670e8" : "solid 3px #DDD",
+                textDecoration: "none",
+                color: "#0c326f",
               }}
               onClick={function (e) {
                 e.preventDefault();
@@ -200,14 +208,19 @@ function Group(props) {
   function renderContent() {
     var clone = { ...content };
     clone.title = null;
-    return <ComponentFactory key={Math.random()} data={clone} />;
+    const style = { padding: 0 };
+    return (
+      <div style={style}>
+        <ComponentFactory key={Math.random()} data={clone} />
+      </div>
+    );
   }
 
   function renderSeparator() {
     const style = {
       width: "50%",
       margin: "auto",
-      border: "solid 1px #DDD",
+      border: "solid 0.5px #DDD",
       marginTop: 30,
       marginBottom: 30,
     };
