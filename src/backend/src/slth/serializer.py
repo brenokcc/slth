@@ -147,7 +147,7 @@ class Serializer:
 
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
-            if cls and cls.get_qualified_name() in self.metadata['allow']:
+            if cls and cls.get_api_name() in self.metadata['allow']:
                 raise JsonResponseException(cls(self.obj.pk).contextualize(self.request).serialize())
 
         if not self.metadata['content']:

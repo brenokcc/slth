@@ -115,7 +115,7 @@ class QuerySet(models.QuerySet):
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             actions = self.metadata.get('actions', ())
-            if cls.get_qualified_name() in actions or cls.get_api_name() in actions:
+            if cls.get_api_name() in actions:
                 raise JsonResponseException(cls(*((pk,) if pk else ())).contextualize(self.request).serialize())
 
         filters = qs.metadata.get('filters', ())
