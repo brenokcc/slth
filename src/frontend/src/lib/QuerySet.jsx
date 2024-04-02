@@ -124,10 +124,13 @@ function QuerySet(props) {
   }
 
   function reload() {
+    var url;
     const queryString = new URLSearchParams(
       new FormData(document.getElementById("form-" + id))
     ).toString();
-    const url = props.data.url.split("?")[0] + "?" + queryString;
+    if (props.data.url.indexOf("?") > 0)
+      url = props.data.url + "&" + queryString;
+    else props.data.url + "?" + queryString;
     request("GET", url, function (data) {
       setData(data);
     });

@@ -203,6 +203,17 @@ function Group(props) {
     return <ComponentFactory key={Math.random()} data={clone} />;
   }
 
+  function renderSeparator() {
+    const style = {
+      width: "50%",
+      margin: "auto",
+      border: "solid 1px #DDD",
+      marginTop: 30,
+      marginBottom: 30,
+    };
+    return <div style={style}></div>;
+  }
+
   function loadContent(url) {
     request("GET", url, function (data) {
       setContent(data);
@@ -216,6 +227,7 @@ function Group(props) {
         {renderTitle()}
         {renderTabs()}
         {renderContent()}
+        {renderSeparator()}
       </div>
     );
   }

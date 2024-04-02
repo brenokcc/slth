@@ -34,7 +34,6 @@ class EnpointMetaclass(type):
         cls = super().__new__(mcs, name, bases, attrs)
         if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
             ENDPOINTS[cls.__name__.lower()] = cls
-            ENDPOINTS[cls.get_qualified_name()] = cls
         if bases and bases[0].__name__ in ['ListEndpoint', 'AddEndpoint', 'EditEndpoint', 'ViewEndpoint', 'DeleteEndpoint']:
             model = attrs['__orig_bases__'][0].__args__[0]
             DEFAULT_ENDPOINTS[bases[0].__name__][model] = cls

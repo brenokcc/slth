@@ -33,18 +33,18 @@ application:
   groups:
     administrador: Administrador
     operador: Operador
-  index: slth.endpoints.dashboard
+  index: dashboard
   dashboard:
     top:
-      - slth.test.endpoints.cadastrarpessoa2
-      - slth.test.endpoints.listarpessoas
+      - cadastrarpessoa2
+      - listarpessoas
     center:
-      - slth.test.endpoints.estatisticas
-      - slth.test.endpoints.adduser
+      - estatisticas
+      - adduser
     boxes:
-      - slth.test.endpoints.listarfuncionario
-      - slth.test.endpoints.listarpessoas
-      - slth.test.endpoints.listarcidades
+      - listarfuncionario
+      - listarpessoas
+      - listarcidades
     usermenu:
-      - slth.endpoints.icons
-      - slth.endpoints.logout
+      - icons
+      - logout
