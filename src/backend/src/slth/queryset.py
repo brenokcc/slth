@@ -110,7 +110,8 @@ class QuerySet(models.QuerySet):
         self.request = request
         qs = self._clone()
         if pk:
-            qs = qs.filter(pk=pk)
+            if self.attrname is None or request.GET.get('only') == self.attrname:
+                qs = qs.filter(pk=pk)
     
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
@@ -220,7 +221,7 @@ class QuerySet(models.QuerySet):
         subset = self.parameter('subset')
         subset = None if subset == 'all' else subset
         page = int(self.parameter('page', 1))
-        page_size = min(int(self.parameter('page_size', 10)), 1000)
+        page_size = min(int(self.parameter('page_size', 20)), 1000)
         qs = self.filter()
         qs = qs.order_by('id') if not qs.ordered else qs
         if 'calendar' in self.metadata:
@@ -273,7 +274,6 @@ class QuerySet(models.QuerySet):
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls in instance_actions:
                 raise JsonResponseException(cls(qs.get(pk=self.request.GET.get('id')).pk).contextualize(self.request).serialize())
-
         for obj in qs[start:end]:
             if serializer:
                 serializer.obj = obj

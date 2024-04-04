@@ -101,6 +101,9 @@ class FormMixin:
             fieldsets = []
             for title, names in self.fieldsets.items():
                 fields = []
+                if prefix:
+                    value = self.instance.pk if isinstance(self, ModelForm) else ''
+                    fields.append([dict(type='hidden', name=f'{prefix}__id', value=value, label='ID')])
                 for name in names:
                     if isinstance(name, str):
                         field = self.serialize_field(name, self.fields[name], prefix, choices_field_name)
@@ -115,7 +118,7 @@ class FormMixin:
             fields = []
             if prefix:
                 value = self.instance.pk if isinstance(self, ModelForm) else ''
-                fields.append(dict(type='hidden', name=prefix, value=value))
+                fields.append(dict(type='hidden', name=f'{prefix}__id', value=value, label='ID'))
             for name, field in self.fields.items():
                 fields.append(self.serialize_field(name, field, prefix, choices_field_name))
             data.update(fields=fields)
@@ -124,13 +127,20 @@ class FormMixin:
     def serialize_field(self, name, field, prefix, choices_field_name):
         if isinstance(field, InlineFormField) or isinstance(field, InlineModelField):
             value = []
-            instances = {}
-            if isinstance(field, OneToManyField) and isinstance(self, ModelForm) and self.instance.id and hasattr(self.instance, name):
-                instances = {i: instance for i, instance in enumerate(getattr(self.instance, name).all()[0:field.max])}
-            for i in range(0, field.max):
-                kwargs = dict(instance=instances.get(i), request=self.request) if isinstance(self, ModelChoiceField) else dict(request=self.request)
-                value.append(field.form(**kwargs).to_dict(prefix=f'{name}__{i}'))
-            data = dict(type='inline', min=field.min, max=field.max, name=name, label=field.label, required=field.required, value=value)
+            instances = []
+            is_one_to_one = field.max == field.min == 1
+            if isinstance(self, ModelForm) and self.instance.id and hasattr(self.instance, name):
+                if isinstance(field, OneToOneField):
+                    instances.append(getattr(self.instance, name))
+                if isinstance(field, OneToManyField):
+                    instances.extend(getattr(self.instance, name).all())
+            for i, instance in enumerate(instances):
+                prefix = name if is_one_to_one else f'{name}__{i}'
+                kwargs = dict(instance=instance, request=self.request) if isinstance(field, InlineModelField) else dict(request=self.request)
+                value.append(field.form(**kwargs).to_dict(prefix=prefix))
+            if not is_one_to_one:
+                value.append(field.form(request=self.request).to_dict(prefix=f'{name}__n'))
+            data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=field.required, value=value)
         else:
             ftype = FIELD_TYPES.get(type(field), 'text')
             value = field.initial or self.initial.get(name)
@@ -143,13 +153,17 @@ class FormMixin:
                 value = dict(id=obj.id, label=str(obj))
             
             fname = name if prefix is None else f'{prefix}__{name}'
-            data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, mask=None)
+            data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, help_text=field.help_text, mask=None)
             for word in MASKS:
                 if word in name:
                     data.update(mask=MASKS[word])
             for word in ('password', 'senha'):
                 if word in name:
                     data.update(type='password')
+            if isinstance(field, CharField) or isinstance(field, IntegerField):
+                mask = getattr(field, 'mask', None)
+                if mask:
+                    data.update(mask=mask)
             if ftype == 'decimal':
                 data.update(mask='decimal')
             elif ftype == 'choice':
@@ -196,18 +210,22 @@ class FormMixin:
                 if inline_form_field_name in self.data:
                     inline_form_data = {}
                     pk = self.data.get(inline_form_field_name)
-                    for name in inline_field.form.base_fields:
-                        inline_form_field_name = f'{prefix}__{name}'
-                        inline_form_data[name] = self.data.get(inline_form_field_name)
-                    instance = inline_field.form._meta.model.objects.get(pk=pk) if pk else None
-                    inline_form = inline_field.form(data=inline_form_data, instance=instance, request=self.request)
-                    if inline_form.is_valid():
-                        if isinstance(inline_form, DjangoModelForm):
-                            data[inline_field_name].append(inline_form.instance)
+                    if pk:
+                        pk = int(pk)
+                        for name in inline_field.form.base_fields:
+                            inline_form_field_name = f'{prefix}__{name}'
+                            inline_form_data[name] = self.data.get(inline_form_field_name)
+                        instance = inline_field.form._meta.model.objects.get(pk=abs(pk)) if pk else None
+                        if pk < 0:
+                            setattr(instance, 'deleting', True)
+                        inline_form = inline_field.form(data=inline_form_data, instance=instance, request=self.request)
+                        if inline_form.is_valid():
+                            if isinstance(inline_form, DjangoModelForm):
+                                data[inline_field_name].append(inline_form.instance)
+                            else:
+                                data[inline_field_name].append(inline_form.cleaned_data)
                         else:
-                            data[inline_field_name].append(inline_form.cleaned_data)
-                    else:
-                        errors.update({f'{inline_field_name}__{i}__{name}': error for name, error in inline_form.errors.items()}) 
+                            errors.update({f'{prefix}__{name}': error for name, error in inline_form.errors.items()}) 
         if errors:
             return dict(type='error', text='Please correct the errors.', errors=errors)
         else:
@@ -220,14 +238,15 @@ class FormMixin:
                             obj.save()
                             # set one-to-one
                             if hasattr(self.instance, f'{inline_field_name}_id'):
-                                setattr(self.instance, inline_field_name, obj)
+                                if hasattr(obj, 'deleting'):
+                                    setattr(self.instance, inline_field_name, None)
+                                else:
+                                    setattr(self.instance, inline_field_name, obj)
                     self.submit()
                     for inline_field_name in inline_fields:
-                        relation = getattr(self.instance, inline_field_name)
                         for obj in self.cleaned_data[inline_field_name]:
-                            # set one-to-many
-                            if isinstance(relation, Manager):
-                                relation.add(obj)
+                            if hasattr(obj, 'deleting'):
+                                obj.delete()
                     return Response(message='Action successfully performed.')
                 else:
                     return self.submit()
@@ -265,8 +284,10 @@ class FormMixin:
             return default if value is None else value
 
 class Form(DjangoForm, FormMixin):
+    
     def __init__(self, *args, **kwargs):
         self.fieldsets = {}
+        self.fields = dict(self.fieldsets)
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
         self.request = kwargs.pop('request', None)
@@ -319,7 +340,17 @@ class InlineFormField(Field):
 
 class InlineModelField(Field):
     def __init__(self, model, *args, fields='__all__', exclude=(), min=1, max=3, **kwargs):
-        self.form = modelform_factory(model, form=ModelForm, fields=fields, exclude=exclude)
+        if fields == '__all__':
+            self.form = modelform_factory(model, form=ModelForm, fields=fields, exclude=exclude)
+        else:
+            field_names = []
+            for field_name in fields:
+                if isinstance(field_name, str):
+                    field_names.append(field_names)
+                else:
+                    field_names.extend(field_name)
+            self.form = modelform_factory(model, form=ModelForm, fields=field_names, exclude=exclude)
+            self.form.fieldsets = {None: fields}
         self.max = max
         self.min = min
         super().__init__(*args,  **kwargs)

@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { toLabelCase } from "./Utils";
 import { closeDialog, openDialog } from "./Modal";
 import { ComponentFactory } from "./Factory";
-import { showMessage } from "./Message";
+import { showMessage, Info } from "./Message";
 import { request, response } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
 import { Action } from "./Action.jsx";
+import { createRoot } from "react-dom/client";
 
 const INPUT_TYPES = [
   "text",
@@ -78,12 +79,48 @@ function formControl(controls) {
   }
 }
 
+function Error(props) {
+  function render() {
+    const style = {
+      color: "white",
+      display: "none",
+      backgroundColor: "#e52207",
+      marginTop: 2,
+      marginBottom: 2,
+      padding: 8,
+    };
+    return (
+      <div style={style} id={props.id}>
+        <Icon icon="xmark-circle" style={{ marginRight: 5 }} />
+        <span></span>
+      </div>
+    );
+  }
+  return render();
+}
+
+function HelpText(props) {
+  function render() {
+    const style = {
+      marginTop: 2,
+      marginBottom: 2,
+    };
+    return (
+      <div style={style}>
+        <span>{props.text}</span>
+      </div>
+    );
+  }
+  return render();
+}
+
 function Field(props) {
   const id = props.data.name + Math.random();
 
   function renderLabel() {
     const style = { fontWeight: props.data.required ? "bold" : "normal" };
-    return <label style={style}>{props.data.label}</label>;
+    if (props.data.type != "hidden")
+      return <label style={style}>{props.data.label}</label>;
   }
   function renderInput() {
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
@@ -98,8 +135,15 @@ function Field(props) {
   }
 
   function renderError() {
-    const style = { color: "red", display: "none" };
-    return <div style={style} id={props.data.name + "_error"}></div>;
+    return (
+      <div>
+        <Error id={props.data.name + "_error"} />
+      </div>
+    );
+  }
+
+  function renderHelpText() {
+    return props.data.help_text && <HelpText text={props.data.help_text} />;
   }
 
   function render() {
@@ -112,6 +156,7 @@ function Field(props) {
       <div id={id} className={"form-group " + props.data.name} style={style}>
         {renderLabel()}
         {renderInput()}
+        {renderHelpText()}
         {renderError()}
       </div>
     );
@@ -553,6 +598,280 @@ function Select(props) {
   );
 }
 
+function Separator(props) {
+  function render() {
+    const style = {
+      width: "50%",
+      margin: "auto",
+      border: "solid 0.5px #DDD",
+      marginTop: 30,
+      marginBottom: 30,
+    };
+    return <div style={style}></div>;
+  }
+  return render();
+}
+
+function OneToOne(props) {
+  const id = Math.random();
+  const inline = props.data.value[0];
+  const initial = inline.fields
+    ? inline.fields[0]
+    : inline.fieldsets[0].fields[0][0];
+
+  function renderInfo() {
+    return (
+      <div id={"info-" + id}>
+        <Info
+          data={{
+            text: "Esta informação é opcional. Controle seu preenchimento com o botão ao lado.",
+          }}
+        >
+          <Action
+            data={{ icon: "pen-clip" }}
+            onClick={() => showForm(true)}
+            id={"show-" + id}
+            style={{ display: initial.value ? "none" : "inline" }}
+          />
+          <Action
+            data={{ icon: "x" }}
+            onClick={() => showForm(false)}
+            id={"hide-" + id}
+            style={{ display: initial.value ? "inline" : "none" }}
+          />
+        </Info>
+      </div>
+    );
+  }
+
+  function showForm(display) {
+    const widget = document.querySelector("input[name=" + initial.name + "]");
+    const form = document.getElementById("inline-form-" + id);
+    const showButton = document.getElementById("show-" + id);
+    const hideButton = document.getElementById("hide-" + id);
+    form.style.display = display ? "block" : "none";
+    showButton.style.display = display ? "none" : "inline";
+    hideButton.style.display = display ? "inline" : "none";
+    if (display) {
+      if (widget.value === "") widget.value = 0;
+      else widget.value = -parseInt(widget.value);
+    } else {
+      if (parseInt(widget.value) == 0) widget.value = "";
+      else widget.value = -parseInt(widget.value);
+    }
+  }
+
+  function renderForms() {
+    const style = {
+      display: initial.value ? "block" : "none",
+    };
+    return (
+      <div
+        className="fieldset-inline-forms"
+        style={style}
+        id={"inline-form-" + id}
+      >
+        {props.data.value.map(function (form) {
+          return <FormContent key={Math.random()} data={form} />;
+        })}
+      </div>
+    );
+  }
+
+  function render() {
+    const style = { margin: 0 };
+    return (
+      <div className="form-fieldset">
+        <h2 style={style}>{props.data.label}</h2>
+        {renderInfo()}
+        {renderForms()}
+      </div>
+    );
+  }
+  return render();
+}
+
+function OneToMany(props) {
+  var next = 0;
+  const id = Math.random();
+
+  if (props.data.template == null) {
+    props.data.template = props.data.value.pop();
+  }
+
+  function renderForm(form, addButtonDisplay) {
+    const i = next;
+    next += 1;
+    return (
+      <div
+        key={Math.random()}
+        style={{ display: "block" }}
+        id={"form-" + i + "-" + id}
+      >
+        <FormContent data={form} />
+        <div style={{ textAlign: "center", marginTop: 10 }}>
+          <Action
+            data={{ icon: "plus" }}
+            onClick={() => addItem()}
+            id={"extra-add-" + i + "-"}
+            style={{ display: addButtonDisplay }}
+          />
+          <Action data={{ icon: "trash" }} onClick={() => removeItem(i)} />
+        </div>
+      </div>
+    );
+  }
+
+  function checkMessageDisplay() {
+    const visible = visibleItems();
+    const display = visible.length > 0 ? "none" : "inline";
+    document.getElementById("add-" + id).style.display = display;
+    for (var i = 0; i < next; i++) {
+      var div = document.getElementById("extra-add-" + i + "-");
+      div.style.display = "none";
+    }
+    if (visible.length > 0) {
+      var div = document.getElementById(
+        "extra-add-" + visible[visible.length - 1] + "-"
+      );
+      div.style.display = "inline";
+    }
+  }
+
+  function addItem() {
+    checkMessageDisplay();
+    var form = JSON.parse(JSON.stringify(props.data.template));
+    if (form.fields) {
+      form.fields.map(function (field) {
+        field.name = field.name.replace("__n__", "__" + next + "__");
+      });
+      form.fields[0].value = 0;
+    } else {
+      form.fieldsets.map(function (fieldet) {
+        fieldet.fields.map(function (row) {
+          row.map(function (field) {
+            field.name = field.name.replace("__n__", "__" + next + "__");
+          });
+          row[0].value = 0;
+        });
+      });
+    }
+    createRoot(
+      document.getElementById(id).appendChild(document.createElement("div"))
+    ).render(renderForm(form, "inline"));
+    setTimeout(checkMessageDisplay, 100);
+  }
+
+  function removeItem(i) {
+    const inline = props.data.template;
+    const initial = inline.fields
+      ? inline.fields[0]
+      : inline.fieldsets[0].fields[0][0];
+    const name = initial.name.replace("__n__", "__" + i + "__");
+    const widget = document.querySelector("input[name=" + name + "]");
+    if (parseInt(widget.value) == 0) widget.value = "";
+    else widget.value = -parseInt(widget.value);
+    document.getElementById("form-" + i + "-" + id).style.display = "none";
+    checkMessageDisplay();
+  }
+
+  function visibleItems() {
+    var items = [];
+    for (var i = 0; i < next; i++) {
+      if (
+        document.getElementById("form-" + i + "-" + id).style.display == "block"
+      )
+        items.push(i);
+    }
+    return items;
+  }
+
+  function renderInfo() {
+    return (
+      <div id={"info-" + id}>
+        <Info
+          data={{
+            text: "Clique no botão abaixo para adicionar um registro.",
+          }}
+        >
+          <Action
+            data={{ icon: "plus" }}
+            onClick={() => addItem()}
+            id={"add-" + id}
+            style={{ display: props.data.value.length > 0 ? "none" : "inline" }}
+          />
+        </Info>
+      </div>
+    );
+  }
+
+  function render() {
+    const style = { margin: 0 };
+    return (
+      <div className="form-fieldset">
+        <h2 style={style}>{props.data.label}</h2>
+        <div>{false && JSON.stringify(props.data.value)}</div>
+        <div id={id} className="fieldset-inline-forms">
+          {renderInfo()}
+          {props.data.value.map(function (form, i) {
+            return renderForm(
+              form,
+              i == props.data.value.length - 1 ? "inline" : "none"
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return render();
+}
+
+function FormContent(props) {
+  function render() {
+    if (props.data.fields) {
+      return (
+        <div className="form-fields">
+          {props.data.fields.map((field) =>
+            field.type == "inline" ? (
+              (field.max == field.min) == 1 ? (
+                <OneToOne key={Math.random()} data={field} />
+              ) : (
+                <OneToMany key={Math.random()} data={field} />
+              )
+            ) : (
+              <Field key={Math.random()} data={field} />
+            )
+          )}
+        </div>
+      );
+    } else {
+      return props.data.fieldsets.map((fieldset) => (
+        <div key={Math.random()} className="form-fieldset">
+          <h2>{fieldset.title}</h2>
+          <div className="fieldset-fields">
+            {fieldset.fields.map((list) => (
+              <div key={Math.random()}>
+                {list.map((field) => (
+                  <div
+                    key={Math.random()}
+                    style={{
+                      width: 100 / list.length + "%",
+                      display: "inline-block",
+                    }}
+                  >
+                    <Field data={field} />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      ));
+    }
+  }
+  return render();
+}
+
 function Form(props) {
   const id = Math.random();
 
@@ -574,6 +893,10 @@ function Form(props) {
     }
   }
 
+  function getFields() {
+    return <FormContent data={props.data} />;
+  }
+
   function getButtons() {
     return (
       <div style={{ marginTop: 20, textAlign: "right" }}>
@@ -581,40 +904,6 @@ function Form(props) {
         <Action onClick={submit} data={{ name: "Enviar" }} />
       </div>
     );
-  }
-
-  function getFields() {
-    if (props.data.fields) {
-      return (
-        <div className="form-fields">
-          {props.data.fields.map((field) => (
-            <Field key={Math.random()} data={field} />
-          ))}
-        </div>
-      );
-    } else {
-      return props.data.fieldsets.map((fieldset) => (
-        <div key={Math.random()} className="form-fieldset">
-          <h2>{fieldset.title}</h2>
-          <div className="fieldset-fields">
-            {fieldset.fields.map((list) => (
-              <div key={Math.random()}>
-                {list.map((field) => (
-                  <div
-                    style={{
-                      width: 100 / list.length + "%",
-                      display: "inline-block",
-                    }}
-                  >
-                    <Field key={Math.random()} data={field} />
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      ));
-    }
   }
 
   function render() {
@@ -665,7 +954,7 @@ function Form(props) {
               message = data.errors[k];
             } else {
               const div = document.getElementById(k + "_error");
-              div.innerHTML = data.errors[k];
+              div.querySelector("span").innerHTML = data.errors[k];
               div.style.display = "block";
             }
           });

@@ -4,8 +4,8 @@ from slth.components import Image, Banner, Map, Steps, QrCode,\
 from django.contrib.auth.models import Group, User
 
 class Telefone(models.Model):
-    ddd = models.IntegerField('DDD')
-    numero = models.CharField('Número', max_length=25)
+    ddd = models.IntegerField('DDD', mask="99")
+    numero = models.CharField('Número', max_length=25, mask="99999-9999")
 
     def __str__(self):
         return '({}) {}'.format(self.ddd, self.numero)
@@ -19,15 +19,18 @@ class PessoaQuerySet(models.QuerySet):
         return self.filter(telefone_pessoal__isnull=False)
 
 class Pessoa(models.Model):
-    nome = models.CharField('Nome', max_length=255)
+    nome = models.CharField('Nome', max_length=255, help_text="Nome completo")
     sexo = models.CharField('Sexo', choices=[['M', 'Masculino'], ['F', 'Femino']], default='M')
     data_nascimento = models.DateField('Data de Nascimento', null=True, blank=True)
     salario = models.DecimalField('Salário', null=True, blank=True)
     casado = models.BooleanField('Casado?', blank=True, default=False)
     sexo = models.CharField('Sexo', choices=[['M', 'Masculino'], ['F', 'Feminino']], null=True, blank=True)
     cor_preferida = models.ColorField('Cor Preferida', null=True, blank=True)
-    telefone_pessoal = models.OneToOneField(Telefone, verbose_name='Telefone Pessoal', related_name='p1', on_delete=models.CASCADE, null=True, blank=True)
-    telefones_profissionais = models.OneToManyField(Telefone, verbose_name='Telefones Profissionais')
+    telefone_pessoal = models.OneToOneField(
+        Telefone, verbose_name='Telefone Pessoal', related_name='p1', on_delete=models.CASCADE, null=True, blank=True,
+        fields=[('ddd', 'numero')]
+    )
+    telefones_profissionais = models.OneToManyField(Telefone, verbose_name='Telefones Profissionais', fields=[('ddd', 'numero')])
 
     objects = PessoaQuerySet()
 

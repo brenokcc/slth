@@ -15,8 +15,8 @@ class ApiTestCase(ServerTestCase):
         self.assert_model_count('auth.group', 0)
         data = dict(
             username='brenokcc', email='brenokcc@yahoo.com.br',
-            groups__0__id='', groups__0__name='A', groups__0__permissions='',
-            groups__1__id='', groups__1__name='B', groups__1__permissions=''
+            groups__0__id='0', groups__0__name='A', groups__0__permissions='',
+            groups__1__id='0', groups__1__name='B', groups__1__permissions=''
         )
         self.post('/api/adduser/', data=data)
         self.assert_model_count('auth.user', 1)
@@ -32,10 +32,10 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/cadastrarpessoa/')
         data = dict(
             nome='Pedro',
-            telefone_pessoal__id='',
+            telefone_pessoal__id='0',
             telefone_pessoal__ddd=84,
             telefone_pessoal__numero='99106-2760',
-            telefones_profissionais__0__id='',
+            telefones_profissionais__0__id='0',
             telefones_profissionais__0__ddd=84,
             telefones_profissionais__0__numero='3272-3898'
         )
@@ -51,7 +51,7 @@ class ApiTestCase(ServerTestCase):
         self.assert_model_count('auth.group', 0)
         data = dict(
             username='brenokcc', email='brenokcc@yahoo.com.br',
-            groups=[dict(name='A'), dict(name='B')]
+            groups=[dict(id='0', name='A'), dict(id='0', name='B')]
         )
         self.post('/api/adduser/', json=data)
         self.assert_model_count('auth.user', 1)
@@ -68,8 +68,8 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/cadastrarpessoa/')
         data = dict(
             nome='Pedro',
-            telefone_pessoal=dict(ddd=84, numero='99106-2760'),
-            telefones_profissionais=[dict(ddd=84, numero='33272-3898')]
+            telefone_pessoal=dict(id='0', ddd=84, numero='99106-2760'),
+            telefones_profissionais=[dict(id='0', ddd=84, numero='33272-3898')]
         )
         self.post('/api/cadastrarpessoa/', json=data)
         self.assert_model_count('test.pessoa', 1)

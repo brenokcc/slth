@@ -198,9 +198,9 @@ class Serializer:
                     if not only or key in only:
                         attr = getattr(self.obj, key)
                         if type(attr) == types.MethodType:
-                            value = attr()
+                            value = attr().filter()
                         else:
-                            value = attr
+                            value = attr.filter()
                             title = getattr(type(self.obj), key).field.verbose_name
                         if lazy:
                             data = dict(type='queryset', title=title, key=key)

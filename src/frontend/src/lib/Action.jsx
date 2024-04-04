@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { openDialog } from "./Modal";
 import { toLabelCase } from "./Utils";
+import { Icon } from "./Icon";
 
 function Action(props) {
+  const id = props.id || Math.random();
   const [label, setLabel] = useState(props.data.name);
   const url = props.data.url
     ? "/app/" + props.data.url.split("/api/")[1]
@@ -11,7 +13,7 @@ function Action(props) {
   function onClick(e) {
     e.preventDefault();
     if (props.onClick) {
-      setLabel("Aguarde....");
+      if (label) setLabel("Aguarde....");
       props.onClick(e);
     } else {
       props.data.modal == false
@@ -21,7 +23,7 @@ function Action(props) {
   }
 
   function render() {
-    const style = {
+    var style = {
       padding: 12,
       textDecoration: "none",
       whiteSpace: "nowrap",
@@ -30,14 +32,21 @@ function Action(props) {
       color: "white",
       margin: 5,
     };
+    if (props.style) {
+      Object.keys(props.style).map(function (k) {
+        style[k] = props.style[k];
+      });
+    }
     return (
       <a
+        id={id}
         href={url || "#"}
         onClick={onClick}
         style={style}
         data-label={toLabelCase(props.data.name)}
       >
-        {label}
+        {props.data.icon && <Icon icon={props.data.icon} />}
+        {label && label}
       </a>
     );
   }

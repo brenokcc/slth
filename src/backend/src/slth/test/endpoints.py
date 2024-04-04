@@ -1,7 +1,7 @@
 from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, FormFactory, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
-from .models import Pessoa, Cidade, Funcionario
+from .models import Pessoa, Cidade, Funcionario, Telefone
 from slth.serializer import Serializer, LinkField
 from slth.components import Grid
 
@@ -16,6 +16,8 @@ class EditarGrupo(EditEndpoint[Group]): pass
 class VisualizarGrupo(ViewEndpoint[Group]): pass
 class ExcluirGrupo(DeleteEndpoint[Group]): pass
 class ListarGrupo(ListEndpoint[Group]): pass
+
+class ListarTelefones(ListEndpoint[Telefone]): pass
 
 
 class Register(FormEndpoint[RegisterForm]): pass

@@ -3,6 +3,7 @@ import { format } from "./Formatter.jsx";
 import { Action } from "./Action";
 import { Field } from "./Form.jsx";
 import { request } from "./Request.jsx";
+import { Info } from "./Message.jsx";
 
 function QuerySet(props) {
   var id = Math.random();
@@ -73,7 +74,13 @@ function QuerySet(props) {
         </table>
       );
     } else {
-      return <center>Nenhum registro encontrado.</center>;
+      return (
+        <Info
+          data={{
+            text: "Nenhum registro encontrado.",
+          }}
+        ></Info>
+      );
     }
   }
 
