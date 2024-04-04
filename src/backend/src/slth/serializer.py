@@ -8,6 +8,7 @@ from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
 from .exceptions import JsonResponseException
 from .utils import absolute_url
+from django.db.models.fields.files import ImageFieldFile
 
 
 def to_snake_case(name):
@@ -33,6 +34,8 @@ def serialize(obj, primitive=False):
         return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
         return [str(obj) for obj in obj.filter()] if primitive else obj.serialize()
+    elif isinstance(obj, ImageFieldFile):
+        return str(obj)
     elif hasattr(obj, 'serialize'):
         return obj.serialize()
     return str(obj)

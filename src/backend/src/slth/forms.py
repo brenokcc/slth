@@ -5,6 +5,7 @@ import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
+from django.db.models.fields.files import ImageFieldFile
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.db.models import Model, QuerySet, Manager
 from .models import Token
@@ -153,6 +154,8 @@ class FormMixin:
             elif value and isinstance(field, ModelChoiceField):
                 obj = field.queryset.get(pk=value)
                 value = dict(id=obj.id, label=str(obj))
+            elif isinstance(value, ImageFieldFile):
+                value = str(value)
             
             fname = name if prefix is None else f'{prefix}__{name}'
             data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, help_text=field.help_text, mask=None)
@@ -180,8 +183,8 @@ class FormMixin:
                                 if value2:
                                     values[name2] = value2
                             qs = getattr(self, method_name)(qs, values)
-                        if 'q' in self.request.GET:
-                            qs = qs.apply_search(self.request.GET['q'])
+                        if 'term' in self.request.GET:
+                            qs = qs.apply_search(self.request.GET['term'])
                         raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
                     else:
                         data['choices'] = absolute_url(self.request, f'choices={fname}')
@@ -303,6 +306,8 @@ class Form(DjangoForm, FormMixin):
         else:
             data = kwargs['data']
         kwargs.update(data=data)
+        if self.request:
+            kwargs.update(files=self.request.FILES or None)
         super().__init__(*args, **kwargs)
 
     def submit(self):
@@ -331,6 +336,8 @@ class ModelForm(DjangoModelForm, FormMixin):
         else:
             data = kwargs['data']
         kwargs.update(data=data)
+        if self.request:
+            kwargs.update(files=self.request.FILES or None)
         super().__init__(instance=instance, **kwargs)
 
     def submit(self):
@@ -466,4 +473,6 @@ FIELD_TYPES = {
     MultipleChoiceField: 'choice',
     ModelMultipleChoiceField: 'choice',
     ColorField: 'color',
+    FileField: 'file',
+    ImageField: 'file',
 }

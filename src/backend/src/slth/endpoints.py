@@ -2,8 +2,9 @@
 from typing import TypeVar, Generic
 import inspect
 from django.apps import apps
-from typing import Any
+from django.core.cache import cache
 from django.conf import settings
+from django.utils.text import slugify
 from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -41,6 +42,7 @@ class EnpointMetaclass(type):
 
 
 class Endpoint(metaclass=EnpointMetaclass):
+    cache = cache
 
     def __init__(self, *args):
         self.request = None
@@ -229,6 +231,29 @@ class Icons(Endpoint):
 
     def get(self):
         return IconSet()
+
+
+class Search(Endpoint):
+    def get(self):
+        key = '_options_'
+        options = self.cache.get(key)
+        term = self.request.GET.get('term')
+        if options is None:
+            options = []
+            for endpoint in APPLICATON['dashboard']['search']:
+                cls = ENDPOINTS[endpoint]
+                url = build_url(self.request, cls.get_api_url())
+                verbose_name = cls.get_metadata('verbose_name')
+                options.append(dict(id=url, value=verbose_name))
+            self.cache.set(key, options)
+        if term:
+            result = []
+            for option in options:
+                if slugify(term.lower()) in slugify(option['value'].lower()):
+                    result.append(option)
+        else:
+            result = options
+        return result[0:10]
     
 class Dashboard(Endpoint):
     def get(self):

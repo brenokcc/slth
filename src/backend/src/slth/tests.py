@@ -66,6 +66,7 @@ class HttpRequest:
         self.META = {
             'CONTENT_TYPE': '_application/json'
         }
+        self.FILES = None
 
         if querystring:
             for parameter in querystring[1:].split('&'):

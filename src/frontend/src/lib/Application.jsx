@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
-import request from "./Request.jsx";
+import { request, appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
 import { Dropdown } from "./Action.jsx";
-import { Grid } from "./Library.jsx";
+import { Selector } from "./Form.jsx";
 
 function Application(props) {
   const [content, setContent] = useState();
@@ -27,15 +27,31 @@ function Application(props) {
       justifyContent: "space-between",
       boxShadow: "0px 15px 10px -15px #DDD",
     };
+    const selector = {
+      choices: "/api/search/",
+      help_text: null,
+      label: null,
+      mask: null,
+      name: "search",
+      required: false,
+      type: "choice",
+    };
     return props.data.navbar ? (
       <div style={style}>
         <div style={{ padding: 20 }}>
           <a href="/">{props.data.navbar.title}</a>
         </div>
-        <div style={{ display: "flex", padding: 20 }}>
-          <Dropdown actions={props.data.navbar.actions}>
-            {props.data.navbar.user}
-          </Dropdown>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Selector
+            data={selector}
+            style={{ padding: 10 }}
+            onSelect={(option) => (document.location.href = appurl(option.id))}
+          />
+          <div style={{ padding: 20 }}>
+            <Dropdown actions={props.data.navbar.actions}>
+              {props.data.navbar.user}
+            </Dropdown>
+          </div>
         </div>
       </div>
     ) : null;

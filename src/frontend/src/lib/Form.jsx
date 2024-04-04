@@ -237,6 +237,60 @@ function InputField(props) {
     formChange(e.target.closest("form"), props.data.onchange);
   }
 
+  function onChange(e) {
+    if (props.data.type == "file") {
+      if (e.target.files) {
+        let file = e.target.files[0];
+        if (
+          ["png", "jpeg", "jpg", "gif"].indexOf(
+            file.name.toLowerCase().split(".").slice(-1)[0]
+          ) < 0
+        )
+          return;
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          const MAX_WIDTH = 400;
+          var img = document.createElement("img");
+          img.id = e.target.id + "img";
+          img.style.width = "200px";
+          img.style.display = "block";
+          img.style.margin = "auto";
+          img.style.marginTop = "20px";
+          img.onload = function (event2) {
+            const ratio = MAX_WIDTH / img.width;
+            var canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.height = canvas.width * (img.height / img.width);
+            const oc = document.createElement("canvas");
+            const octx = oc.getContext("2d");
+            oc.width = img.width * ratio;
+            oc.height = img.height * ratio;
+            octx.drawImage(img, 0, 0, oc.width, oc.height);
+            ctx.drawImage(
+              oc,
+              0,
+              0,
+              oc.width * ratio,
+              oc.height * ratio,
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+            oc.toBlob(function (blob) {
+              e.target.blob = blob;
+            });
+            const div = document.createElement("div");
+            div.appendChild(img);
+            e.target.parentNode.appendChild(div);
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }
+
   function render() {
     var type = props.data.type;
     if (type == "datetime") type = "datetime-regional";
@@ -251,6 +305,7 @@ function InputField(props) {
         data-label={toLabelCase(props.data.label)}
         readOnly={props.data.read_only}
         onBlur={props.data.onchange ? onBlur : null}
+        onChange={onChange}
         style={INPUT_STYLE}
       />
     );
@@ -272,7 +327,7 @@ function Selector(props) {
   const id2 = props.data.name + "__autocomplete";
   const multiple = Array.isArray(props.data.value);
   const [seaching, setSearching] = useState(false);
-  const [options, setOptions] = useState([]);
+  const [options, setOptions] = useState(null);
   var choosing = false;
 
   useEffect(() => {
@@ -332,6 +387,7 @@ function Selector(props) {
   }
 
   function getSelector() {
+    const style = { ...INPUT_STYLE, ...(props.style || {}) };
     const ul = {
       padding: 0,
       margin: 0,
@@ -342,10 +398,14 @@ function Selector(props) {
       overflowY: "auto",
     };
     ul.position = "absolute";
-    ul.marginTop = 55;
     ul.backgroundColor = "white";
     const widget = document.getElementById(id2);
-    if (widget) ul.width = widget.getBoundingClientRect().width;
+    if (widget) {
+      const rect = widget.getBoundingClientRect();
+      ul.width = rect.width;
+      ul.top = rect.y + rect.height;
+      ul.left = rect.x;
+    }
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
       (!multiple && initial.length > 0 && initial[0]["value"]) || "";
@@ -364,9 +424,9 @@ function Selector(props) {
           onMouseLeave={onLeaveInput}
           onBlur={onLeaveInput}
           defaultValue={defaultValue}
-          style={INPUT_STYLE}
+          style={style}
         ></input>
-        {seaching && (
+        {options && seaching && (
           <ul
             style={ul}
             onMouseLeave={hide}
@@ -382,7 +442,7 @@ function Selector(props) {
                 key={Math.random()}
                 onClick={() => {
                   setSearching(false);
-                  select(option);
+                  props.onSelect ? props.onSelect(option) : select(option);
                 }}
                 style={li}
               >
@@ -423,10 +483,11 @@ function Selector(props) {
   }
 
   function search(e) {
+    const sep = props.data.choices.indexOf("?") < 0 ? "?" : "&";
     setSearching(true);
     request(
       "GET",
-      props.data.choices + "&term=" + e.target.value,
+      props.data.choices + sep + "term=" + e.target.value,
       function callback(options) {
         setOptions(options);
       }
@@ -1006,5 +1067,5 @@ function Form(props) {
   return render();
 }
 
-export { Field, Form };
+export { Field, Form, Selector };
 export default Form;

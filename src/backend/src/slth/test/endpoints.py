@@ -48,7 +48,7 @@ class CadastrarPessoa(AddEndpoint[Pessoa]):
     def get(self):
         return (
             super().get()
-            .fieldset('Dados Gerais', ('nome',))
+            .fieldset('Dados Gerais', ('nome', 'foto'))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
@@ -58,7 +58,7 @@ class CadastrarPessoa2(AddEndpoint[Pessoa]):
         verbose_name = 'Cadastrar Pessoa'
 
     def get(self):
-        return super().get().fields('nome', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
+        return super().get().fields('nome', 'foto', 'data_nascimento', 'salario', 'casado', 'sexo', 'cor_preferida')
 
 class ExcluirPessoa(DeleteEndpoint[Pessoa]): pass
 
@@ -66,7 +66,7 @@ class EditarPessoa(EditEndpoint[Pessoa]):
     def get(self):
         return (
             super().get()
-            .fieldset('Dados Gerais', ('nome',))
+            .fieldset('Dados Gerais', ('nome','foto'))
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )

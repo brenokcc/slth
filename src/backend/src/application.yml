@@ -48,3 +48,7 @@ application:
     usermenu:
       - icons
       - logout
+    search:
+      - listarfuncionario
+      - listarpessoas
+      - listarcidades
