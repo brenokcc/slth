@@ -97,9 +97,10 @@ class FormMixin:
                 # self.display_data.request = self.request
                 data.update(display=self.display_data.serialize(forward_exception=True)['data'])
         choices_field_name = self.request.GET.get('choices')
-        if self.fieldsets:
-            fieldsets = []
-            for title, names in self.fieldsets.items():
+        fieldsets = self.get_fieldsets()
+        if fieldsets:
+            fieldsetlist = []
+            for title, names in fieldsets.items():
                 fields = []
                 if prefix:
                     value = self.instance.pk if isinstance(self, ModelForm) else ''
@@ -112,8 +113,8 @@ class FormMixin:
                         fields.append(
                             [self.serialize_field(name, self.fields[name], prefix, choices_field_name) for name in name]
                         )
-                fieldsets.append(dict(type='fieldset', title=title, fields=fields))
-            data.update(fieldsets=fieldsets)
+                fieldsetlist.append(dict(type='fieldset', title=title, fields=fields))
+            data.update(fieldsets=fieldsetlist)
         else:
             fields = []
             if prefix:
@@ -307,12 +308,14 @@ class Form(DjangoForm, FormMixin):
     def submit(self):
         pass
 
+    def get_fieldsets(self):
+        return self.fieldsets
+
 
 class ModelForm(DjangoModelForm, FormMixin):
-    base_fieldsets = {}
 
     def __init__(self, instance=None, request=None, delete=False, **kwargs):
-        self.fieldsets = {} or dict(self.base_fieldsets)
+        self.fieldsets = {}
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
         self.request = request
@@ -333,10 +336,13 @@ class ModelForm(DjangoModelForm, FormMixin):
     def submit(self):
         self.instance.delete() if self.delete else self.save()
 
+    def get_fieldsets(self):
+        return self.fieldsets
+
 
 class FormFactory:
     def __init__(self, instance, delete=False):
-        self.instance = instance or self.base_fieldsets
+        self.instance = instance
         self.fieldsets = {}
         self.fieldlist = []
         self.serializer = None
@@ -396,7 +402,7 @@ class InlineModelField(Field):
                 else:
                     field_names.extend(field_name)
             self.form = modelform_factory(model, form=ModelForm, fields=field_names, exclude=exclude)
-            self.form.base_fieldsets = {None: fields}
+            self.form.get_fieldsets = lambda _self: {None: fields}
         self.max = max
         self.min = min
         super().__init__(*args,  **kwargs)
