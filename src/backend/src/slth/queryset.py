@@ -110,7 +110,7 @@ class QuerySet(models.QuerySet):
         self.request = request
         qs = self._clone()
         if pk:
-            if self.attrname is None or request.GET.get('only') == self.attrname:
+            if self.metadata.get('attrname') is None or request.GET.get('only') == self.attrname:
                 qs = qs.filter(pk=pk)
     
         if self.request and 'action' in self.request.GET:

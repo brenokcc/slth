@@ -55,13 +55,7 @@ function Info(props) {
     };
     return (
       <div style={style}>
-        <div>
-          <Icon
-            icon="circle-check"
-            style={{ color: "#155bcb", marginRight: 20 }}
-          />
-          {props.data.text}
-        </div>
+        <div>{props.data.text}</div>
         {props.children && <div>{props.children}</div>}
       </div>
     );

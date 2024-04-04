@@ -46,6 +46,7 @@ class ApiTestCase(ServerTestCase):
         self.get('/api/visualizarpessoa2/{}/'.format(pessoa.pk))
 
     def test_json(self):
+        self.get('/api/cadastrarpessoa/')
         self.get('/api/adduser/')
         self.assert_model_count('auth.user', 0)
         self.assert_model_count('auth.group', 0)
@@ -159,6 +160,7 @@ class ApiTestCase(ServerTestCase):
             .serializer(Serializer().actions('editarpessoa'))
             .contextualize(HttpRequest(f'?id={maria.pk}&action=editarpessoa', data)).serialize(debug=self.debug)
         )
+        maria = self.objects('test.pessoa').get(pk=maria.pk)
         data = Serializer(self.objects('test.pessoa').get(pk=maria.pk)).serialize(self.debug)
         self.assertEquals(data['title'], 'Maria da Silva 2')
         

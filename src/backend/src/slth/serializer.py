@@ -210,7 +210,6 @@ class Serializer:
                         data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'endpoint':
-                    from .endpoints import FormFactory
                     title = item['title']
                     cls = item['cls']
                     wrap = item['wrap']

@@ -58,7 +58,7 @@ class OneToOneField(OneToOneField):
         kwargs.update(form_class=forms.OneToOneField, fields=self.fields)
         field = super().formfield(*args, model=self.related_model, **kwargs)
         field.label = self.verbose_name
-
+        field.required2 = not self.blank
         return field
 
 

@@ -140,7 +140,8 @@ class FormMixin:
                 value.append(field.form(**kwargs).to_dict(prefix=prefix))
             if not is_one_to_one:
                 value.append(field.form(request=self.request).to_dict(prefix=f'{name}__n'))
-            data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=field.required, value=value)
+            required = getattr(field, 'required2', field.required)
+            data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
         else:
             ftype = FIELD_TYPES.get(type(field), 'text')
             value = field.initial or self.initial.get(name)
@@ -247,9 +248,10 @@ class FormMixin:
                         for obj in self.cleaned_data[inline_field_name]:
                             if hasattr(obj, 'deleting'):
                                 obj.delete()
-                    return Response(message='Action successfully performed.')
+                    response = Response(message='Action successfully performed.')
                 else:
-                    return self.submit()
+                    response = self.submit()
+            return response
                 
     def hide(self, *names):
         self.controls['hide'].extend(names)
@@ -307,8 +309,10 @@ class Form(DjangoForm, FormMixin):
 
 
 class ModelForm(DjangoModelForm, FormMixin):
+    base_fieldsets = {}
+
     def __init__(self, instance=None, request=None, delete=False, **kwargs):
-        self.fieldsets = {}
+        self.fieldsets = {} or dict(self.base_fieldsets)
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
         self.request = request
@@ -328,6 +332,48 @@ class ModelForm(DjangoModelForm, FormMixin):
 
     def submit(self):
         self.instance.delete() if self.delete else self.save()
+
+
+class FormFactory:
+    def __init__(self, instance, delete=False):
+        self.instance = instance or self.base_fieldsets
+        self.fieldsets = {}
+        self.fieldlist = []
+        self.serializer = None
+        self.delete = delete
+
+    def fields(self, *names):
+        self.fieldlist.extend(names)
+        return self
+
+    def fieldset(self, title, *fields):
+        self.fieldsets['title'] = title
+        for names in fields:
+            for name in names:
+                if isinstance(name, str):
+                    self.fieldlist.append(name)
+                else:
+                    self.fieldlist.extend(names)
+        return self
+    
+    def display(self, serializer):
+        self.serializer = serializer
+        return self
+
+    def form(self, request):
+        class Form(ModelForm):
+            class Meta:
+                title = '{} {}'.format(
+                    'Excluir' if self.delete else ('Editar' if self.instance.pk else 'Cadastrar'),
+                    type(self.instance)._meta.verbose_name
+                )
+                model = type(self.instance)
+                fields = () if self.delete else (self.fieldlist or '__all__')
+        
+        form = Form(instance=self.instance, request=request, delete=self.delete)
+        if self.serializer:
+            form.display(self.serializer)
+        return form
 
 class InlineFormField(Field):
     def __init__(self, *args, form=None, min=1, max=3, **kwargs):
@@ -350,7 +396,7 @@ class InlineModelField(Field):
                 else:
                     field_names.extend(field_name)
             self.form = modelform_factory(model, form=ModelForm, fields=field_names, exclude=exclude)
-            self.form.fieldsets = {None: fields}
+            self.form.base_fieldsets = {None: fields}
         self.max = max
         self.min = min
         super().__init__(*args,  **kwargs)

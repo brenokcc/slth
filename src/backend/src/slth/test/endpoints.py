@@ -1,8 +1,8 @@
-from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, FormFactory, InstanceFormEndpoint
+from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Cidade, Funcionario, Telefone
-from slth.serializer import Serializer, LinkField
+from slth.serializer import LinkField
 from slth.components import Grid
 
 

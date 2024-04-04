@@ -27,7 +27,7 @@ class Pessoa(models.Model):
     sexo = models.CharField('Sexo', choices=[['M', 'Masculino'], ['F', 'Feminino']], null=True, blank=True)
     cor_preferida = models.ColorField('Cor Preferida', null=True, blank=True)
     telefone_pessoal = models.OneToOneField(
-        Telefone, verbose_name='Telefone Pessoal', related_name='p1', on_delete=models.CASCADE, null=True, blank=True,
+        Telefone, verbose_name='Telefone Pessoal', related_name='p1', on_delete=models.CASCADE, null=True, blank=False,
         fields=[('ddd', 'numero')]
     )
     telefones_profissionais = models.OneToManyField(Telefone, verbose_name='Telefones Profissionais', fields=[('ddd', 'numero')])

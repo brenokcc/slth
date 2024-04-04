@@ -79,6 +79,33 @@ function formControl(controls) {
   }
 }
 
+function Instruction(props) {
+  function render() {
+    const style = {
+      color: "#155bcb",
+      backgroundColor: "#d4e5ff",
+      padding: 20,
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 10,
+      marginBottom: 10,
+    };
+    return (
+      <div style={style}>
+        <div>
+          <Icon
+            icon="circle-check"
+            style={{ color: "#155bcb", marginRight: 20 }}
+          />
+          {props.data.text}
+        </div>
+        {props.children && <div>{props.children}</div>}
+      </div>
+    );
+  }
+  return render();
+}
+
 function Error(props) {
   function render() {
     const style = {
@@ -119,8 +146,7 @@ function Field(props) {
 
   function renderLabel() {
     const style = { fontWeight: props.data.required ? "bold" : "normal" };
-    if (props.data.type != "hidden")
-      return <label style={style}>{props.data.label}</label>;
+    return <label style={style}>{props.data.label}</label>;
   }
   function renderInput() {
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
@@ -148,7 +174,7 @@ function Field(props) {
 
   function render() {
     const style = {
-      display: "flex",
+      display: props.data.type == "hidden" ? "none" : "flex",
       flexDirection: "column",
       padding: 5,
     };
@@ -621,26 +647,28 @@ function OneToOne(props) {
 
   function renderInfo() {
     return (
-      <div id={"info-" + id}>
-        <Info
-          data={{
-            text: "Esta informação é opcional. Controle seu preenchimento com o botão ao lado.",
-          }}
-        >
-          <Action
-            data={{ icon: "pen-clip" }}
-            onClick={() => showForm(true)}
-            id={"show-" + id}
-            style={{ display: initial.value ? "none" : "inline" }}
-          />
-          <Action
-            data={{ icon: "x" }}
-            onClick={() => showForm(false)}
-            id={"hide-" + id}
-            style={{ display: initial.value ? "inline" : "none" }}
-          />
-        </Info>
-      </div>
+      !props.data.required && (
+        <div id={"info-" + id}>
+          <Info
+            data={{
+              text: "Esta informação é opcional. Controle seu preenchimento com o botão ao lado.",
+            }}
+          >
+            <Action
+              data={{ icon: "pen-clip" }}
+              onClick={() => showForm(true)}
+              id={"show-" + id}
+              style={{ display: initial.value ? "none" : "inline" }}
+            />
+            <Action
+              data={{ icon: "trash" }}
+              onClick={() => showForm(false)}
+              id={"hide-" + id}
+              style={{ display: initial.value ? "inline" : "none" }}
+            />
+          </Info>
+        </div>
+      )
     );
   }
 
@@ -661,10 +689,14 @@ function OneToOne(props) {
     }
   }
 
-  function renderForms() {
+  function renderForm() {
     const style = {
       display: initial.value ? "block" : "none",
     };
+    if (props.data.required) {
+      style.display = "block";
+      if (initial.value === "") initial.value = 0;
+    }
     return (
       <div
         className="fieldset-inline-forms"
@@ -684,7 +716,7 @@ function OneToOne(props) {
       <div className="form-fieldset">
         <h2 style={style}>{props.data.label}</h2>
         {renderInfo()}
-        {renderForms()}
+        {renderForm()}
       </div>
     );
   }
@@ -709,7 +741,7 @@ function OneToMany(props) {
         id={"form-" + i + "-" + id}
       >
         <FormContent data={form} />
-        <div style={{ textAlign: "center", marginTop: 10 }}>
+        <div style={{ textAlign: "center", marginTop: 10, marginBottom: 10 }}>
           <Action
             data={{ icon: "plus" }}
             onClick={() => addItem()}
@@ -847,7 +879,7 @@ function FormContent(props) {
     } else {
       return props.data.fieldsets.map((fieldset) => (
         <div key={Math.random()} className="form-fieldset">
-          <h2>{fieldset.title}</h2>
+          {fieldset.title && <h2>{fieldset.title}</h2>}
           <div className="fieldset-fields">
             {fieldset.fields.map((list) => (
               <div key={Math.random()}>
@@ -856,7 +888,7 @@ function FormContent(props) {
                     key={Math.random()}
                     style={{
                       width: 100 / list.length + "%",
-                      display: "inline-block",
+                      display: field.type == "hidden" ? "none" : "inline-block",
                     }}
                   >
                     <Field data={field} />
@@ -878,6 +910,11 @@ function Form(props) {
   function getTitle() {
     const style = { margin: 0 };
     return <h1 style={style}>{props.data.title}</h1>;
+  }
+
+  function renderInstruction() {
+    const text = "É importante preencher os campos atentamente.";
+    return <Instruction data={{ text: text }} />;
   }
 
   function getDisplay() {
@@ -921,6 +958,7 @@ function Form(props) {
         <div>{false && JSON.stringify(props.data)}</div>
         <div style={{ padding: 20 }}>
           {getTitle()}
+          {renderInstruction()}
           {getDisplay()}
           {getFields()}
           {getButtons()}

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .forms import LoginForm, ModelForm, Form
+from .forms import LoginForm, ModelForm, Form, FormFactory
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
@@ -154,48 +154,6 @@ class Endpoint(metaclass=EnpointMetaclass):
 
 class ChildEndpoint(Endpoint):
     pass
-
-
-class FormFactory:
-    def __init__(self, instance, delete=False):
-        self.instance = instance
-        self.fieldsets = {}
-        self.fieldlist = []
-        self.serializer = None
-        self.delete = delete
-
-    def fields(self, *names):
-        self.fieldlist.extend(names)
-        return self
-
-    def fieldset(self, title, *fields):
-        self.fieldsets['title'] = title
-        for names in fields:
-            for name in names:
-                if isinstance(name, str):
-                    self.fieldlist.append(name)
-                else:
-                    self.fieldlist.extend(names)
-        return self
-    
-    def display(self, serializer):
-        self.serializer = serializer
-        return self
-
-    def form(self, request):
-        class Form(ModelForm):
-            class Meta:
-                title = '{} {}'.format(
-                    'Excluir' if self.delete else ('Editar' if self.instance.pk else 'Cadastrar'),
-                    type(self.instance)._meta.verbose_name
-                )
-                model = type(self.instance)
-                fields = () if self.delete else (self.fieldlist or '__all__')
-        
-        form = Form(instance=self.instance, request=request, delete=self.delete)
-        if self.serializer:
-            form.display(self.serializer)
-        return form
 
 class ModelEndpoint(Endpoint):
     def __init__(self):
