@@ -2,6 +2,7 @@ import { useState } from "react";
 import { openDialog } from "./Modal";
 import { toLabelCase } from "./Utils";
 import { Icon } from "./Icon";
+import loadurl from "./Root";
 
 function Action(props) {
   const id = props.id || Math.random();
@@ -9,16 +10,18 @@ function Action(props) {
   const url = props.data.url
     ? "/app/" + props.data.url.split("/api/")[1]
     : null;
-
   function onClick(e) {
     e.preventDefault();
     if (props.onClick) {
       if (label) setLabel("Aguarde....");
       props.onClick(e);
     } else {
-      props.data.modal == false
-        ? (document.location.href = url)
-        : openDialog(url);
+      if (props.data.modal == false) {
+        loadurl(url);
+        //document.location.href = url;
+      } else {
+        openDialog(url);
+      }
     }
   }
 

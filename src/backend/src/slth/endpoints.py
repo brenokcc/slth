@@ -12,8 +12,8 @@ from .forms import LoginForm, ModelForm, Form, FormFactory
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
-from .utils import build_url, absolute_url
-from slth import APPLICATON, ENDPOINTS, DEFAULT_ENDPOINTS
+from .utils import build_url, append_url
+from slth import APPLICATON, ENDPOINTS
 
 
 import slth
@@ -33,19 +33,24 @@ class ApiResponse(JsonResponse):
 class EnpointMetaclass(type):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
-        if name not in ('Endpoint', 'ChildEndpoint') and 'ChildEndpoint' not in [cls.__name__ for cls in bases]:
+        if name not in ('Endpoint', 'ChildEndpoint') and '_ChildEndpoint' not in [cls.__name__ for cls in bases]:
             ENDPOINTS[cls.__name__.lower()] = cls
-        if bases and bases[0].__name__ in ['ListEndpoint', 'AddEndpoint', 'EditEndpoint', 'ViewEndpoint', 'DeleteEndpoint']:
-            model = attrs['__orig_bases__'][0].__args__[0]
-            DEFAULT_ENDPOINTS[bases[0].__name__][model] = cls
         return cls
 
 
 class Endpoint(metaclass=EnpointMetaclass):
     cache = cache
 
-    def __init__(self, *args):
+    def __init__(self):
         self.request = None
+        self.source = None
+        self.instantiator = None
+        super().__init__()
+
+    def configure(self, source, instantiator=None):
+        self.source = source
+        self.instantiator = instantiator
+        return self
 
     def contextualize(self, request):
         self.request = request
@@ -96,15 +101,22 @@ class Endpoint(metaclass=EnpointMetaclass):
     def to_response(self):
         return ApiResponse(self.serialize(), safe=False)
     
+    def formfactory(self, instance, delete=False) -> FormFactory:
+        return FormFactory(instance, delete=delete)
+    
+    @classmethod
+    def is_child(cls):
+        return False
+    
     @classmethod
     def get_api_name(cls):
         return cls.__name__.lower()
-        name = []
-        for c in cls.__name__:
-            if name and c.isupper():
-                name.append('-')
-            name.append(c.lower())
-        return ''.join(name)
+    
+    @classmethod
+    def get_api_url(cls, arg=None):
+        if arg:
+            return f'/api/{cls.get_api_name()}/{arg}/'  
+        return f'/api/{cls.get_api_name()}/'    
     
     @classmethod
     def get_pretty_name(cls):
@@ -120,13 +132,6 @@ class Endpoint(metaclass=EnpointMetaclass):
         return '{}.{}'.format(cls.__module__, cls.__name__).lower()
     
     @classmethod
-    def get_api_url(cls, *args):
-        url = '/api/{}/'.format(cls.get_api_name())
-        for arg in args:
-            url = '{}{}/'.format(url, arg)
-        return url
-    
-    @classmethod
     def has_args(cls):
         return len(inspect.getfullargspec(cls.__init__).args) > 1
     
@@ -139,8 +144,14 @@ class Endpoint(metaclass=EnpointMetaclass):
         return pattern
     
     @classmethod
-    def get_api_metadata(cls, url):
+    def get_api_metadata(cls, request, base_url, pk=None):
         action_name = cls.get_metadata('verbose_name')
+        if cls.is_child():
+            url = append_url(base_url, f'action={cls.get_api_name()}')
+            url = f'{url}&id={pk}' if pk else url
+        else:
+            url = build_url(request, f'/api/{cls.get_api_name()}/')
+            url = f'{url}{pk}/' if pk else url
         return dict(type='action', title=action_name, name=action_name, url=url, key=cls.get_api_name())
     
     @classmethod
@@ -152,10 +163,6 @@ class Endpoint(metaclass=EnpointMetaclass):
         if value is None and key == 'verbose_name':
             value = cls.get_pretty_name()
         return value or default
-        
-
-class ChildEndpoint(Endpoint):
-    pass
 
 class ModelEndpoint(Endpoint):
     def __init__(self):
@@ -164,18 +171,18 @@ class ModelEndpoint(Endpoint):
             self.model = self.objects(self.model).get(pk=self.pk)
         super().__init__()
 
+class AdminEndpoint(Generic[T], ModelEndpoint):
+    def get(self):
+        actions = ['add', 'view', 'edit', 'delete']
+        return self.model.objects.all().actions(*actions)
+    
 class ListEndpoint(Generic[T], ModelEndpoint):
     def get(self):
-        actions = []
-        for name in ('AddEndpoint', 'ViewEndpoint', 'EditEndpoint', 'DeleteEndpoint'):
-            action = DEFAULT_ENDPOINTS[name].get(self.model)
-            if action:
-                actions.append(action.__name__.lower())
-        return self.model.objects.all().actions(*actions)
+        return self.model.objects.all()
 
 class AddEndpoint(Generic[T], ModelEndpoint):
     def get(self):
-        return FormFactory(self.model())
+        return self.formfactory(self.model())
 
 class ModelInstanceEndpoint(ModelEndpoint):
     def __init__(self, pk):
@@ -192,11 +199,11 @@ class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
         
 class EditEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self):
-        return FormFactory(self.instance)
+        return self.formfactory(self.instance)
     
 class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self):
-        return FormFactory(self.instance, delete=True)
+        return self.formfactory(self.instance, delete=True)
     
 
 class FormEndpoint(Generic[T], Endpoint):
@@ -213,7 +220,32 @@ class InstanceFormEndpoint(Generic[T], Endpoint):
     def get(self):
         cls = self.__orig_bases__[0].__args__[0]
         return cls(cls.Meta.model.objects.get(pk=self.pk), request=self.request)
+    
+class ChildEndpoint(Endpoint):
 
+    @classmethod
+    def is_child(cls):
+        return True
+
+
+class Add(ChildEndpoint):
+    def get(self):
+        return self.formfactory(self.source.model())
+
+class View(ChildEndpoint):
+    
+    def get(self):
+        return self.source.serializer().contextualize(self.request)
+
+class Edit(ChildEndpoint):
+
+    def get(self):
+        return self.formfactory(self.source)
+    
+class Delete(ChildEndpoint):
+
+    def get(self):
+        return self.formfactory(self.source, delete=True)
 
 class Login(Endpoint):
     def get(self):

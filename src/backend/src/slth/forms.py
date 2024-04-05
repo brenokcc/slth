@@ -78,10 +78,11 @@ class FormMixin:
         return self.controls
 
     def serialize(self):
-        try:
-            return self.to_dict()
-        except JsonResponseException as e:
-            return e.data
+        return self.to_dict()
+        # try:
+        #     return self.to_dict()
+        # except JsonResponseException as e:
+        #     return e.data
         
     def display(self, serializable):
         self.display_data = serializable
@@ -359,14 +360,13 @@ class FormFactory:
         self.fieldlist.extend(names)
         return self
 
-    def fieldset(self, title, *fields):
-        self.fieldsets['title'] = title
-        for names in fields:
-            for name in names:
-                if isinstance(name, str):
-                    self.fieldlist.append(name)
-                else:
-                    self.fieldlist.extend(names)
+    def fieldset(self, title, fields):
+        self.fieldsets[title] = fields
+        for field in fields:
+            if isinstance(field, str):
+                self.fieldlist.append(field)
+            else:
+                self.fieldlist.extend(field)
         return self
     
     def display(self, serializer):
@@ -384,6 +384,7 @@ class FormFactory:
                 fields = () if self.delete else (self.fieldlist or '__all__')
         
         form = Form(instance=self.instance, request=request, delete=self.delete)
+        form.fieldsets = self.fieldsets
         if self.serializer:
             form.display(self.serializer)
         return form

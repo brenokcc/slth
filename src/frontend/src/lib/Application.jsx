@@ -1,23 +1,17 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { ComponentFactory } from "./Factory";
-import { request, appurl } from "./Request.jsx";
+import { appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
 import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 
 function Application(props) {
-  const [content, setContent] = useState();
-
   useEffect(() => {
     const message = localStorage.getItem("message");
     if (message) {
       localStorage.removeItem("message");
       showMessage(message);
     }
-    setTimeout(
-      () => (document.getElementById("application").style.display = "block"),
-      500
-    );
   }, []);
 
   function renderNavbar() {
@@ -58,11 +52,9 @@ function Application(props) {
   }
   function renderContent() {
     const style = { minHeight: 400, margin: 20 };
-    return content == null ? (
-      <div style={style}>Loading...</div>
-    ) : (
-      <div style={style}>
-        <ComponentFactory data={content} />
+    return (
+      <div style={style} id="container">
+        <ComponentFactory data={props.data.content} />
       </div>
     );
   }
@@ -75,14 +67,8 @@ function Application(props) {
     ) : null;
   }
   function render() {
-    if (content == null) {
-      const url = document.location.pathname.replace("/app/", "/api/");
-      request("GET", url, function callback(data) {
-        setContent(data);
-      });
-    }
     return (
-      <div id="application" style={{ display: "none" }}>
+      <div id="application">
         {renderNavbar()}
         {renderContent()}
         {renderFooter()}

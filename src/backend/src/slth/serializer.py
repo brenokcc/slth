@@ -141,6 +141,7 @@ class Serializer:
 
 
     def to_dict(self, debug=False):
+        base_url = absolute_url(self.request)
         if self.ignore_only:
             only = []
         else:
@@ -151,7 +152,8 @@ class Serializer:
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls and cls.get_api_name() in self.metadata['allow']:
-                raise JsonResponseException(cls(self.obj.pk).contextualize(self.request).serialize())
+                args = () if cls.is_child() else (self.obj.pk,)
+                raise JsonResponseException(cls(*args).configure(self.obj).contextualize(self.request).serialize())
 
         if not self.metadata['content']:
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
@@ -189,10 +191,9 @@ class Serializer:
                             if not only:
                                 for qualified_name in item['actions']:
                                     cls = slth.ENDPOINTS[qualified_name]
-                                    if cls(self.obj.pk).contextualize(self.request).check_permission():
-                                        action = cls.get_api_metadata('')
-                                        action['url'] = f'{url}&action={cls.get_api_name()}'
-                                        actions.append(action)
+                                    args = () if cls.is_child() else (self.obj.pk,)
+                                    if cls(*args).configure(self.obj).contextualize(self.request).check_permission():
+                                        actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
                                         
                             data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
                         if leaf: raise JsonResponseException(data)
@@ -219,8 +220,8 @@ class Serializer:
                     if not only or key in only:
                         returned = {}
                         if not lazy:
-                            args = (self.obj.pk,) if self.obj else ()
-                            endpoint = cls(*args).contextualize(self.request)
+                            args = (self.obj.pk,) if cls.has_args() else ()
+                            endpoint = cls(*args).configure(self.obj).contextualize(self.request)
                             if endpoint.check_permission():
                                 returned = endpoint.getdata()
                         path = self.path + [key]
@@ -229,7 +230,8 @@ class Serializer:
                         else:
                             data = serialize(returned)
                             data['title'] = title
-                        data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
+                        if isinstance(data, dict):
+                            data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'component':
                     title = item['title']
@@ -254,9 +256,9 @@ class Serializer:
         if not only and not self.lazy:
             for qualified_name in self.metadata['actions']:
                 cls = slth.ENDPOINTS[qualified_name]
-                if cls(self.obj.pk).contextualize(self.request).check_permission():
-                    url = absolute_url(self.request, f'?action={cls.get_api_name()}')
-                    actions.append(cls.get_api_metadata(url))
+                args = () if cls.is_child() else (self.obj.pk,)
+                if cls(*args).configure(self.obj).contextualize(self.request).check_permission():
+                    actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
         
         output = dict(type=self.type, title=self.title)
         if self.serializer:

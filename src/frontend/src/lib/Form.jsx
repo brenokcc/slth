@@ -295,20 +295,36 @@ function InputField(props) {
     var type = props.data.type;
     if (type == "datetime") type = "datetime-regional";
     if (type == "decimal") type = "text";
-    return (
-      <input
-        className={"form-control " + className}
-        type={type}
-        name={props.data.name}
-        id={id}
-        defaultValue={props.data.value}
-        data-label={toLabelCase(props.data.label)}
-        readOnly={props.data.read_only}
-        onBlur={props.data.onchange ? onBlur : null}
-        onChange={onChange}
-        style={INPUT_STYLE}
-      />
-    );
+    if (type == "file") {
+      return (
+        <input
+          className={"form-control " + className}
+          type={type}
+          name={props.data.name}
+          id={id}
+          data-label={toLabelCase(props.data.label)}
+          readOnly={props.data.read_only}
+          onBlur={props.data.onchange ? onBlur : null}
+          onChange={onChange}
+          style={INPUT_STYLE}
+        />
+      );
+    } else {
+      return (
+        <input
+          className={"form-control " + className}
+          type={type}
+          name={props.data.name}
+          id={id}
+          defaultValue={props.data.value}
+          data-label={toLabelCase(props.data.label)}
+          readOnly={props.data.read_only}
+          onBlur={props.data.onchange ? onBlur : null}
+          onChange={onChange}
+          style={INPUT_STYLE}
+        />
+      );
+    }
   }
 
   return render();
@@ -403,8 +419,8 @@ function Selector(props) {
     if (widget) {
       const rect = widget.getBoundingClientRect();
       ul.width = rect.width;
-      ul.top = rect.y + rect.height;
-      ul.left = rect.x;
+      ul.top = rect.top + rect.height + +window.scrollY;
+      ul.left = rect.left + window.scrollX;
     }
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =

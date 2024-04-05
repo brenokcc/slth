@@ -5,6 +5,7 @@ import { COLORS } from "./Theme";
 import { toLabelCase } from "./Utils";
 import { openIFrameDialog } from "./Modal";
 import { ComponentFactory } from "./Factory";
+import { Action } from "./Action";
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -234,6 +235,14 @@ function Boxes(props) {
             </a>
           ))}
         </div>
+        <Action
+          data={{
+            name: "teste",
+            url: "/api/listarcidades/",
+            label: "Teste",
+            modal: false,
+          }}
+        />
       </div>
     ) : null;
   }

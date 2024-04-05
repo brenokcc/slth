@@ -19,7 +19,6 @@ warnings.filterwarnings('ignore', module='urllib3')
 
 FILENAME = 'application.yml'
 ENDPOINTS = {}
-DEFAULT_ENDPOINTS = dict(ListEndpoint={}, AddEndpoint={}, EditEndpoint={}, ViewEndpoint={}, DeleteEndpoint={})
 PROXIED_MODELS = []
 APPLICATON = None
 

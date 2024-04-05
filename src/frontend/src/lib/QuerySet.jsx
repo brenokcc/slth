@@ -20,7 +20,7 @@ function QuerySet(props) {
   function renderHeader(data) {
     const style = {
       textAlign: "left",
-      verticalAlign: "middle",
+      verticalAlign: "top",
     };
     return (
       <tr>

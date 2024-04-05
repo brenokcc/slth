@@ -16,7 +16,7 @@ from django.db.models import Model, QuerySet, Manager
 from django.db import models
 from .serializer import Serializer
 from .exceptions import JsonResponseException
-from .utils import absolute_url, append_url
+from .utils import absolute_url, append_url, build_url
 
 
 class QuerySet(models.QuerySet):
@@ -117,7 +117,7 @@ class QuerySet(models.QuerySet):
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             actions = self.metadata.get('actions', ())
             if cls.get_api_name() in actions:
-                raise JsonResponseException(cls(*((pk,) if pk else ())).contextualize(self.request).serialize())
+                raise JsonResponseException(cls(*((pk,) if pk else ())).configure(self).contextualize(self.request).serialize())
 
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
@@ -206,15 +206,14 @@ class QuerySet(models.QuerySet):
             else:
                 queryset_actions.append(cls)
 
-        if self.request and 'e' in self.request.GET: ### TODO
-            cls = slth.ENDPOINTS[self.request.GET.get('e')]
+        if self.request and 'action' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls in queryset_actions:
-                raise JsonResponseException(cls(self.request).serialize())
+                raise JsonResponseException(cls(self.request).configure(self).serialize())
 
         for cls in queryset_actions:
             if cls().contextualize(self.request).check_permission():
-                url = append_url(base_url, f'?action={cls.get_api_name()}')
-                action = cls.get_api_metadata(url)
+                action = cls.get_api_metadata(self.request, base_url)
                 action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                 actions.append(action)
 
@@ -270,10 +269,10 @@ class QuerySet(models.QuerySet):
         end = start + page_size
         serializer:Serializer = qs.metadata.get('serializer')
 
-        if self.request and 'action' in self.request.GET:
+        if self.request and 'action' in self.request.GET and 'id' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls in instance_actions:
-                raise JsonResponseException(cls(qs.get(pk=self.request.GET.get('id')).pk).contextualize(self.request).serialize())
+                raise JsonResponseException(cls(self.request.GET['id']).configure(self).contextualize(self.request).serialize())
         for obj in qs[start:end]:
             if serializer:
                 serializer.obj = obj
@@ -285,8 +284,7 @@ class QuerySet(models.QuerySet):
             serialized = serializer.serialize(forward_exception=True)
             for cls in instance_actions:
                 if cls(obj.pk).contextualize(self.request).check_permission():
-                    url = append_url(base_url, f'action={cls.get_api_name()}&id={obj.pk}')
-                    action = cls.get_api_metadata(url)
+                    action = cls.get_api_metadata(self.request, base_url, obj.pk)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                     serialized['actions'].append(action)
             objs.append(serialized)

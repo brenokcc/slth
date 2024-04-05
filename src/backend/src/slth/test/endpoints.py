@@ -1,4 +1,4 @@
-from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
+from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Cidade, Funcionario, Telefone
@@ -11,19 +11,19 @@ class HealthCheck(Endpoint):
     def get(self):
         return dict(version='1.0.0')
 
-class CadastrarGrupo(AddEndpoint[Group]): pass
-class EditarGrupo(EditEndpoint[Group]): pass
-class VisualizarGrupo(ViewEndpoint[Group]): pass
-class ExcluirGrupo(DeleteEndpoint[Group]): pass
-class ListarGrupo(ListEndpoint[Group]): pass
+class Grupos(AdminEndpoint[Group]):
+    pass
 
-class ListarTelefones(ListEndpoint[Telefone]): pass
+class ListarTelefones(ListEndpoint[Telefone]):
+    pass
 
-
-class Register(FormEndpoint[RegisterForm]): pass
+class Register(FormEndpoint[RegisterForm]):
+    pass
 
 
-class AddUser(FormEndpoint[UserForm]): pass
+class AddUser(FormEndpoint[UserForm]):
+    pass
+
 class EditUser(InstanceFormEndpoint[UserForm]):
     def get(self):
         super().get().fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email')).fieldset('Grupos', ('groups',))
@@ -66,7 +66,7 @@ class EditarPessoa(EditEndpoint[Pessoa]):
     def get(self):
         return (
             super().get()
-            .fieldset('Dados Gerais', ('nome','foto'))
+            .fieldset('Dados Gerais', ['nome','foto', ('sexo', 'data_nascimento')])
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
@@ -89,9 +89,9 @@ class VisualizarPessoa2(InstanceEndpoint[Pessoa]):
     def get(self):
         return (
             super().get()
-            .actions('editarpessoa')
+            .actions('edit')
             .fieldset('Dados Gerais', fields=[('id', 'nome')])
-            .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal', actions=['editarpessoa'])
+            .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal', actions=['edit'])
             .queryset('Telefones Profissionais', 'telefones_profissionais')
         )
 

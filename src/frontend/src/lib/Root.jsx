@@ -1,3 +1,4 @@
+import ReactDOM from "react-dom/client";
 import { ComponentFactory } from "./Factory";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
@@ -5,7 +6,7 @@ import { Object, Fieldset, Field, Section, Group } from "./Viewer";
 import { Statistics } from "./Statistics";
 import { Color } from "./Theme";
 import { Application } from "./Application";
-import { Response } from "./Request";
+import { Response, request, apiurl } from "./Request";
 import { IconSet } from "./Icon";
 import {
   Image,
@@ -21,6 +22,10 @@ import {
   Link,
   Grid,
 } from "./Library";
+
+const APPLICATION_URL = "/api/application/";
+const APPLICATION_DATA = localStorage.getItem("application");
+const ROOT = ReactDOM.createRoot(document.getElementById("root"));
 
 ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
@@ -47,12 +52,29 @@ ComponentFactory.register("application", (data) => <Application data={data} />);
 ComponentFactory.register("iconset", (data) => <IconSet data={data} />);
 ComponentFactory.register("grid", (data) => <Grid data={data} />);
 
-function Root(props) {
-  return (
-    <>
-      <ComponentFactory data={props.data} />
-    </>
-  );
+window.addEventListener("popstate", (e) => {
+  loadurl(e.currentTarget.location.href);
+});
+
+function loadurl(url) {
+  if (url != document.location.href) {
+    window.history.pushState({ url: url }, "", url);
+  }
+  if (APPLICATION_DATA) {
+    const application = JSON.parse(APPLICATION_DATA);
+    request("GET", apiurl(url), function (content) {
+      application.content = content;
+      ROOT.render(<ComponentFactory data={application} />);
+    });
+  } else {
+    request("GET", APPLICATION_URL, function callback(application) {
+      localStorage.setItem("application", JSON.stringify(application));
+      request("GET", apiurl(url), function (content) {
+        application.content = content;
+        ROOT.render(<ComponentFactory data={application} />);
+      });
+    });
+  }
 }
 
-export default Root;
+export default loadurl;
