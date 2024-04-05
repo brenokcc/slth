@@ -191,8 +191,7 @@ class Serializer:
                             if not only:
                                 for qualified_name in item['actions']:
                                     cls = slth.ENDPOINTS[qualified_name]
-                                    args = () if cls.is_child() else (self.obj.pk,)
-                                    if cls(*args).configure(self.obj).contextualize(self.request).check_permission():
+                                    if cls.instantiate(self.request, self.obj).check_permission():
                                         actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
                                         
                             data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
@@ -256,8 +255,7 @@ class Serializer:
         if not only and not self.lazy:
             for qualified_name in self.metadata['actions']:
                 cls = slth.ENDPOINTS[qualified_name]
-                args = () if cls.is_child() else (self.obj.pk,)
-                if cls(*args).configure(self.obj).contextualize(self.request).check_permission():
+                if cls.instantiate(self.request, self.obj).check_permission():
                     actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
         
         output = dict(type=self.type, title=self.title)

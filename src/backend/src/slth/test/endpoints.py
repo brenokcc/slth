@@ -26,7 +26,7 @@ class AddUser(FormEndpoint[UserForm]):
 
 class EditUser(InstanceFormEndpoint[UserForm]):
     def get(self):
-        super().get().fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email')).fieldset('Grupos', ('groups',))
+        return super().get().fieldset('Dados Gerais', ('username', ('first_name', 'last_name'), 'email'))
 
 class ListUsers(ListEndpoint[User]):
     def get(self):
@@ -84,7 +84,7 @@ class ListarPessoas(ListEndpoint[Pessoa]):
 class VisualizarPessoa(ViewEndpoint[Pessoa]): pass
 
 
-class VisualizarPessoa2(InstanceEndpoint[Pessoa]):
+class VisualizarPessoa2(ViewEndpoint[Pessoa]):
 
     def get(self):
         return (

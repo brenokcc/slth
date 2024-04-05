@@ -117,7 +117,11 @@ class QuerySet(models.QuerySet):
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             actions = self.metadata.get('actions', ())
             if cls.get_api_name() in actions:
-                raise JsonResponseException(cls(*((pk,) if pk else ())).configure(self).contextualize(self.request).serialize())
+                source = self.model.objects.get(pk=pk) if pk else self
+                endpoint = cls.instantiate(self.request, source)
+                if endpoint.check_permission():
+                    raise JsonResponseException(endpoint.serialize())
+                raise Exception()
 
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
@@ -206,13 +210,8 @@ class QuerySet(models.QuerySet):
             else:
                 queryset_actions.append(cls)
 
-        if self.request and 'action' in self.request.GET:
-            cls = slth.ENDPOINTS[self.request.GET.get('action')]
-            if cls in queryset_actions:
-                raise JsonResponseException(cls(self.request).configure(self).serialize())
-
         for cls in queryset_actions:
-            if cls().contextualize(self.request).check_permission():
+            if cls.instantiate(self.request, self).check_permission():
                 action = cls.get_api_metadata(self.request, base_url)
                 action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                 actions.append(action)
@@ -269,10 +268,6 @@ class QuerySet(models.QuerySet):
         end = start + page_size
         serializer:Serializer = qs.metadata.get('serializer')
 
-        if self.request and 'action' in self.request.GET and 'id' in self.request.GET:
-            cls = slth.ENDPOINTS[self.request.GET.get('action')]
-            if cls in instance_actions:
-                raise JsonResponseException(cls(self.request.GET['id']).configure(self).contextualize(self.request).serialize())
         for obj in qs[start:end]:
             if serializer:
                 serializer.obj = obj
@@ -283,7 +278,7 @@ class QuerySet(models.QuerySet):
                 serializer = Serializer(obj, self.request).fields(*fields)
             serialized = serializer.serialize(forward_exception=True)
             for cls in instance_actions:
-                if cls(obj.pk).contextualize(self.request).check_permission():
+                if cls.instantiate(self.request, obj).check_permission():
                     action = cls.get_api_metadata(self.request, base_url, obj.pk)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                     serialized['actions'].append(action)

@@ -936,21 +936,22 @@ function OneToMany(props) {
 }
 
 function FormContent(props) {
+  function renderField(field) {
+    return field.type == "inline" ? (
+      (field.max == field.min) == 1 ? (
+        <OneToOne key={Math.random()} data={field} />
+      ) : (
+        <OneToMany key={Math.random()} data={field} />
+      )
+    ) : (
+      <Field key={Math.random()} data={field} />
+    );
+  }
   function render() {
     if (props.data.fields) {
       return (
         <div className="form-fields">
-          {props.data.fields.map((field) =>
-            field.type == "inline" ? (
-              (field.max == field.min) == 1 ? (
-                <OneToOne key={Math.random()} data={field} />
-              ) : (
-                <OneToMany key={Math.random()} data={field} />
-              )
-            ) : (
-              <Field key={Math.random()} data={field} />
-            )
-          )}
+          {props.data.fields.map((field) => renderField(field))}
         </div>
       );
     } else {
@@ -968,7 +969,7 @@ function FormContent(props) {
                       display: field.type == "hidden" ? "none" : "inline-block",
                     }}
                   >
-                    <Field data={field} />
+                    {renderField(field)}
                   </div>
                 ))}
               </div>

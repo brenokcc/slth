@@ -115,6 +115,8 @@ class FormMixin:
                         fields.append(
                             [self.serialize_field(name, self.fields[name], prefix, choices_field_name) for name in name]
                         )
+                if len(fields)==1 and isinstance(fields[0], list) and fields[0][0]['type'] == 'inline':
+                    title = None
                 fieldsetlist.append(dict(type='fieldset', title=title, fields=fields))
             data.update(fieldsets=fieldsetlist)
         else:

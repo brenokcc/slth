@@ -104,6 +104,9 @@ class Endpoint(metaclass=EnpointMetaclass):
     def formfactory(self, instance, delete=False) -> FormFactory:
         return FormFactory(instance, delete=delete)
     
+    def serializer(self, instance) -> Serializer:
+        return instance.serializer().contextualize(self.request)
+    
     @classmethod
     def is_child(cls):
         return False
@@ -130,6 +133,15 @@ class Endpoint(metaclass=EnpointMetaclass):
     @classmethod
     def get_qualified_name(cls):
         return '{}.{}'.format(cls.__module__, cls.__name__).lower()
+    
+    @classmethod
+    def instantiate(cls, request, source):
+        args = ()
+        if cls.is_child():
+            args = (source,) if cls.has_args() else ()
+        else:
+            args = (source.pk,) if cls.has_args() else ()
+        return cls(*args).configure(source).contextualize(request)
     
     @classmethod
     def has_args(cls):
@@ -186,40 +198,49 @@ class AddEndpoint(Generic[T], ModelEndpoint):
 
 class ModelInstanceEndpoint(ModelEndpoint):
     def __init__(self, pk):
+        self.pk = pk
         super().__init__()
-        self.instance = self.model.objects.get(pk=pk)
+
+    def get_instance(self):
+        return self.model.objects.get(pk=self.pk)
 
 class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
-    def get(self) -> Serializer:
-        return self.instance.serializer().contextualize(self.request)
+    pass
 
 class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
-    def get(self):
-        return self.instance.serializer().contextualize(self.request)
+    def get(self) -> Serializer:
+        return self.serializer(self.get_instance())
         
 class EditEndpoint(Generic[T], ModelInstanceEndpoint):
-    def get(self):
-        return self.formfactory(self.instance)
+    def get(self) -> FormFactory:
+        return self.formfactory(self.get_instance())
     
 class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
-    def get(self):
-        return self.formfactory(self.instance, delete=True)
+    def get(self) -> FormFactory:
+        return self.formfactory(self.get_instance(), delete=True)
     
 
 class FormEndpoint(Generic[T], Endpoint):
 
+    def get_form_cls(self):
+        return self.__orig_bases__[0].__args__[0]
+
     def get(self):
-        cls = self.__orig_bases__[0].__args__[0]
-        return cls(request=self.request)
+        return self.get_form_cls()(request=self.request)
     
 class InstanceFormEndpoint(Generic[T], Endpoint):
     def __init__(self, pk):
         self.pk = pk
         super().__init__()
 
+    def get_form_cls(self):
+        return self.__orig_bases__[0].__args__[0]
+
+    def get_instance(self):
+        return self.get_form_cls().Meta.model.objects.get(pk=self.pk)
+
     def get(self):
-        cls = self.__orig_bases__[0].__args__[0]
-        return cls(cls.Meta.model.objects.get(pk=self.pk), request=self.request)
+        return self.get_form_cls()(self.get_instance(), request=self.request)
     
 class ChildEndpoint(Endpoint):
 
@@ -227,25 +248,32 @@ class ChildEndpoint(Endpoint):
     def is_child(cls):
         return True
 
-
 class Add(ChildEndpoint):
     def get(self):
         return self.formfactory(self.source.model())
+    
+class ChildInstanceEndpoint(ChildEndpoint):
+    def __init__(self, instance):
+        self.instance = instance
+        super().__init__()
 
-class View(ChildEndpoint):
+    def get_instance(self):
+        return self.instance
+
+class View(ChildInstanceEndpoint):
     
     def get(self):
-        return self.source.serializer().contextualize(self.request)
+        return self.serializer(self.get_instance())
 
-class Edit(ChildEndpoint):
+class Edit(ChildInstanceEndpoint):
 
     def get(self):
-        return self.formfactory(self.source)
+        return self.formfactory(self.get_instance())
     
-class Delete(ChildEndpoint):
+class Delete(ChildInstanceEndpoint):
 
     def get(self):
-        return self.formfactory(self.source, delete=True)
+        return self.formfactory(self.get_instance(), delete=True)
 
 class Login(Endpoint):
     def get(self):
