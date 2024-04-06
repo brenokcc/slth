@@ -31,8 +31,8 @@ function Action(props) {
       textDecoration: "none",
       whiteSpace: "nowrap",
       borderRadius: 5,
-      backgroundColor: "#1351b4",
-      color: "white",
+      //backgroundColor: "#1351b4",
+      //color: "white",
       margin: 5,
     };
     if (props.style) {

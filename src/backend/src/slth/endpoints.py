@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .forms import LoginForm, ModelForm, Form, FormFactory
 from .serializer import serialize, Serializer
-from .components import Application as Application_, Navbar, Footer, Response, Boxes, IconSet
+from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
 from .utils import build_url, append_url
 from slth import APPLICATON, ENDPOINTS
@@ -357,5 +357,19 @@ class Application(Endpoint):
                     url = build_url(self.request, cls.get_api_url())
                     modal = cls.get_metadata('modal', False)
                     navbar.add_action(label, url, modal)
+        items = []
+        def get_item(k, v):
+            if isinstance(v, dict):
+                icon, label = k.split(':') if ':' in k else (None, k)
+                return dict(dict(icon=icon, label=label, items=[
+                    get_item(k1, v1) for k1, v1 in v.items()
+                ]))
+            else:
+                cls = ENDPOINTS[v]
+                if cls().contextualize(self.request).check_permission():
+                    url = build_url(self.request, cls.get_api_url())
+                return dict(dict(label=k, url=url))
+        for k, v in APPLICATON['menu'].items():
+            items.append(get_item(k, v))
         footer = Footer(APPLICATON['version'])
-        return Application_(navbar=navbar, footer=footer)
+        return Application_(navbar=navbar, menu=Menu(items), footer=footer)

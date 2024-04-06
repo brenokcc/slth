@@ -64,14 +64,16 @@ function loadurl(url) {
     const application = JSON.parse(APPLICATION_DATA);
     request("GET", apiurl(url), function (content) {
       application.content = content;
-      ROOT.render(<ComponentFactory data={application} />);
+      ROOT.render(<ComponentFactory key={Math.random()} data={application} />);
     });
   } else {
     request("GET", APPLICATION_URL, function callback(application) {
       localStorage.setItem("application", JSON.stringify(application));
       request("GET", apiurl(url), function (content) {
         application.content = content;
-        ROOT.render(<ComponentFactory data={application} />);
+        ROOT.render(
+          <ComponentFactory key={Math.random()} data={application} />
+        );
       });
     });
   }

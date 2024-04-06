@@ -5,6 +5,7 @@ import { showMessage } from "./Message";
 import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 import { SystemLayout } from "./Layout.jsx";
+import { Menu } from "./Menu.jsx";
 
 function Application(props) {
   useEffect(() => {
@@ -52,11 +53,7 @@ function Application(props) {
     ) : null;
   }
   function renderAside() {
-    return (
-      <div>
-        <h1>Menu</h1>
-      </div>
-    );
+    return <Menu />;
   }
   function renderMain() {
     const style = { minHeight: 400, margin: 20 };

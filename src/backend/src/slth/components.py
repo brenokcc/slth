@@ -191,6 +191,10 @@ class Navbar(dict):
     def add_action(self, name, url, modal=True):
         self['actions'].append(dict(name=name, url=url, modal=modal))
 
+class Menu(dict):
+    def __init__(self, items):
+        self['type'] = 'menu'
+        self['items'] = items
 
 class Footer(dict):
     def __init__(self, version):
@@ -198,9 +202,10 @@ class Footer(dict):
         self['version'] = version
 
 class Application(dict):
-    def __init__(self, navbar=None, footer=None):
+    def __init__(self, navbar=None, menu=None, footer=None):
         self['type'] = 'application'
         self['navbar'] = navbar
+        self['menu'] = menu
         self['footer'] = footer
 
 class Response(dict):

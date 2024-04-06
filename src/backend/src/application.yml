@@ -52,3 +52,15 @@ application:
       - listarfuncionario
       - listarpessoas
       - listarcidades
+    
+  menu:
+    users:Item 1:
+      Item 1.1:
+        Listar Funcionários: listarfuncionario
+        Listar Pessoas: listarpessoas
+      Listar Cidades: listarcidades
+    Item 2:
+      Adicionar Usuário: adduser
+      Ícones: icons
+    Sair: logout
+
