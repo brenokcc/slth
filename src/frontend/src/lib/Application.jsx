@@ -53,7 +53,7 @@ function Application(props) {
     ) : null;
   }
   function renderAside() {
-    return <Menu />;
+    return window.application.menu && <Menu />;
   }
   function renderMain() {
     const style = { minHeight: 400, margin: 20 };

@@ -345,6 +345,7 @@ class Dashboard(Endpoint):
 class Application(Endpoint):
     def get(self):
         navbar = None
+        menu = None
         if self.request.user.is_authenticated:
             navbar = Navbar(
                 title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
@@ -357,19 +358,20 @@ class Application(Endpoint):
                     url = build_url(self.request, cls.get_api_url())
                     modal = cls.get_metadata('modal', False)
                     navbar.add_action(label, url, modal)
-        items = []
-        def get_item(k, v):
-            if isinstance(v, dict):
-                icon, label = k.split(':') if ':' in k else (None, k)
-                return dict(dict(icon=icon, label=label, items=[
-                    get_item(k1, v1) for k1, v1 in v.items()
-                ]))
-            else:
-                cls = ENDPOINTS[v]
-                if cls().contextualize(self.request).check_permission():
-                    url = build_url(self.request, cls.get_api_url())
-                return dict(dict(label=k, url=url))
-        for k, v in APPLICATON['menu'].items():
-            items.append(get_item(k, v))
+            items = []
+            def get_item(k, v):
+                if isinstance(v, dict):
+                    icon, label = k.split(':') if ':' in k else (None, k)
+                    return dict(dict(icon=icon, label=label, items=[
+                        get_item(k1, v1) for k1, v1 in v.items()
+                    ]))
+                else:
+                    cls = ENDPOINTS[v]
+                    if cls().contextualize(self.request).check_permission():
+                        url = build_url(self.request, cls.get_api_url())
+                    return dict(dict(label=k, url=url))
+            for k, v in APPLICATON['menu'].items():
+                items.append(get_item(k, v))
+            menu = Menu(items)
         footer = Footer(APPLICATON['version'])
-        return Application_(navbar=navbar, menu=Menu(items), footer=footer)
+        return Application_(navbar=navbar, menu=menu, footer=footer)

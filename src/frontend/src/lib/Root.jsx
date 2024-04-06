@@ -26,6 +26,7 @@ import {
 const APPLICATION_URL = "/api/application/";
 const APPLICATION_DATA = localStorage.getItem("application");
 const ROOT = ReactDOM.createRoot(document.getElementById("root"));
+var CONTAINER;
 
 ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
@@ -61,22 +62,34 @@ function loadurl(url) {
     window.history.pushState({ url: url }, "", url);
   }
   if (APPLICATION_DATA) {
-    const application = JSON.parse(APPLICATION_DATA);
+    window.application = JSON.parse(APPLICATION_DATA);
     request("GET", apiurl(url), function (content) {
-      application.content = content;
-      ROOT.render(<ComponentFactory key={Math.random()} data={application} />);
+      window.application.content = content;
+      ROOT.render(
+        <ComponentFactory key={Math.random()} data={window.application} />
+      );
     });
   } else {
-    request("GET", APPLICATION_URL, function callback(application) {
-      localStorage.setItem("application", JSON.stringify(application));
+    request("GET", APPLICATION_URL, function callback(data) {
+      window.application = data;
+      localStorage.setItem("application", JSON.stringify(window.application));
       request("GET", apiurl(url), function (content) {
-        application.content = content;
+        window.application.content = content;
         ROOT.render(
-          <ComponentFactory key={Math.random()} data={application} />
+          <ComponentFactory key={Math.random()} data={window.application} />
         );
       });
     });
   }
 }
 
+function loaddata(url) {
+  if (CONTAINER == null)
+    CONTAINER = ReactDOM.createRoot(document.getElementById("container"));
+  request("GET", apiurl(url), function (content) {
+    CONTAINER.render(<ComponentFactory key={Math.random()} data={content} />);
+  });
+}
+
+export { loadurl, loaddata };
 export default loadurl;
