@@ -4,6 +4,7 @@ import { Action } from "./Action";
 import { Field } from "./Form.jsx";
 import { request } from "./Request.jsx";
 import { Info } from "./Message.jsx";
+import { GridLayout } from "./Layout.jsx";
 
 function QuerySet(props) {
   var id = Math.random();
@@ -53,25 +54,29 @@ function QuerySet(props) {
   }
 
   function renderRows() {
+    const div = {
+      width: "100%",
+      overflowX: "auto",
+    };
+    const table = {
+      width: "100%",
+      lineHeight: "2rem",
+      borderSpacing: 0,
+      backgroundColor: "white",
+      padding: 20,
+    };
     if (data.data.length > 0) {
       return (
-        <table
-          style={{
-            width: "100%",
-            lineHeight: "2rem",
-            borderSpacing: 0,
-            overflowX: "scroll",
-            backgroundColor: "white",
-            padding: 20,
-          }}
-        >
-          <thead>{renderHeader(data.data[0].data)}</thead>
-          <tbody>
-            {data.data.map(function (item) {
-              return renderRow(item);
-            })}
-          </tbody>
-        </table>
+        <div style={div}>
+          <table style={table}>
+            <thead>{renderHeader(data.data[0].data)}</thead>
+            <tbody>
+              {data.data.map(function (item) {
+                return renderRow(item);
+              })}
+            </tbody>
+          </table>
+        </div>
       );
     } else {
       return (
@@ -97,7 +102,6 @@ function QuerySet(props) {
   function renderSearchFilterPanel() {
     const style = {
       display: "inline-block",
-      width: 250,
       marginRight: 5,
       verticalAlign: "middle",
     };
@@ -112,7 +116,7 @@ function QuerySet(props) {
         label: "Palavras-chaves",
       };
       return (
-        <div>
+        <GridLayout width={250}>
           <div style={style}>{searching && <Field data={field} />}</div>
           {filtering &&
             data.filters.map(function (field) {
@@ -123,11 +127,11 @@ function QuerySet(props) {
               );
             })}
           <div style={style}>
-            <button type="button" onClick={reload}>
-              Filtrar
-            </button>
+            <div style={{ paddingBottom: 15, paddingTop: 15 }}>
+              <Action onClick={reload} data={{ name: "Filtrar" }} />
+            </div>
           </div>
-        </div>
+        </GridLayout>
       );
     }
   }

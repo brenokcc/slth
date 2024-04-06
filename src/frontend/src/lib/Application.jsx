@@ -4,6 +4,7 @@ import { appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
 import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
+import { SystemLayout } from "./Layout.jsx";
 
 function Application(props) {
   useEffect(() => {
@@ -14,7 +15,7 @@ function Application(props) {
     }
   }, []);
 
-  function renderNavbar() {
+  function renderHeader() {
     const style = {
       display: "flex",
       width: "100%",
@@ -50,7 +51,14 @@ function Application(props) {
       </div>
     ) : null;
   }
-  function renderContent() {
+  function renderAside() {
+    return (
+      <div>
+        <h1>Menu</h1>
+      </div>
+    );
+  }
+  function renderMain() {
     const style = { minHeight: 400, margin: 20 };
     return (
       <div style={style} id="container">
@@ -68,11 +76,12 @@ function Application(props) {
   }
   function render() {
     return (
-      <div id="application">
-        {renderNavbar()}
-        {renderContent()}
-        {renderFooter()}
-      </div>
+      <SystemLayout
+        header={renderHeader()}
+        aside={renderAside()}
+        main={renderMain()}
+        footer={renderFooter()}
+      />
     );
   }
   return render();
