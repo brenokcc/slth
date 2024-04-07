@@ -38,7 +38,36 @@ function Icon(props) {
   );
 }
 
-export { Icon, IconSet };
+function IconButton(props) {
+  function render() {
+    const style = {
+      padding: 12,
+      textDecoration: "none",
+      whiteSpace: "nowrap",
+      borderRadius: 5,
+      margin: 5,
+      backgroundColor: "#1351b4",
+      color: "white",
+      cursor: "pointer",
+      display: props.display || "block",
+    };
+    return (
+      <a
+        id={props.id}
+        style={style}
+        onClick={(e) => {
+          e.preventDefault();
+          props.onClick();
+        }}
+      >
+        <Icon icon={props.icon} />
+      </a>
+    );
+  }
+  return render();
+}
+
+export { Icon, IconSet, IconButton };
 export default Icon;
 
 const ICONS = [

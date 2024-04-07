@@ -237,14 +237,6 @@ function Boxes(props) {
             </Link>
           ))}
         </div>
-        <Action
-          data={{
-            name: "teste",
-            url: "/api/listarcidades/",
-            label: "Teste",
-            modal: false,
-          }}
-        />
       </div>
     ) : null;
   }
@@ -325,14 +317,14 @@ function Indicators(props) {
         </div>
         <div className="actions">
           {props.data.actions.map((action) => (
-            <Action
+            <Link
               key={Math.random()}
               href={apiurl(action.url)}
               label={action.label}
               modal={action.modal}
             >
               {action.label}
-            </Action>
+            </Link>
           ))}
         </div>
       </div>

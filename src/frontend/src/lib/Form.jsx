@@ -6,6 +6,7 @@ import { showMessage, Info } from "./Message";
 import { request, response } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
+import { Button } from "./Button.jsx";
 import { Action } from "./Action.jsx";
 import { createRoot } from "react-dom/client";
 
@@ -747,19 +748,17 @@ function OneToOne(props) {
               text: "Esta informação é opcional. Controle seu preenchimento com o botão ao lado.",
             }}
           >
-            <Action
-              data={{ icon: "pen-clip" }}
+            <Button
+              icon="pen-clip"
               onClick={() => showForm(true)}
               id={"show-" + id}
-              style={{ display: initial.value ? "none" : "inline" }}
-              primary
+              display={initial.value ? "none" : "inline"}
             />
-            <Action
-              data={{ icon: "trash" }}
+            <Button
+              icon="trash"
               onClick={() => showForm(false)}
               id={"hide-" + id}
-              style={{ display: initial.value ? "inline" : "none" }}
-              primary
+              display={initial.value ? "inline" : "none"}
             />
           </Info>
         </div>
@@ -837,18 +836,13 @@ function OneToMany(props) {
       >
         <FormContent data={form} />
         <div style={{ textAlign: "center", marginTop: 10, marginBottom: 10 }}>
-          <Action
-            data={{ icon: "plus" }}
+          <Button
+            icon="plus"
             onClick={() => addItem()}
             id={"extra-add-" + i + "-"}
-            style={{ display: addButtonDisplay }}
-            primary
+            display={addButtonDisplay}
           />
-          <Action
-            data={{ icon: "trash" }}
-            onClick={() => removeItem(i)}
-            primary
-          />
+          <Button icon="trash" onClick={() => removeItem(i)} display="inline" />
         </div>
       </div>
     );
@@ -926,11 +920,11 @@ function OneToMany(props) {
             text: "Clique no botão abaixo para adicionar um registro.",
           }}
         >
-          <Action
-            data={{ icon: "plus" }}
+          <Button
+            icon="add"
             onClick={() => addItem()}
             id={"add-" + id}
-            style={{ display: props.data.value.length > 0 ? "none" : "inline" }}
+            display={props.data.value.length > 0 ? "none" : "inline"}
           />
         </Info>
       </div>
