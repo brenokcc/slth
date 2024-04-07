@@ -8,6 +8,7 @@ import { appurl } from "./Request";
 function Action(props) {
   const id = props.id || Math.random();
   const [label, setLabel] = useState(props.data.name);
+
   function onClick(e) {
     e.preventDefault();
     if (props.onClick) {
@@ -20,6 +21,23 @@ function Action(props) {
       } else {
         openDialog(props.data.url);
       }
+    }
+  }
+
+  function renderContent() {
+    if (props.data.icon) {
+      if (props.compact || !props.data.name) {
+        return <Icon icon={props.data.icon} />;
+      } else {
+        return (
+          <>
+            <Icon icon={props.data.icon} style={{ paddingRight: 10 }} />
+            {props.data.name || ""}
+          </>
+        );
+      }
+    } else {
+      return props.data.name;
     }
   }
 
@@ -37,6 +55,7 @@ function Action(props) {
     }
     if (props.default) {
       style.border = "solid 1px #1351b4";
+      style.color = "#1351b4";
     }
     if (props.style) {
       Object.keys(props.style).map(function (k) {
@@ -51,8 +70,7 @@ function Action(props) {
         style={style}
         data-label={toLabelCase(props.data.name)}
       >
-        {props.data.icon && <Icon icon={props.data.icon} />}
-        {label && label}
+        {renderContent()}
       </a>
     );
   }

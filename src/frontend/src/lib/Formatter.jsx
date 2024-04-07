@@ -33,7 +33,15 @@ function format(obj) {
     return <ComponentFactory data={obj} />;
   }
   if (typeof obj == "object" && Array.isArray(obj)) {
-    return obj.join(", ");
+    if (obj.length == 0) return "-";
+    else
+      return (
+        <ul style={{ padding: 0 }}>
+          {obj.map(function (item) {
+            return <li key={Math.random()}>{item}</li>;
+          })}
+        </ul>
+      );
   }
   if (
     typeof obj == "object" &&

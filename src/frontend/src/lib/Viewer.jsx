@@ -81,20 +81,25 @@ function Fieldset(props) {
 
 function Title(props) {
   function render() {
-    const div = { display: "flex", justifyContent: "space-between" };
+    const div = {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    };
     const h1 = { margin: 0 };
+    const h2 = { marginBottom: 0, marginTop: 15 };
     return (
       <div style={div}>
         {props.data.title && !props.auxiliary && (
           <h1 style={h1}>{props.data.title}</h1>
         )}
         {props.data.title && props.auxiliary && (
-          <h2 style={h1}>{props.data.title}</h2>
+          <h2 style={h2}>{props.data.title}</h2>
         )}
         <div>
           {props.data.actions &&
             props.data.actions.map(function (action) {
-              return <Action key={Math.random()} data={action} />;
+              return <Action key={Math.random()} data={action} default />;
             })}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { request } from "./Request.jsx";
 import { Info } from "./Message.jsx";
 import { GridLayout } from "./Layout.jsx";
 import { Button } from "./Button.jsx";
+import Icon from "./Icon.jsx";
 
 function QuerySet(props) {
   var id = Math.random();
@@ -23,6 +24,9 @@ function QuerySet(props) {
     const style = {
       textAlign: "left",
       verticalAlign: "top",
+      backgroundColor: "#f0f0f0",
+      lineHeight: "3rem",
+      //borderBottom: "solid 1px #1351b4",
     };
     return (
       <tr>
@@ -39,16 +43,25 @@ function QuerySet(props) {
   }
 
   function renderRow(row) {
-    const td = { paddingBottom: 15 };
+    const td = { borderBottom: "solid 1px #DDD" };
+    const actions = { borderBottom: "solid 1px #DDD", lineHeight: "3rem" };
     return (
       <tr key={Math.random()}>
         {row.data.map(function (field) {
-          return <td key={Math.random()}>{format(field.value)}</td>;
+          return (
+            <td key={Math.random()} style={td}>
+              {format(field.value)}
+            </td>
+          );
         })}
-        <td style={td}>
-          {row.actions.map(function (action) {
-            return <Action key={Math.random()} data={action} default />;
-          })}
+        <td style={actions}>
+          <div style={{ verticalAlign: "center" }}>
+            {row.actions.map(function (action) {
+              return (
+                <Action key={Math.random()} data={action} default compact />
+              );
+            })}
+          </div>
         </td>
       </tr>
     );
@@ -63,8 +76,6 @@ function QuerySet(props) {
       width: "100%",
       lineHeight: "2rem",
       borderSpacing: 0,
-      backgroundColor: "white",
-      padding: 20,
     };
     if (data.data.length > 0) {
       return (
@@ -88,6 +99,93 @@ function QuerySet(props) {
         ></Info>
       );
     }
+  }
+
+  function setPage(page) {
+    const form = document.getElementById("form-" + id);
+    const input = form.querySelector("input[name=page]");
+    input.value = page;
+    reload();
+  }
+
+  function renderPaginator() {
+    const style = {
+      display: "flex",
+      justifyContent: "space-between",
+      lineHeight: "4rem",
+      alignItems: "baseline",
+    };
+    const inline = {
+      display: "inline",
+      paddingRight: 10,
+    };
+    const select = {
+      marginLeft: 10,
+      marginRight: 10,
+      height: "2.5rem",
+      textAlign: "center",
+    };
+    return (
+      <div style={style}>
+        <div>
+          <div style={inline}>
+            Exibir
+            <select
+              style={select}
+              name="page_size"
+              onChange={() => setPage(1)}
+              value={data.page_size}
+            >
+              {data.page_sizes.map(function (size) {
+                return <option key={Math.random()}>{size}</option>;
+              })}
+            </select>
+          </div>
+          <div style={inline}>|</div>
+          <div style={inline}>
+            {data.start} - {data.end} de {data.total}
+          </div>
+        </div>
+        <div>
+          <div style={inline}>
+            {data.total > data.count ? (
+              <span>Página</span>
+            ) : (
+              <span>Página 1</span>
+            )}
+            <input
+              type={data.total > data.count ? "text" : "hidden"}
+              name="page"
+              defaultValue={data.page}
+              style={{
+                width: 30,
+                marginLeft: 10,
+                marginRight: 10,
+                height: "2rem",
+                textAlign: "center",
+              }}
+            />
+            {data.total > data.count && <div style={inline}>|</div>}
+            {data.total > data.count && data.previous && (
+              <Button
+                icon="chevron-left"
+                default
+                display="inline"
+                onClick={() => setPage(data.previous)}
+              />
+            )}
+            {data.total > data.count && data.next && (
+              <Button
+                icon="chevron-right"
+                default
+                display="inline"
+                onClick={() => setPage(data.next)}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   function renderActions() {
@@ -152,14 +250,16 @@ function QuerySet(props) {
 
   function render() {
     window[id] = () => reload();
+    const sytle = { backgroundColor: "white", padding: 20 };
     return (
-      <div className="reloadable" id={id}>
+      <div className="reloadable" id={id} sytle={sytle}>
         <form id={"form-" + id}>
           <div>{false && JSON.stringify(data)}</div>
           {renderTitle()}
           {renderActions()}
           {renderSearchFilterPanel()}
           {renderRows()}
+          {renderPaginator()}
         </form>
       </div>
     );

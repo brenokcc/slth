@@ -30,6 +30,6 @@ body{
     background-color: #FCFCFC;
     font-family: Eina02-Regular;
 }
-h1, h2, h3, h4, h5, dt, strong, th{
+h1, h2, h3, h4, h5, dt, strong{
     font-family: Eina02-Bold;
 }

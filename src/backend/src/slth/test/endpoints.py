@@ -12,7 +12,8 @@ class HealthCheck(Endpoint):
         return dict(version='1.0.0')
 
 class Grupos(AdminEndpoint[Group]):
-    pass
+    def get(self):
+        return super().get().limit(2)
 
 class ListarTelefones(ListEndpoint[Telefone]):
     pass
@@ -83,7 +84,7 @@ class ListarPessoas(ListEndpoint[Pessoa]):
 
 class VisualizarPessoa(ViewEndpoint[Pessoa]): pass
 
-
+@metaclass('Visualizar', modal=False)
 class VisualizarPessoa2(ViewEndpoint[Pessoa]):
 
     def get(self):
@@ -191,6 +192,6 @@ class ListarFuncionario(Endpoint):
     def get(self):
         return self.objects('test.funcionario').actions('cadastrarfuncionario')
     
-@metaclass('Cadastrar Funcionário 3')
+@metaclass('Cadastrar Funcionário', icon='plus')
 class CadastrarFuncionario(AddEndpoint[Funcionario]):
     pass

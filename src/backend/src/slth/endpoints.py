@@ -21,7 +21,7 @@ import slth
 
 T = TypeVar("T")
 
-def metaclass(verbose_name, icon=None, modal=False):
+def metaclass(verbose_name, icon=None, modal=True):
     def decorate(cls):
         setattr(cls, '_verbose_name', verbose_name)
         setattr(cls, '_icon', icon)
@@ -49,6 +49,7 @@ class EnpointMetaclass(type):
 class Endpoint(metaclass=EnpointMetaclass):
     _verbose_name = None
     _icon = None
+    _modal = True
     cache = cache
 
     def __init__(self):
@@ -168,13 +169,15 @@ class Endpoint(metaclass=EnpointMetaclass):
     @classmethod
     def get_api_metadata(cls, request, base_url, pk=None):
         action_name = cls.get_metadata('verbose_name')
+        icon = cls.get_metadata('icon')
+        modal = cls.get_metadata('modal')
         if cls.is_child():
             url = append_url(base_url, f'action={cls.get_api_name()}')
             url = f'{url}&id={pk}' if pk else url
         else:
             url = build_url(request, f'/api/{cls.get_api_name()}/')
             url = f'{url}{pk}/' if pk else url
-        return dict(type='action', title=action_name, name=action_name, url=url, key=cls.get_api_name())
+        return dict(type='action', title=action_name, name=action_name, url=url, key=cls.get_api_name(), icon=icon, modal=modal)
     
     @classmethod
     def get_metadata(cls, key, default=None):
@@ -182,9 +185,14 @@ class Endpoint(metaclass=EnpointMetaclass):
         metaclass = getattr(cls, 'Meta', None)
         if metaclass:
             value = getattr(metaclass, key, None)
-        if value is None and key == 'verbose_name':
-            value = cls._verbose_name or cls.get_pretty_name()
-        return value or default
+        if value is None:
+            if key == 'verbose_name':
+                value = cls._verbose_name or cls.get_pretty_name()
+            elif key == 'icon':
+                value = cls._icon
+            elif key == 'modal':
+                value = cls._modal
+        return default if value is None else value
 
 class ModelEndpoint(Endpoint):
     def __init__(self):
@@ -257,7 +265,7 @@ class ChildEndpoint(Endpoint):
     @classmethod
     def is_child(cls):
         return True
-
+@metaclass('Adicionar', icon='plus')
 class Add(ChildEndpoint):
     def get(self):
         return self.formfactory(self.source.model())
@@ -269,17 +277,17 @@ class ChildInstanceEndpoint(ChildEndpoint):
 
     def get_instance(self):
         return self.instance
-
+@metaclass('Visualizar', icon='eye', modal=False)
 class View(ChildInstanceEndpoint):
     
     def get(self):
         return self.serializer(self.get_instance())
-
+@metaclass('Editar', icon='pen')
 class Edit(ChildInstanceEndpoint):
 
     def get(self):
         return self.formfactory(self.get_instance())
-    
+@metaclass('Excluir', icon='trash')    
 class Delete(ChildInstanceEndpoint):
 
     def get(self):

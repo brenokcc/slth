@@ -749,12 +749,14 @@ function OneToOne(props) {
             }}
           >
             <Button
+              primary
               icon="pen-clip"
               onClick={() => showForm(true)}
               id={"show-" + id}
               display={initial.value ? "none" : "inline"}
             />
             <Button
+              primary
               icon="trash"
               onClick={() => showForm(false)}
               id={"hide-" + id}
@@ -837,12 +839,18 @@ function OneToMany(props) {
         <FormContent data={form} />
         <div style={{ textAlign: "center", marginTop: 10, marginBottom: 10 }}>
           <Button
+            primary
             icon="plus"
             onClick={() => addItem()}
             id={"extra-add-" + i + "-"}
             display={addButtonDisplay}
           />
-          <Button icon="trash" onClick={() => removeItem(i)} display="inline" />
+          <Button
+            primary
+            icon="trash"
+            onClick={() => removeItem(i)}
+            display="inline"
+          />
         </div>
       </div>
     );
@@ -921,6 +929,7 @@ function OneToMany(props) {
           }}
         >
           <Button
+            primary
             icon="add"
             onClick={() => addItem()}
             id={"add-" + id}

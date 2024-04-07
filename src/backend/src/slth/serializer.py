@@ -49,6 +49,7 @@ def getfield(obj, name_or_names, request=None):
         else:
             value = attr
             label = getattr(type(obj), name_or_names).field.verbose_name
+        label = label.title() if label and label.islower() else label
         field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True))
         return field
     elif isinstance(name_or_names, LinkField):
@@ -181,6 +182,7 @@ class Serializer:
                     if not only or key in only:
                         actions=[]
                         fields=[]
+                        title = title.title() if title and title.islower() else title
                         url = absolute_url(self.request, '?only={}'.format('__'.join(self.path + [key])))
                         if lazy:
                             data = dict(type='fieldset', title=title, key=key, url=url)
@@ -194,7 +196,7 @@ class Serializer:
                                     cls = slth.ENDPOINTS[qualified_name]
                                     if cls.instantiate(self.request, self.obj).check_permission():
                                         actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
-                                        
+                            
                             data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':

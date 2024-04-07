@@ -188,6 +188,7 @@ class QuerySet(models.QuerySet):
     
     def to_dict(self, debug=False):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
+        title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
         subset = None
         actions = []
@@ -219,7 +220,7 @@ class QuerySet(models.QuerySet):
         subset = self.parameter('subset')
         subset = None if subset == 'all' else subset
         page = int(self.parameter('page', 1))
-        page_size = min(int(self.parameter('page_size', 20)), 1000)
+        page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
         qs = self.filter()
         qs = qs.order_by('id') if not qs.ordered else qs
         if 'calendar' in self.metadata:
@@ -262,19 +263,20 @@ class QuerySet(models.QuerySet):
 
         objs = []
         total = self.count()
-        count = qs.count()
-        pages = total // page_size + total % page_size
+        pages = (total // page_size) + (total % page_size)
         start = page_size * (page - 1)
         end = start + page_size
         serializer:Serializer = qs.metadata.get('serializer')
-
+        previous = None if page ==1 else page -1
+        next = None if page == pages else page + 1
+        count = qs[start:end].count()
         for obj in qs[start:end]:
             if serializer:
                 serializer.obj = obj
                 serializer.request = self.request
                 serializer.title = str(obj)
             else:
-                fields = qs.metadata.get('fields', [field.name for field in qs.model._meta.fields])
+                fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
                 serializer = Serializer(obj, self.request).fields(*fields)
             serialized = serializer.serialize(forward_exception=True)
             for cls in instance_actions:
@@ -300,7 +302,7 @@ class QuerySet(models.QuerySet):
             data.update(aggregations=aggregations)
         if template:
             data.update(html=render_to_string(template, data))
-        data.update(data=objs, page=page, pages=pages, page_size=page_size, page_sizes=[5, 10, 15, 20, 25, 50, 100])
+        data.update(data=objs, page=page, start=start+1, end=end, previous=previous, next=next, pages=pages, page_size=page_size, page_sizes=[1, 2, 3, 5, 10, 15, 20, 25, 50, 100])
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data

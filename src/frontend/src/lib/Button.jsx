@@ -1,6 +1,23 @@
 import { Icon } from "./Icon";
 
-function Button({ id, onClick, icon, label, display, primary }) {
+function Button({ id, onClick, icon, label, display, primary, compact }) {
+  function renderContent() {
+    if (icon) {
+      if (compact || !label) {
+        return <Icon icon={icon} />;
+      } else {
+        return (
+          <>
+            <Icon icon={icon} style={{ paddingRight: 10 }} />
+            {label || ""}
+          </>
+        );
+      }
+    } else {
+      return label;
+    }
+  }
+
   function render() {
     const style = {
       padding: 12,
@@ -25,11 +42,10 @@ function Button({ id, onClick, icon, label, display, primary }) {
         style={style}
         onClick={(e) => {
           e.preventDefault();
-          onClick();
+          onClick(e);
         }}
       >
-        {icon && <Icon icon={icon} style={{ marginRight: 10 }} />}
-        {label || ""}
+        {renderContent()}
       </a>
     );
   }
