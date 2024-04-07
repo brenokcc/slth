@@ -87,8 +87,9 @@ class QuerySet(models.QuerySet):
         self.metadata['calendar'] = name
         return self
     
-    def limit(self, limit):
+    def limit(self, limit, *limits):
         self.metadata['limit'] = limit
+        self.metadata['page_sizes'] = (limit,) + limits
         return self
     
     def lookup(self, role_name=None, **lookups):
@@ -221,6 +222,7 @@ class QuerySet(models.QuerySet):
         subset = None if subset == 'all' else subset
         page = int(self.parameter('page', 1))
         page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
+        page_sizes = self.metadata.get('page_sizes', [5, 10, 25, 50, 100])
         qs = self.filter()
         qs = qs.order_by('id') if not qs.ordered else qs
         if 'calendar' in self.metadata:
@@ -302,7 +304,13 @@ class QuerySet(models.QuerySet):
             data.update(aggregations=aggregations)
         if template:
             data.update(html=render_to_string(template, data))
-        data.update(data=objs, page=page, start=start+1, end=end, previous=previous, next=next, pages=pages, page_size=page_size, page_sizes=[1, 2, 3, 5, 10, 15, 20, 25, 50, 100])
+        pagination = dict(
+            start=start+1, end=min(end, total), page=dict(
+                total=pages, previous=previous, current=page, next=next,
+                size=page_size, sizes=page_sizes
+            )
+        )
+        data.update(data=objs, pagination=pagination)
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data

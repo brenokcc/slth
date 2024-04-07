@@ -12,12 +12,36 @@ function QuerySet(props) {
   var id = Math.random();
   const [data, setData] = useState(props.data);
 
-  function renderTitle() {
+  function renderTitleText() {
     if (data.attrname) {
       return <h2>{data.title}</h2>;
     } else {
       return <h1>{data.title}</h1>;
     }
+  }
+
+  function renderTitle() {
+    const syle = {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    };
+    return (
+      <div style={syle}>
+        {renderTitleText()}
+        <i
+          id={"loader-" + id}
+          style={{ display: "none" }}
+          className="fa-solid fa-circle-notch fa-spin fa-1x"
+        ></i>
+      </div>
+    );
+  }
+
+  function showLoader(show) {
+    document.getElementById("loader-" + id).style.display = show
+      ? "block"
+      : "none";
   }
 
   function renderHeader(data) {
@@ -134,16 +158,16 @@ function QuerySet(props) {
               style={select}
               name="page_size"
               onChange={() => setPage(1)}
-              value={data.page_size}
+              value={data.pagination.page.size}
             >
-              {data.page_sizes.map(function (size) {
+              {data.pagination.page.sizes.map(function (size) {
                 return <option key={Math.random()}>{size}</option>;
               })}
             </select>
           </div>
           <div style={inline}>|</div>
           <div style={inline}>
-            {data.start} - {data.end} de {data.total}
+            {data.pagination.start} - {data.pagination.end} de {data.total}
           </div>
         </div>
         <div>
@@ -156,7 +180,7 @@ function QuerySet(props) {
             <input
               type={data.total > data.count ? "text" : "hidden"}
               name="page"
-              defaultValue={data.page}
+              defaultValue={data.pagination.page.current}
               style={{
                 width: 30,
                 marginLeft: 10,
@@ -164,22 +188,31 @@ function QuerySet(props) {
                 height: "2rem",
                 textAlign: "center",
               }}
+              onKeyDown={(e) =>
+                e.key == "Enter"
+                  ? setPage(
+                      e.target.value < 0
+                        ? 1
+                        : Math.min(e.target.value, data.pagination.page.total)
+                    )
+                  : null
+              }
             />
             {data.total > data.count && <div style={inline}>|</div>}
-            {data.total > data.count && data.previous && (
+            {data.total > data.count && data.pagination.page.previous && (
               <Button
                 icon="chevron-left"
                 default
                 display="inline"
-                onClick={() => setPage(data.previous)}
+                onClick={() => setPage(data.pagination.page.previous)}
               />
             )}
-            {data.total > data.count && data.next && (
+            {data.total > data.count && data.pagination.page.next && (
               <Button
                 icon="chevron-right"
                 default
                 display="inline"
-                onClick={() => setPage(data.next)}
+                onClick={() => setPage(data.pagination.page.next)}
               />
             )}
           </div>
@@ -236,6 +269,7 @@ function QuerySet(props) {
   }
 
   function reload() {
+    showLoader(true);
     var url;
     const queryString = new URLSearchParams(
       new FormData(document.getElementById("form-" + id))
@@ -245,6 +279,7 @@ function QuerySet(props) {
     else url = props.data.url + "?" + queryString;
     request("GET", url, function (data) {
       setData(data);
+      showLoader(false);
     });
   }
 
