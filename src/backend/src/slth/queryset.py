@@ -60,8 +60,7 @@ class QuerySet(models.QuerySet):
         return self
 
     def filters(self, *names):
-        if 'filters' not in self.metadata:
-            self.metadata['filters'] = names
+        self.metadata['filters'] = names
         return self
 
     def actions(self, *names):
@@ -219,7 +218,6 @@ class QuerySet(models.QuerySet):
                 actions.append(action)
 
         subset = self.parameter('subset')
-        subset = None if subset == 'all' else subset
         page = int(self.parameter('page', 1))
         page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
         page_sizes = self.metadata.get('page_sizes', [5, 10, 25, 50, 100])
@@ -228,24 +226,14 @@ class QuerySet(models.QuerySet):
         if 'calendar' in self.metadata:
             qs, calendar = self.to_calendar(self.metadata['calendar'])
         if subset:
-            qs = getattr(qs, self.subset)()
+            qs = getattr(qs, subset)()
         
-        if subset and 'subsets' in self.metadata:
-            subset_metadata = self.metadata['subsets'][subset]
-            if subset_metadata:
-                self.metadata = {k: v for k, v in self.metadata.items()}
-                if subset_metadata['actions']:
-                    self.metadata['actions'] = subset_metadata['actions']
-                if subset_metadata.get('requires'):
-                    self.metadata['requires'] = subset_metadata['requires']
-                if len(subset_metadata['filters']) > 1:
-                    self.metadata['filters'] = subset_metadata['filters']
         template = self.metadata.get('template')
 
-        for name in self.metadata.get('search', ()):
+        for name in qs.metadata.get('search', ()):
             search.append(name)
 
-        for lookup in self.metadata.get('filters', ()):
+        for lookup in qs.metadata.get('filters', ()):
             if lookup.endswith('userrole'):
                 field = self.role_filter_field()
             else:
@@ -253,8 +241,11 @@ class QuerySet(models.QuerySet):
             if field:
                 filters.append(field)
 
+        total = self.count()
         for name in self.metadata.get('subsets', ()):
-            subsets.append(dict(name=name, label=name, count=getattr(self, name)().count()))
+            subsets.append(dict(name=name, label=name.title(), count=getattr(self, name)().count()))
+        if subsets:
+            subsets.insert(0, dict(name=None, label='Tudo', count=total))
 
         for name in self.metadata.get('aggregations', ()):
             api_name = name[4:] if name.startswith('get_') else name
@@ -264,7 +255,6 @@ class QuerySet(models.QuerySet):
             aggregations.append(aggregation)
 
         objs = []
-        total = self.count()
         pages = (total // page_size) + (total % page_size)
         start = page_size * (page - 1)
         end = start + page_size

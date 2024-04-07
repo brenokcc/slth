@@ -17,6 +17,12 @@ class PessoaQuerySet(models.QuerySet):
     
     def sem_telefone_pessoal(self):
         return self.filter(telefone_pessoal__isnull=False)
+    
+    def homens(self):
+        return self.filter(sexo='M').fields('nome', 'data_nascimento').filters('casado')
+    
+    def mulheres(self):
+        return self.filter(sexo='F')
 
 class Pessoa(models.Model):
     nome = models.CharField('Nome', max_length=255, help_text="Nome completo")

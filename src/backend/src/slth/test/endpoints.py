@@ -77,8 +77,8 @@ class ListarPessoas(ListEndpoint[Pessoa]):
     def get(self):
         return (
             super().get().search('nome').filters('data_nascimento', 'casado', 'sexo')
-            .subsets('com_telefone_pessoal', 'sem_telefone_pessoal')
-            .actions('visualizarpessoa2').limit(1, 2, 4)
+            .subsets('homens', 'mulheres')
+            .actions('visualizarpessoa2', 'edit').limit(2, 4)
         )
 
 

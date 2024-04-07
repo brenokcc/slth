@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { format } from "./Formatter.jsx";
+import { format } from "./Formatter";
 import { Action } from "./Action";
-import { Field } from "./Form.jsx";
-import { request } from "./Request.jsx";
-import { Info } from "./Message.jsx";
-import { GridLayout } from "./Layout.jsx";
-import { Button } from "./Button.jsx";
-import Icon from "./Icon.jsx";
+import { Field } from "./Form";
+import { request } from "./Request";
+import { Info } from "./Message";
+import { GridLayout } from "./Layout";
+import { Button } from "./Button";
+import { Link } from "./Link";
 
 function QuerySet(props) {
   var id = Math.random();
@@ -42,6 +42,51 @@ function QuerySet(props) {
     document.getElementById("loader-" + id).style.display = show
       ? "block"
       : "none";
+  }
+
+  function renderTabs() {
+    return (
+      data.subsets && (
+        <div
+          style={{
+            display: "inline-block",
+            textAlign: "center",
+            width: "100%",
+            margin: "auto",
+          }}
+        >
+          {data.subsets.map(function (subset, i) {
+            var active =
+              data.subset === subset.name || (!data.subset && i == 0);
+            return (
+              <Link
+                key={Math.random()}
+                href="#"
+                style={{
+                  padding: 5,
+                  fontWeight: active ? "bold" : "normal",
+                  borderBottom: active ? "solid 3px #2670e8" : "solid 3px #DDD",
+                  textDecoration: "none",
+                  color: "#0c326f",
+                }}
+                onClick={function (e) {
+                  e.preventDefault();
+                  setSubset(subset.name);
+                }}
+              >
+                ({subset.count}) {subset.label}
+              </Link>
+            );
+          })}
+        </div>
+      )
+    );
+  }
+
+  function setSubset(name) {
+    const input = document.getElementById("subset-" + id);
+    input.value = name || "";
+    reload();
   }
 
   function renderHeader(data) {
@@ -290,7 +335,9 @@ function QuerySet(props) {
       <div className="reloadable" id={id} sytle={sytle}>
         <form id={"form-" + id}>
           <div>{false && JSON.stringify(data)}</div>
+          <input type="hidden" name="subset" id={"subset-" + id} />
           {renderTitle()}
+          {renderTabs()}
           {renderActions()}
           {renderSearchFilterPanel()}
           {renderRows()}
