@@ -1032,8 +1032,14 @@ function Form(props) {
   function getButtons() {
     return (
       <div style={{ marginTop: 20, textAlign: "right" }}>
-        <Action onClick={cancel} data={{ name: "Cancelar" }} default />
-        <Action onClick={submit} data={{ name: "Enviar" }} primary />
+        <Button onClick={cancel} label="Cancelar" default display="inline" />
+        <Button
+          onClick={submit}
+          label="Enviar"
+          primary
+          display="inline"
+          icon="chevron-right"
+        />
       </div>
     );
   }

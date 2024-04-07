@@ -21,6 +21,14 @@ import slth
 
 T = TypeVar("T")
 
+def metaclass(verbose_name, icon=None, modal=False):
+    def decorate(cls):
+        setattr(cls, '_verbose_name', verbose_name)
+        setattr(cls, '_icon', icon)
+        setattr(cls, '_modal', modal)
+        return cls
+    return decorate
+
 class ApiResponse(JsonResponse):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -39,6 +47,8 @@ class EnpointMetaclass(type):
 
 
 class Endpoint(metaclass=EnpointMetaclass):
+    _verbose_name = None
+    _icon = None
     cache = cache
 
     def __init__(self):
@@ -173,7 +183,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         if metaclass:
             value = getattr(metaclass, key, None)
         if value is None and key == 'verbose_name':
-            value = cls.get_pretty_name()
+            value = cls._verbose_name or cls.get_pretty_name()
         return value or default
 
 class ModelEndpoint(Endpoint):

@@ -1,4 +1,4 @@
-from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
+from slth.endpoints import metaclass, Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Cidade, Funcionario, Telefone
@@ -191,4 +191,6 @@ class ListarFuncionario(Endpoint):
     def get(self):
         return self.objects('test.funcionario').actions('cadastrarfuncionario')
     
-class CadastrarFuncionario(AddEndpoint[Funcionario]): pass
+@metaclass('Cadastrar Funcionário 3')
+class CadastrarFuncionario(AddEndpoint[Funcionario]):
+    pass

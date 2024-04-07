@@ -1,6 +1,6 @@
 import { Icon } from "./Icon";
 
-function Button({ id, onClick, icon, label, display }) {
+function Button({ id, onClick, icon, label, display, primary }) {
   function render() {
     const style = {
       padding: 12,
@@ -8,11 +8,17 @@ function Button({ id, onClick, icon, label, display }) {
       whiteSpace: "nowrap",
       borderRadius: 5,
       margin: 5,
-      backgroundColor: "#1351b4",
-      color: "white",
       cursor: "pointer",
       display: display || "block",
+      width: "fit-content",
     };
+    if (primary) {
+      style.backgroundColor = "#1351b4";
+      style.color = "white";
+    } else {
+      style.border = "solid 1px #1351b4";
+      style.color = "#1351b4";
+    }
     return (
       <a
         id={id}
@@ -22,7 +28,7 @@ function Button({ id, onClick, icon, label, display }) {
           onClick();
         }}
       >
-        {icon && <Icon icon={icon} />}
+        {icon && <Icon icon={icon} style={{ marginRight: 10 }} />}
         {label || ""}
       </a>
     );

@@ -166,7 +166,6 @@ function Tabs(props) {
         }}
       >
         {props.data.map(function (item, i) {
-          console.log(item);
           return (
             <Link
               key={Math.random()}

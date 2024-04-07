@@ -129,7 +129,7 @@ function QuerySet(props) {
             })}
           <div style={style}>
             <div style={{ paddingBottom: 15, paddingTop: 15 }}>
-              <Action onClick={reload} data={{ name: "Filtrar" }} default />
+              <Button onClick={reload} label="Filtrar" default />
             </div>
           </div>
         </GridLayout>
