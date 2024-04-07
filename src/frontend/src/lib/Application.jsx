@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
 import { appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
@@ -6,6 +6,23 @@ import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 import { SystemLayout } from "./Layout.jsx";
 import { Menu } from "./Menu.jsx";
+
+function Content(props) {
+  const [data, setData] = useState(props.data);
+
+  window.loaddata = (data) => setData(data);
+
+  function render() {
+    const style = { minHeight: 400, margin: 20 };
+    return (
+      <div style={style} id="container">
+        <ComponentFactory key={Math.random()} data={data} />
+      </div>
+    );
+  }
+
+  return render();
+}
 
 function Application(props) {
   useEffect(() => {
@@ -56,12 +73,7 @@ function Application(props) {
     return window.application.menu && <Menu />;
   }
   function renderMain() {
-    const style = { minHeight: 400, margin: 20 };
-    return (
-      <div style={style} id="container">
-        <ComponentFactory data={props.data.content} />
-      </div>
-    );
+    return <Content data={props.data.content} />;
   }
   function renderFooter() {
     return props.data.footer ? (

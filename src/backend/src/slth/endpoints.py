@@ -281,7 +281,7 @@ class Login(Endpoint):
 
 class Logout(Endpoint):
     def get(self):
-        return Response(message='Logout realizado com sucesso.', redirect='/api/login/', store=dict(token=None))
+        return Response(message='Logout realizado com sucesso.', redirect='/api/login/', store=dict(token=None, application=None))
 
 
 class Icons(Endpoint):

@@ -46,7 +46,7 @@ function QuerySet(props) {
         })}
         <td style={td}>
           {row.actions.map(function (action) {
-            return <Action key={Math.random()} data={action} />;
+            return <Action key={Math.random()} data={action} default />;
           })}
         </td>
       </tr>
@@ -93,7 +93,7 @@ function QuerySet(props) {
     return (
       <div align="right" style={{ margin: 10 }}>
         {data.actions.map(function (action) {
-          return <Action key={Math.random()} data={action} />;
+          return <Action key={Math.random()} data={action} primary />;
         })}
       </div>
     );
@@ -128,7 +128,7 @@ function QuerySet(props) {
             })}
           <div style={style}>
             <div style={{ paddingBottom: 15, paddingTop: 15 }}>
-              <Action onClick={reload} data={{ name: "Filtrar" }} />
+              <Action onClick={reload} data={{ name: "Filtrar" }} default />
             </div>
           </div>
         </GridLayout>

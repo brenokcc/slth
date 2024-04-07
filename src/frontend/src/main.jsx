@@ -1,2 +1,2 @@
-import loadurl from "./lib/Root.jsx";
-loadurl(document.location.href);
+import "./lib/Root.jsx";
+window.reload(document.location.href);

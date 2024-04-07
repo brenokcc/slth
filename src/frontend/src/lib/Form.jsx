@@ -131,6 +131,7 @@ function HelpText(props) {
     const style = {
       marginTop: 2,
       marginBottom: 2,
+      fontStyle: "italic",
     };
     return (
       <div style={style}>
@@ -145,8 +146,11 @@ function Field(props) {
   const id = props.data.name + Math.random();
 
   function renderLabel() {
-    const style = { fontWeight: props.data.required ? "bold" : "normal" };
-    return <label style={style}>{props.data.label}</label>;
+    return (
+      <label>
+        {props.data.label + (props.data.required ? " (obrigatório)" : "")}
+      </label>
+    );
   }
   function renderInput() {
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
@@ -417,10 +421,22 @@ function Selector(props) {
     ul.backgroundColor = "white";
     const widget = document.getElementById(id2);
     if (widget) {
+      let dialog = null;
+      let element = widget;
+      let result = null;
+      while (
+        !result &&
+        (element = element.parentElement) instanceof HTMLElement
+      ) {
+        if (element.matches("dialog")) result = element;
+      }
+      dialog = result;
+
       const rect = widget.getBoundingClientRect();
+      console.log(rect);
       ul.width = rect.width;
-      ul.top = rect.top + rect.height + +window.scrollY;
-      ul.left = rect.left + window.scrollX;
+      ul.top = dialog ? 0 : rect.top + rect.height + window.scrollY;
+      ul.left = dialog ? 0 : rect.left + window.scrollX;
     }
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
@@ -736,12 +752,14 @@ function OneToOne(props) {
               onClick={() => showForm(true)}
               id={"show-" + id}
               style={{ display: initial.value ? "none" : "inline" }}
+              primary
             />
             <Action
               data={{ icon: "trash" }}
               onClick={() => showForm(false)}
               id={"hide-" + id}
               style={{ display: initial.value ? "inline" : "none" }}
+              primary
             />
           </Info>
         </div>
@@ -824,8 +842,13 @@ function OneToMany(props) {
             onClick={() => addItem()}
             id={"extra-add-" + i + "-"}
             style={{ display: addButtonDisplay }}
+            primary
           />
-          <Action data={{ icon: "trash" }} onClick={() => removeItem(i)} />
+          <Action
+            data={{ icon: "trash" }}
+            onClick={() => removeItem(i)}
+            primary
+          />
         </div>
       </div>
     );
@@ -1015,8 +1038,8 @@ function Form(props) {
   function getButtons() {
     return (
       <div style={{ marginTop: 20, textAlign: "right" }}>
-        <Action onClick={cancel} data={{ name: "Cancelar" }} />
-        <Action onClick={submit} data={{ name: "Enviar" }} />
+        <Action onClick={cancel} data={{ name: "Cancelar" }} default />
+        <Action onClick={submit} data={{ name: "Enviar" }} primary />
       </div>
     );
   }

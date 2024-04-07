@@ -152,8 +152,9 @@ class Serializer:
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls and cls.get_api_name() in self.metadata['allow']:
-                args = () if cls.is_child() else (self.obj.pk,)
-                raise JsonResponseException(cls(*args).configure(self.obj).contextualize(self.request).serialize())
+                endpoint = cls.instantiate(self.request, self.obj)
+                if endpoint.check_permission():
+                    raise JsonResponseException(endpoint.serialize())
 
         if not self.metadata['content']:
             self.fields(*[field.name for field in type(self.obj)._meta.fields])

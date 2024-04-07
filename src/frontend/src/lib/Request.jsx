@@ -11,7 +11,7 @@ function apiurl(url) {
 }
 
 function appurl(url) {
-  return document.location.origin + "/app/" + url.split("/api/")[1];
+  return url ? document.location.origin + "/app/" + url.split("/api/")[1] : url;
 }
 
 function request(method, url, callback, data) {

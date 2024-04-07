@@ -5,6 +5,8 @@ import { COLORS } from "./Theme";
 import { toLabelCase } from "./Utils";
 import { openIFrameDialog } from "./Modal";
 import { ComponentFactory } from "./Factory";
+import { GridLayout } from "./Layout";
+import { Link } from "./Link";
 import { Action } from "./Action";
 
 function Html(props) {
@@ -222,17 +224,17 @@ function Boxes(props) {
         <h2>{props.data.title}</h2>
         <div>
           {props.data.items.map((item) => (
-            <a
+            <Link
               key={Math.random()}
-              href={appurl(item.url)}
+              href={item.url}
               style={box}
-              data-label={toLabelCase(item.label)}
+              dataLabel={item.label}
             >
               <div>
                 <Icon style={i} icon={item.icon} />
               </div>
               <div style={text}>{item.label}</div>
-            </a>
+            </Link>
           ))}
         </div>
         <Action
@@ -271,23 +273,14 @@ function Shell(props) {
   return render();
 }
 
-function Link(props) {
-  function content() {
-    if (props.data.icon)
-      return apiurl(props.data.url) ? <Icon icon={props.data.icon} /> : "-";
-    else return props.data.url ? apiurl(props.data.url) : "-";
-  }
-
-  function onClick() {
-    openIFrameDialog(apiurl(props.data.url));
-    event.preventDefault();
-  }
-
+function FileLink(props) {
   function render() {
-    return (
-      <a href={apiurl(props.data.url)} onClick={onClick}>
-        {content()}
-      </a>
+    return props.data.url ? (
+      <Link href={props.data.url} imodal>
+        {props.data.icon ? <Icon icon={props.data.icon} /> : props.data.url}
+      </Link>
+    ) : (
+      <span>-</span>
     );
   }
   return render();
@@ -349,18 +342,14 @@ function Indicators(props) {
 
 function Grid(props) {
   function render() {
-    const container = {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(395px, 1fr))",
-    };
     return (
-      <div style={container}>
+      <GridLayout width={400}>
         {props.data.items.map((data, i) => (
           <div key={Math.random()}>
             <ComponentFactory data={data} />
           </div>
         ))}
-      </div>
+      </GridLayout>
     );
   }
   return render();
@@ -379,7 +368,7 @@ export {
   Shell,
   QrCode,
   Indicators,
-  Link,
+  FileLink,
   Grid,
 };
 export default Html;

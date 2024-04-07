@@ -19,14 +19,13 @@ import {
   Progress,
   Boxes,
   Shell,
-  Link,
+  FileLink,
   Grid,
 } from "./Library";
 
 const APPLICATION_URL = "/api/application/";
 const APPLICATION_DATA = localStorage.getItem("application");
 const ROOT = ReactDOM.createRoot(document.getElementById("root"));
-var CONTAINER;
 
 ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
@@ -47,17 +46,17 @@ ComponentFactory.register("progress", (data) => <Progress data={data} />);
 ComponentFactory.register("color", (data) => <Color data={data} />);
 ComponentFactory.register("boxes", (data) => <Boxes data={data} />);
 ComponentFactory.register("shell", (data) => <Shell data={data} />);
-ComponentFactory.register("link", (data) => <Link data={data} />);
+ComponentFactory.register("link", (data) => <FileLink data={data} />);
 ComponentFactory.register("response", (data) => <Response data={data} />);
 ComponentFactory.register("application", (data) => <Application data={data} />);
 ComponentFactory.register("iconset", (data) => <IconSet data={data} />);
 ComponentFactory.register("grid", (data) => <Grid data={data} />);
 
 window.addEventListener("popstate", (e) => {
-  loadurl(e.currentTarget.location.href);
+  window.reload(e.currentTarget.location.href);
 });
 
-function loadurl(url) {
+window.reload = function (url) {
   if (url != document.location.href) {
     window.history.pushState({ url: url }, "", url);
   }
@@ -81,15 +80,15 @@ function loadurl(url) {
       });
     });
   }
-}
+};
 
-function loaddata(url) {
-  if (CONTAINER == null)
-    CONTAINER = ReactDOM.createRoot(document.getElementById("container"));
-  request("GET", apiurl(url), function (content) {
-    CONTAINER.render(<ComponentFactory key={Math.random()} data={content} />);
+window.load = function (url) {
+  if (url != document.location.href) {
+    window.history.pushState({ url: url }, "", url);
+  }
+  request("GET", apiurl(url), function (data) {
+    window.loaddata(data);
   });
-}
+};
 
-export { loadurl, loaddata };
-export default loadurl;
+export default window;

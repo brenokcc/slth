@@ -59,6 +59,7 @@ application:
         Listar Funcionários: listarfuncionario
         Listar Pessoas: listarpessoas
       Listar Cidades: listarcidades
+    Grupos: grupos
     Item 2:
       Adicionar Usuário: adduser
       Ícones: icons

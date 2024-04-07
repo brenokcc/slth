@@ -2,14 +2,12 @@ import { useState } from "react";
 import { openDialog } from "./Modal";
 import { toLabelCase } from "./Utils";
 import { Icon } from "./Icon";
-import loadurl from "./Root";
+import "./Root";
+import { appurl } from "./Request";
 
 function Action(props) {
   const id = props.id || Math.random();
   const [label, setLabel] = useState(props.data.name);
-  const url = props.data.url
-    ? "/app/" + props.data.url.split("/api/")[1]
-    : null;
   function onClick(e) {
     e.preventDefault();
     if (props.onClick) {
@@ -17,10 +15,10 @@ function Action(props) {
       props.onClick(e);
     } else {
       if (props.data.modal == false) {
-        loadurl(url);
+        window.load(appurl(props.data.url));
         //document.location.href = url;
       } else {
-        openDialog(url);
+        openDialog(props.data.url);
       }
     }
   }
@@ -31,10 +29,15 @@ function Action(props) {
       textDecoration: "none",
       whiteSpace: "nowrap",
       borderRadius: 5,
-      //backgroundColor: "#1351b4",
-      //color: "white",
       margin: 5,
     };
+    if (props.primary) {
+      style.backgroundColor = "#1351b4";
+      style.color = "white";
+    }
+    if (props.default) {
+      style.border = "solid 1px #1351b4";
+    }
     if (props.style) {
       Object.keys(props.style).map(function (k) {
         style[k] = props.style[k];
@@ -43,7 +46,7 @@ function Action(props) {
     return (
       <a
         id={id}
-        href={url || "#"}
+        href={appurl(props.data.url) || "#"}
         onClick={onClick}
         style={style}
         data-label={toLabelCase(props.data.name)}

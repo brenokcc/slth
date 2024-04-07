@@ -172,7 +172,7 @@ class CadastrarCidade2(FormEndpoint[CadastrarCidadeForm]): pass
 
 class ListarCidades(Endpoint):
     def get(self):
-        return self.objects('test.cidade').search('nome').filters('prefeito')
+        return self.objects('test.cidade').search('nome').filters('prefeito').actions('add', 'edit')
 
 
 class CidadesVizinhas(ChildEndpoint):

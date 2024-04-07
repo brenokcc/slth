@@ -443,7 +443,7 @@ class LoginForm(Form):
 
     class Meta:
         title = 'Acesso ao Sistema'
-        width = 300
+        width = 350
 
     def __init__(self, *args, **kwargs):
         self.token = None

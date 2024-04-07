@@ -3,6 +3,7 @@ import { ComponentFactory } from "./Factory";
 import { request } from "./Request.jsx";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action.jsx";
+import { Link } from "./Link.jsx";
 
 function Field(props) {
   function render() {
@@ -167,7 +168,7 @@ function Tabs(props) {
         {props.data.map(function (item, i) {
           console.log(item);
           return (
-            <a
+            <Link
               key={Math.random()}
               href={item.url}
               style={{
@@ -185,7 +186,7 @@ function Tabs(props) {
               }}
             >
               {item.title}
-            </a>
+            </Link>
           );
         })}
       </div>

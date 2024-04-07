@@ -1,12 +1,11 @@
-import { loadurl, loaddata } from "./Root";
-import { appurl } from "./Request";
+import Link from "./Link";
 import Icon from "./Icon";
 
 function Menu() {
   function renderUser() {
     const img = {
-      width: 200,
-      height: 200,
+      width: 150,
+      height: 150,
       borderRadius: "50%",
     };
     return (
@@ -36,6 +35,17 @@ function Menu() {
             subitem.style.display = "none";
           });
       }
+      const right = item.querySelector(":scope > i.fa-solid.fa-chevron-right");
+      const up = item.querySelector(":scope > i.fa-solid.fa-chevron-up");
+      if (right) {
+        right.classList.remove("fa-chevron-right");
+        right.classList.add("fa-chevron-up");
+      }
+      if (up) {
+        up.classList.remove("fa-chevron-up");
+        up.classList.add("fa-chevron-right");
+      }
+
       e.preventDefault();
       e.stopPropagation();
       e.cancelBubble = true;
@@ -51,30 +61,29 @@ function Menu() {
       paddingTop: 5,
       paddingBottom: 5,
     };
+    const iconStyle = { padding: 5, fontSize: "1.2rem" };
     if (item.url) {
       return (
         <li key={Math.random()} style={style}>
-          <a
-            onClick={function (e) {
-              e.preventDefault();
-              loaddata(e.target.href);
-            }}
-            href={appurl(item.url)}
-          >
+          <Link href={item.url}>
             {level == 0 && (
-              <Icon icon={item.icon || "dot-circle"} style={{ padding: 5 }} />
+              <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
             )}
             {item.label}
-          </a>
+          </Link>
         </li>
       );
     } else {
       return (
         <li key={Math.random()} onClick={toggleItem} style={style}>
           {level == 0 && (
-            <Icon icon={item.icon || "dot-circle"} style={{ padding: 5 }} />
+            <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
           )}
           {item.label}
+          <Icon
+            icon="chevron-right"
+            style={{ float: "right", paddingTop: 8 }}
+          />
           <ul style={{ display: "none", paddingLeft: 15 }}>
             {item.items.map(function (subitem) {
               return renderItem(subitem, level + 1);
