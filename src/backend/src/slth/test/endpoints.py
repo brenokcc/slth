@@ -92,7 +92,7 @@ class VisualizarPessoa2(ViewEndpoint[Pessoa]):
             super().get()
             .actions('edit')
             .fieldset('Dados Gerais', fields=[('id', 'nome')])
-            .fieldset('Telefone Pessoal', ('ddd', 'numero'), attr='telefone_pessoal', actions=['edit'])
+            .fieldset('Telefone Pessoal', [('ddd', 'numero')], attr='telefone_pessoal', actions=['edit'])
             .queryset('Telefones Profissionais', 'telefones_profissionais')
         )
 
@@ -166,7 +166,9 @@ class ExcluirCidade(DeleteEndpoint[Cidade]): pass
 class CadastrarCidade(AddEndpoint[Cidade]):
     def get(self):
         return (
-            super().get().display(Pessoa.objects.first().serializer().fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']]))
+            super().get().display(
+                Pessoa.objects.first().serializer().fieldset('Dados Gerais', ['nome', ['sexo', 'data_nascimento']])
+            ).actions(prefeito='cadastrarpessoa')
         )
 
 class CadastrarCidade2(FormEndpoint[CadastrarCidadeForm]): pass
@@ -194,4 +196,6 @@ class ListarFuncionario(Endpoint):
     
 @metaclass('Cadastrar Funcionário', icon='plus')
 class CadastrarFuncionario(AddEndpoint[Funcionario]):
-    pass
+    
+    def get(self):
+        return super().get().info('Preencha o formulário corretamente')

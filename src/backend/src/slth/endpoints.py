@@ -211,7 +211,7 @@ class ListEndpoint(Generic[T], ModelEndpoint):
         return self.model.objects.all()
 
 class AddEndpoint(Generic[T], ModelEndpoint):
-    def get(self):
+    def get(self) -> FormFactory:
         return self.formfactory(self.model())
 
 class ModelInstanceEndpoint(ModelEndpoint):
@@ -267,7 +267,7 @@ class ChildEndpoint(Endpoint):
         return True
 @metaclass('Adicionar', icon='plus')
 class Add(ChildEndpoint):
-    def get(self):
+    def get(self) -> FormFactory:
         return self.formfactory(self.source.model())
     
 class ChildInstanceEndpoint(ChildEndpoint):
@@ -280,12 +280,12 @@ class ChildInstanceEndpoint(ChildEndpoint):
 @metaclass('Visualizar', icon='eye', modal=False)
 class View(ChildInstanceEndpoint):
     
-    def get(self):
+    def get(self) -> Serializer:
         return self.serializer(self.get_instance())
 @metaclass('Editar', icon='pen')
 class Edit(ChildInstanceEndpoint):
 
-    def get(self):
+    def get(self) -> FormFactory:
         return self.formfactory(self.get_instance())
 @metaclass('Excluir', icon='trash')    
 class Delete(ChildInstanceEndpoint):

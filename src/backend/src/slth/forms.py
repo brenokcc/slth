@@ -15,6 +15,7 @@ from .exceptions import JsonResponseException
 from .utils import absolute_url
 from .serializer import Serializer
 from .components import Response
+from slth import ENDPOINTS
 
 
 DjangoModelForm = ModelForm
@@ -91,7 +92,7 @@ class FormMixin:
     def to_dict(self, prefix=None):
         data = dict(
             type='form', title=self.get_metadata('title', type(self).__name__), icon=self.get_metadata('icon'),
-            style=self.get_metadata('style'), url=absolute_url(self.request)
+            style=self.get_metadata('style'), url=absolute_url(self.request), info=self._info
         )
         data.update(controls=self.controls, width=self.get_metadata('width', '100%'))
         if self.display_data:
@@ -116,8 +117,9 @@ class FormMixin:
                             [self.serialize_field(name, self.fields[name], prefix, choices_field_name) for name in name]
                         )
                 if len(fields)==1 and isinstance(fields[0], list) and fields[0][0]['type'] == 'inline':
-                    title = None
-                fieldsetlist.append(dict(type='fieldset', title=title, fields=fields))
+                    fieldsetlist.append(fields[0][0])
+                else:
+                    fieldsetlist.append(dict(type='fieldset', title=title, fields=fields))
             data.update(fieldsets=fieldsetlist)
         else:
             fields = []
@@ -134,11 +136,11 @@ class FormMixin:
             value = []
             instances = []
             is_one_to_one = field.max == field.min == 1
-            if isinstance(self, ModelForm) and self.instance.id and hasattr(self.instance, name):
+            if isinstance(self, ModelForm):
                 if isinstance(field, OneToOneField):
-                    instances.append(getattr(self.instance, name))
-                if isinstance(field, OneToManyField):
-                    instances.extend(getattr(self.instance, name).all())
+                    instances.append(getattr(self.instance, name) if self.instance.id else None)
+                elif isinstance(field, OneToManyField):
+                    instances.extend(getattr(self.instance, name).all() if self.instance.id else ())
             for i, instance in enumerate(instances):
                 prefix = name if is_one_to_one else f'{name}__{i}'
                 kwargs = dict(instance=instance, request=self.request) if isinstance(field, InlineModelField) else dict(request=self.request)
@@ -196,6 +198,10 @@ class FormMixin:
         attr_name = f'on_{name}_change'
         if hasattr(self, attr_name):
             data['onchange'] = absolute_url(self.request, f'on_change={name}')
+        if name in self._actions:
+            cls = ENDPOINTS[self._actions[name]]
+            if cls.instantiate(self.request, self).check_permission():
+                data.update(action=cls.get_api_metadata(self.request, absolute_url(self.request)))
         return data
     
     def post(self):
@@ -300,6 +306,8 @@ class Form(DjangoForm, FormMixin):
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
         self.request = kwargs.pop('request', None)
+        self._info = None
+        self._actions = {}
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
@@ -318,6 +326,14 @@ class Form(DjangoForm, FormMixin):
 
     def get_fieldsets(self):
         return self.fieldsets
+    
+    def info(self, message):
+        self._info = message
+        return self
+    
+    def actions(self, **kwargs):
+        self._actions.update(kwargs)
+        return self
 
 
 class ModelForm(DjangoModelForm, FormMixin):
@@ -328,6 +344,8 @@ class ModelForm(DjangoModelForm, FormMixin):
         self.controls = dict(hide=[], show=[], set={})
         self.request = request
         self.delete = delete
+        self._info = None
+        self._actions = {}
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
@@ -348,47 +366,69 @@ class ModelForm(DjangoModelForm, FormMixin):
 
     def get_fieldsets(self):
         return self.fieldsets
+    
+    def info(self, message):
+        self._info = message
+        return self
+    
+    def actions(self, **kwargs):
+        self._actions.update(kwargs)
+        return self
 
 
 class FormFactory:
     def __init__(self, instance, delete=False):
-        self.instance = instance
-        self.fieldsets = {}
-        self.fieldlist = []
-        self.serializer = None
-        self.delete = delete
+        self._instance = instance
+        self._fieldsets = {}
+        self._fieldlist = []
+        self._serializer = None
+        self._info = None
+        self._actions = {}
+        self._delete = delete
 
     def fields(self, *names):
-        self.fieldlist.extend(names)
+        self._fieldlist.extend(names)
         return self
 
     def fieldset(self, title, fields):
-        self.fieldsets[title] = fields
+        self._fieldsets[title] = fields
         for field in fields:
             if isinstance(field, str):
-                self.fieldlist.append(field)
+                self._fieldlist.append(field)
             else:
-                self.fieldlist.extend(field)
+                self._fieldlist.extend(field)
         return self
     
     def display(self, serializer):
-        self.serializer = serializer
+        self._serializer = serializer
+        return self
+    
+    def info(self, message):
+        self._info = message
+        return self
+    
+    def actions(self, **kwargs):
+        self._actions.update(kwargs)
         return self
 
     def form(self, request):
         class Form(ModelForm):
             class Meta:
                 title = '{} {}'.format(
-                    'Excluir' if self.delete else ('Editar' if self.instance.pk else 'Cadastrar'),
-                    type(self.instance)._meta.verbose_name
+                    'Excluir' if self._delete else ('Editar' if self._instance.pk else 'Cadastrar'),
+                    type(self._instance)._meta.verbose_name
                 )
-                model = type(self.instance)
-                fields = () if self.delete else (self.fieldlist or '__all__')
+                model = type(self._instance)
+                fields = () if self._delete else (self._fieldlist or '__all__')
         
-        form = Form(instance=self.instance, request=request, delete=self.delete)
-        form.fieldsets = self.fieldsets
-        if self.serializer:
-            form.display(self.serializer)
+        form = Form(instance=self._instance, request=request, delete=self._delete)
+        form.fieldsets = self._fieldsets
+        if self._serializer:
+            form.display(self._serializer)
+        if self._info:
+            form.info(self._info)
+        if self._actions:
+            form.actions(**self._actions)
         return form
 
 class InlineFormField(Field):

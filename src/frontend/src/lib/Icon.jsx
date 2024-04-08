@@ -46,11 +46,17 @@ function IconButton(props) {
       whiteSpace: "nowrap",
       borderRadius: 5,
       margin: 5,
-      backgroundColor: "#1351b4",
-      color: "white",
       cursor: "pointer",
       display: props.display || "block",
     };
+    if (props.primary) {
+      style.backgroundColor = "#1351b4";
+      style.color = "white";
+    }
+    if (props.default) {
+      style.color = "#1351b4";
+      style.border = "solid 1px #1351b4";
+    }
     return (
       <a
         id={props.id}

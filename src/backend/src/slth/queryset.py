@@ -220,14 +220,13 @@ class QuerySet(models.QuerySet):
         subset = self.parameter('subset')
         page = int(self.parameter('page', 1))
         page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
-        page_sizes = self.metadata.get('page_sizes', [5, 10, 25, 50, 100])
+        page_sizes = self.metadata.get('page_sizes', [page_size])
         qs = self.filter()
         qs = qs.order_by('id') if not qs.ordered else qs
-        if 'calendar' in self.metadata:
-            qs, calendar = self.to_calendar(self.metadata['calendar'])
         if subset:
             qs = getattr(qs, subset)()
-        
+        if 'calendar' in qs.metadata:
+            qs, calendar = qs.to_calendar(qs.metadata['calendar'])
         template = self.metadata.get('template')
 
         for name in qs.metadata.get('search', ()):
@@ -255,7 +254,7 @@ class QuerySet(models.QuerySet):
             aggregations.append(aggregation)
 
         objs = []
-        pages = (total // page_size) + (total % page_size)
+        pages = (total // page_size) + (1 if total % page_size else 0)
         start = page_size * (page - 1)
         end = start + page_size
         serializer:Serializer = qs.metadata.get('serializer')

@@ -22,7 +22,7 @@ class PessoaQuerySet(models.QuerySet):
         return self.filter(sexo='M').fields('nome', 'data_nascimento').filters('casado')
     
     def mulheres(self):
-        return self.filter(sexo='F')
+        return self.filter(sexo='F').calendar('data_nascimento')
 
 class Pessoa(models.Model):
     nome = models.CharField('Nome', max_length=255, help_text="Nome completo")

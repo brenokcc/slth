@@ -147,10 +147,19 @@ function Field(props) {
   const id = props.data.name + Math.random();
 
   function renderLabel() {
+    const style = {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    };
+    if (props.data.action) props.data.action.modal = true;
     return (
-      <label>
-        {props.data.label + (props.data.required ? " (obrigatório)" : "")}
-      </label>
+      <div style={style}>
+        <label>{props.data.label}</label>
+        {props.data.action && (
+          <Action data={props.data.action} style={{ padding: 0 }} />
+        )}
+      </div>
     );
   }
   function renderInput() {
@@ -983,24 +992,31 @@ function FormContent(props) {
     } else {
       return props.data.fieldsets.map((fieldset) => (
         <div key={Math.random()} className="form-fieldset">
-          {fieldset.title && <h2>{fieldset.title}</h2>}
-          <div className="fieldset-fields">
-            {fieldset.fields.map((list) => (
-              <div key={Math.random()}>
-                {list.map((field) => (
-                  <div
-                    key={Math.random()}
-                    style={{
-                      width: 100 / list.length + "%",
-                      display: field.type == "hidden" ? "none" : "inline-block",
-                    }}
-                  >
-                    {renderField(field)}
+          {fieldset.type == "inline" ? (
+            renderField(fieldset)
+          ) : (
+            <>
+              <h2>{fieldset.title}</h2>
+              <div className="fieldset-fields">
+                {fieldset.fields.map((list) => (
+                  <div key={Math.random()}>
+                    {list.map((field) => (
+                      <div
+                        key={Math.random()}
+                        style={{
+                          width: 100 / list.length + "%",
+                          display:
+                            field.type == "hidden" ? "none" : "inline-block",
+                        }}
+                      >
+                        {renderField(field)}
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       ));
     }
@@ -1017,8 +1033,7 @@ function Form(props) {
   }
 
   function renderInstruction() {
-    const text = "É importante preencher os campos atentamente.";
-    return <Instruction data={{ text: text }} />;
+    return props.data.info && <Instruction data={{ text: props.data.info }} />;
   }
 
   function getDisplay() {
@@ -1092,7 +1107,6 @@ function Form(props) {
         if (data.type == "response") {
           closeDialog();
           reloadState();
-          console.log(data);
           return response(data);
         } else {
           var message = data.text;

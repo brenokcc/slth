@@ -70,7 +70,7 @@ function Fieldset(props) {
   function render() {
     window[id] = () => loadContent(props.data.url);
     return (
-      <div className="reloadable" id={id}>
+      <div className={props.data.url && "reloadable"} id={id}>
         {renderTitle()}
         {renderContent()}
       </div>

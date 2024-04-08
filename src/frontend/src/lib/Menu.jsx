@@ -60,6 +60,7 @@ function Menu() {
       paddingLeft: 15,
       paddingTop: 5,
       paddingBottom: 5,
+      lineHeight: "2rem",
     };
     const iconStyle = { padding: 5, fontSize: "1.2rem" };
     if (item.url) {
@@ -106,7 +107,11 @@ function Menu() {
   }
 
   function render() {
-    const style = { padding: 25 };
+    const style = {
+      padding: 25,
+      borderRight: "solid 1px #DDD",
+      height: "100%",
+    };
     return (
       <div style={style}>
         {renderUser()}
