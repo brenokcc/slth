@@ -45,14 +45,25 @@ application:
       - listarfuncionario
       - listarpessoas
       - listarcidades
-    usermenu:
-      - icons
-      - logout
     search:
       - listarfuncionario
       - listarpessoas
       - listarcidades
-    
+    usermenu:
+      - icons
+      - logout
+    adder:
+      - listarfuncionario
+      - listarpessoas
+      - listarcidades
+    tools:
+      - listarfuncionario
+      - listarpessoas
+      - listarcidades
+    settings:
+      - listarfuncionario
+      - listarpessoas
+      - listarcidades
   menu:
     users:Item 1:
       Item 1.1:

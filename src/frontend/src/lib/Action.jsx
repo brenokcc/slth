@@ -45,7 +45,7 @@ function Action(props) {
     var style = {
       padding: 12,
       textDecoration: "none",
-      whiteSpace: "nowrap",
+      //whiteSpace: "nowrap",
       borderRadius: 5,
       margin: 5,
     };
@@ -78,21 +78,34 @@ function Action(props) {
 }
 
 function Dropdown(props) {
-  const [active, setActive] = useState(false);
-  function onClick() {
-    setActive(true);
+  function onClick(e) {
+    const rect = e.target.getBoundingClientRect();
+    // the user clicks in the icon
+    const dropdown = e.target.parentNode.parentNode.querySelector(".dropdown");
+    document
+      .querySelectorAll(".dropdown")
+      .forEach((dropdown) => (dropdown.style.display = "none"));
+    dropdown.style.left = rect.left - 150 + rect.width + "px";
+    dropdown.style.display = "block";
   }
-  function onMouseLeave() {
-    setActive(false);
+  function onMouseLeave(e) {
+    // the user leaves the LI or A tag
+    const dropdown =
+      e.target.tagName == "LI"
+        ? e.target.parentNode
+        : e.target.parentNode.parentNode;
+    dropdown.style.display = "none";
   }
   function render() {
-    const url = {
+    const ul = {
+      padding: 0,
       position: "absolute",
       width: 150,
-      right: 0,
+      left: 0,
       textAlign: "center",
       backgroundColor: "white",
-      boxShadow: "0px 15px 10px -15px #DDD",
+      boxShadow: "15px 15px 10px -15px #DDD",
+      display: "none",
     };
     const li = { listStyleType: "none", padding: 10 };
     return (
@@ -100,11 +113,11 @@ function Dropdown(props) {
         <div onClick={onClick} style={{ cursor: "pointer" }}>
           {props.children}
         </div>
-        {active && props.actions && props.actions.length > 0 && (
-          <ul style={url} onMouseLeave={onMouseLeave}>
+        {props.actions && props.actions.length > 0 && (
+          <ul style={ul} onMouseLeave={onMouseLeave} className="dropdown">
             {props.actions.map((action) => (
               <li style={li} key={Math.random()}>
-                <Action data={action} />
+                <Action data={action} style={{ padding: 0 }} />
               </li>
             ))}
           </ul>

@@ -12,7 +12,6 @@ import json
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.template.loader import render_to_string
-from django.db.models import Model, QuerySet, Manager
 from django.db import models
 from .serializer import Serializer
 from .exceptions import JsonResponseException
@@ -218,9 +217,6 @@ class QuerySet(models.QuerySet):
                 actions.append(action)
 
         subset = self.parameter('subset')
-        page = int(self.parameter('page', 1))
-        page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
-        page_sizes = self.metadata.get('page_sizes', [page_size])
         qs = self.filter()
         qs = qs.order_by('id') if not qs.ordered else qs
         if subset:
@@ -254,7 +250,10 @@ class QuerySet(models.QuerySet):
             aggregations.append(aggregation)
 
         objs = []
+        page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
+        page_sizes = self.metadata.get('page_sizes', [page_size])
         pages = (total // page_size) + (1 if total % page_size else 0)
+        page = min(int(self.parameter('page', 1)), pages) or 1
         start = page_size * (page - 1)
         end = start + page_size
         serializer:Serializer = qs.metadata.get('serializer')

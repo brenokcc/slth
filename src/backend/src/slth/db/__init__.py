@@ -5,3 +5,4 @@ def meta(verbose_name):
         function.verbose_name = verbose_name
         return function
     return decorate
+

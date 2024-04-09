@@ -1,6 +1,5 @@
 from django.db.models import *
 
-
 class CharField(CharField):
     def __init__(self, *args, **kwargs):
         self.mask = kwargs.pop('mask', None)

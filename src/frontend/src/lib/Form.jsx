@@ -443,7 +443,6 @@ function Selector(props) {
       dialog = result;
 
       const rect = widget.getBoundingClientRect();
-      console.log(rect);
       ul.width = rect.width;
       ul.top = dialog ? 0 : rect.top + rect.height + window.scrollY;
       ul.left = dialog ? 0 : rect.left + window.scrollX;

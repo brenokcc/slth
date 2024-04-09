@@ -6,6 +6,7 @@ import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 import { SystemLayout } from "./Layout.jsx";
 import { Menu } from "./Menu.jsx";
+import Icon from "./Icon.jsx";
 
 function Content(props) {
   const [data, setData] = useState(props.data);
@@ -55,16 +56,39 @@ function Application(props) {
           <a href="/">{props.data.navbar.title}</a>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
+          {props.data.navbar.adder && (
+            <div style={{ padding: 20 }}>
+              <Dropdown actions={props.data.navbar.adder} position={{}}>
+                <Icon icon="plus" />
+              </Dropdown>
+            </div>
+          )}
+          {props.data.navbar.tools && (
+            <div style={{ padding: 20 }}>
+              <Dropdown actions={props.data.navbar.tools} position={{}}>
+                <Icon icon="tools" />
+              </Dropdown>
+            </div>
+          )}
+          {props.data.navbar.settings && (
+            <div style={{ padding: 20 }}>
+              <Dropdown actions={props.data.navbar.settings} position={{}}>
+                <Icon icon="gear" />
+              </Dropdown>
+            </div>
+          )}
           <Selector
             data={selector}
             style={{ padding: 10 }}
             onSelect={(option) => (document.location.href = appurl(option.id))}
           />
-          <div style={{ padding: 20 }}>
-            <Dropdown actions={props.data.navbar.actions}>
-              {props.data.navbar.user}
-            </Dropdown>
-          </div>
+          {props.data.navbar.usermenu && (
+            <div style={{ padding: 20 }}>
+              <Dropdown actions={props.data.navbar.usermenu} position={{}}>
+                {props.data.navbar.user}
+              </Dropdown>
+            </div>
+          )}
         </div>
       </div>
     ) : null;

@@ -21,14 +21,6 @@ import slth
 
 T = TypeVar("T")
 
-def metaclass(verbose_name, icon=None, modal=True):
-    def decorate(cls):
-        setattr(cls, '_verbose_name', verbose_name)
-        setattr(cls, '_icon', icon)
-        setattr(cls, '_modal', modal)
-        return cls
-    return decorate
-
 class ApiResponse(JsonResponse):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,9 +39,6 @@ class EnpointMetaclass(type):
 
 
 class Endpoint(metaclass=EnpointMetaclass):
-    _verbose_name = None
-    _icon = None
-    _modal = True
     cache = cache
 
     def __init__(self):
@@ -187,11 +176,9 @@ class Endpoint(metaclass=EnpointMetaclass):
             value = getattr(metaclass, key, None)
         if value is None:
             if key == 'verbose_name':
-                value = cls._verbose_name or cls.get_pretty_name()
-            elif key == 'icon':
-                value = cls._icon
-            elif key == 'modal':
-                value = cls._modal
+                value = cls.get_pretty_name()
+            if key == 'modal':
+                value = issubclass(cls, EditEndpoint) or issubclass(cls, DeleteEndpoint) or issubclass(cls, Endpoint) or issubclass(cls, ChildEndpoint)
         return default if value is None else value
 
 class ModelEndpoint(Endpoint):
@@ -265,8 +252,12 @@ class ChildEndpoint(Endpoint):
     @classmethod
     def is_child(cls):
         return True
-@metaclass('Adicionar', icon='plus')
+
 class Add(ChildEndpoint):
+    class Meta:
+        icon = 'plus'
+        verbose_name = 'Adicionar'
+
     def get(self) -> FormFactory:
         return self.formfactory(self.source.model())
     
@@ -277,19 +268,26 @@ class ChildInstanceEndpoint(ChildEndpoint):
 
     def get_instance(self):
         return self.instance
-@metaclass('Visualizar', icon='eye', modal=False)
+
 class View(ChildInstanceEndpoint):
+    class Meta:
+        icon = 'eye'
+        verbose_name = 'Visualizar'
     
     def get(self) -> Serializer:
         return self.serializer(self.get_instance())
-@metaclass('Editar', icon='pen')
-class Edit(ChildInstanceEndpoint):
 
+class Edit(ChildInstanceEndpoint):
+    class Meta:
+        icon = 'pen'
+        verbose_name = 'Editar'
     def get(self) -> FormFactory:
         return self.formfactory(self.get_instance())
-@metaclass('Excluir', icon='trash')    
+   
 class Delete(ChildInstanceEndpoint):
-
+    class Meta:
+        icon = 'trash'
+        verbose_name = 'Excluir'
     def get(self):
         return self.formfactory(self.get_instance(), delete=True)
 
@@ -369,13 +367,14 @@ class Application(Endpoint):
                 title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
                 logo=APPLICATON['logo'], user=self.request.user.username
             )
-            for endpoint in APPLICATON['dashboard']['usermenu']:
-                cls = ENDPOINTS[endpoint]
-                if cls().contextualize(self.request).check_permission():
-                    label = cls.get_metadata('verbose_name')
-                    url = build_url(self.request, cls.get_api_url())
-                    modal = cls.get_metadata('modal', False)
-                    navbar.add_action(label, url, modal)
+            for entrypoint in ['usermenu', 'adder', 'settings', 'tools']:
+                for endpoint in APPLICATON['dashboard'][entrypoint]:
+                    cls = ENDPOINTS[endpoint]
+                    if cls().instantiate(self.request, self).check_permission():
+                        label = cls.get_metadata('verbose_name')
+                        url = build_url(self.request, cls.get_api_url())
+                        modal = cls.get_metadata('modal', False)
+                        navbar.add_action(entrypoint, label, url, modal)
             items = []
             def get_item(k, v):
                 if isinstance(v, dict):
@@ -385,7 +384,7 @@ class Application(Endpoint):
                     ]))
                 else:
                     cls = ENDPOINTS[v]
-                    if cls().contextualize(self.request).check_permission():
+                    if cls().instantiate(self.request, self).check_permission():
                         url = build_url(self.request, cls.get_api_url())
                     return dict(dict(label=k, url=url))
             for k, v in APPLICATON['menu'].items():

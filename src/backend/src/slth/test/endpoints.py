@@ -1,4 +1,4 @@
-from slth.endpoints import metaclass, Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
+from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
 from .models import Pessoa, Cidade, Funcionario, Telefone
@@ -73,7 +73,8 @@ class EditarPessoa(EditEndpoint[Pessoa]):
         )
 
 class ListarPessoas(ListEndpoint[Pessoa]):
-
+    class Meta:
+        verbose_name = 'Listar Pessoas'
     def get(self):
         return (
             super().get().search('nome').filters('data_nascimento', 'casado', 'sexo')
@@ -84,9 +85,10 @@ class ListarPessoas(ListEndpoint[Pessoa]):
 
 class VisualizarPessoa(ViewEndpoint[Pessoa]): pass
 
-@metaclass('Visualizar', modal=False)
 class VisualizarPessoa2(ViewEndpoint[Pessoa]):
-
+    class Meta:
+        modal = False
+        verbose_name = 'Adicionar'
     def get(self):
         return (
             super().get()
@@ -194,8 +196,10 @@ class ListarFuncionario(Endpoint):
     def get(self):
         return self.objects('test.funcionario').actions('cadastrarfuncionario')
     
-@metaclass('Cadastrar Funcionário', icon='plus')
+
 class CadastrarFuncionario(AddEndpoint[Funcionario]):
-    
+    class Meta:
+        icon = 'plus'
+        verbose_name = 'Cadastrar Funcionário'
     def get(self):
         return super().get().info('Preencha o formulário corretamente')

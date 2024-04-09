@@ -10,7 +10,7 @@ import { Link } from "./Link";
 import { Icon, IconButton } from "./Icon";
 
 function QuerySet(props) {
-  var id = Math.random();
+  if (props.data.id == null) props.data.id = Math.random();
   const [data, setData] = useState(props.data);
 
   function renderTitleText() {
@@ -31,7 +31,7 @@ function QuerySet(props) {
       <div style={syle}>
         {renderTitleText()}
         <i
-          id={"loader-" + id}
+          id={"loader-" + props.data.id}
           style={{ display: "none" }}
           className="fa-solid fa-circle-notch fa-spin fa-1x"
         ></i>
@@ -40,7 +40,7 @@ function QuerySet(props) {
   }
 
   function showLoader(show) {
-    document.getElementById("loader-" + id).style.display = show
+    document.getElementById("loader-" + props.data.id).style.display = show
       ? "block"
       : "none";
   }
@@ -89,13 +89,13 @@ function QuerySet(props) {
   }
 
   function setSubset(name) {
-    const input = document.getElementById("subset-" + id);
+    const input = document.getElementById("subset-" + props.data.id);
     input.value = name || "";
     reload();
   }
 
   function calendarFilter(day, month, year) {
-    const form = document.getElementById("form-" + id);
+    const form = document.getElementById("form-" + props.data.id);
     form.querySelector("input[name=" + data.calendar.field + "__day]").value =
       day || "";
     form.querySelector("input[name=" + data.calendar.field + "__month]").value =
@@ -383,13 +383,18 @@ function QuerySet(props) {
   }
 
   function setPage(page) {
-    const form = document.getElementById("form-" + id);
+    const form = document.getElementById("form-" + props.data.id);
     const input = form.querySelector("input[name=page]");
     input.value = page;
     reload();
   }
 
   function renderPaginator() {
+    const form = document.getElementById("form-" + props.data.id);
+    if (form) {
+      const input = form.querySelector("input[name=page]");
+      input.value = data.pagination.page.current;
+    }
     const style = {
       display: "flex",
       justifyContent: "space-between",
@@ -409,7 +414,7 @@ function QuerySet(props) {
       textAlign: "center",
     };
     return (
-      data.pagination.page.sizes.length > 1 && (
+      data.pagination.page.total > 1 && (
         <div style={style}>
           <div>
             <div style={inline}>
@@ -445,15 +450,16 @@ function QuerySet(props) {
                   height: "2rem",
                   textAlign: "center",
                 }}
-                onKeyDown={(e) =>
-                  e.key == "Enter"
-                    ? setPage(
-                        e.target.value < 0
-                          ? 1
-                          : Math.min(e.target.value, data.pagination.page.total)
-                      )
-                    : null
-                }
+                onKeyDown={function (e) {
+                  if (e.key == "Enter") {
+                    e.preventDefault();
+                    setPage(
+                      e.target.value < 0
+                        ? 1
+                        : Math.min(e.target.value, data.pagination.page.total)
+                    );
+                  }
+                }}
               />
               <div style={inline}>|</div>
               {data.pagination.page.previous && (
@@ -538,7 +544,7 @@ function QuerySet(props) {
     showLoader(true);
     var url;
     const queryString = new URLSearchParams(
-      new FormData(document.getElementById("form-" + id))
+      new FormData(document.getElementById("form-" + props.data.id))
     ).toString();
     if (props.data.url.indexOf("?") > 0)
       url = props.data.url + "&" + queryString;
@@ -550,13 +556,13 @@ function QuerySet(props) {
   }
 
   function render() {
-    window[id] = () => reload();
+    window[props.data.id] = () => reload();
     const sytle = { backgroundColor: "white", padding: 20 };
     return (
-      <div className="reloadable" id={id} sytle={sytle}>
-        <form id={"form-" + id}>
+      <div className="reloadable" id={props.data.id} sytle={sytle}>
+        <form id={"form-" + props.data.id}>
           <div>{false && JSON.stringify(data)}</div>
-          <input type="hidden" name="subset" id={"subset-" + id} />
+          <input type="hidden" name="subset" id={"subset-" + props.data.id} />
           {renderTitle()}
           {renderTabs()}
           {renderActions()}

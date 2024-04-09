@@ -186,10 +186,13 @@ class Navbar(dict):
         self['subtitle'] = subtitle
         self['logo'] = logo
         self['user'] = user
-        self['actions'] = []
+        self['usermenu'] = []
+        self['adder'] = []
+        self['tools'] = []
+        self['settings'] = []
 
-    def add_action(self, name, url, modal=True):
-        self['actions'].append(dict(name=name, url=url, modal=modal))
+    def add_action(self, entrypoint, name, url, modal=True):
+        self[entrypoint].append(dict(name=name, url=url, modal=modal))
 
 class Menu(dict):
     def __init__(self, items):
