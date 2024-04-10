@@ -1,3 +1,3 @@
-import ComponentFactory from "../node_modules/slth/Root.jsx";
+import ComponentFactory from "slth";
 
 ComponentFactory.build(document.location.href);
