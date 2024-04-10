@@ -4,6 +4,6 @@ db.sqlite3
 .vscode
 local.env
 .deploy
-dist
-node_modules
+src/frontend/dist
+src/frontend/node_modules
 *.pyc

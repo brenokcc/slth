@@ -1,0 +1,42 @@
+application:
+  lang: pt-br
+  title: Sloth
+  subtitle: Take your time!
+  icon: /api/static/images/icon.svg
+  logo: /api/static/images/logo.svg
+  version: 1.0.5
+  oauth:
+    govbr:
+      name: gov.br
+      client_id: $GOVBR_CLIENTE_ID
+      client_secret: $GOVBR_CLIENT_SECRET
+      redirect_uri: /app/login/govbr/
+      authorize_url: $GOVBR_AUTHORIZE_URL
+      access_token_url: $GOVBR_ACCESS_TOKEN_URL
+      user_data_url: $GOVBR_USER_DATA_URL
+      user_logout_url: $GOVBR_LOGOUT_URL
+      user_scope:
+      user_data:
+        create: false
+        username: sub
+        email: email
+  groups:
+    administrador: Administrador
+    operador: Operador
+  index: dashboard
+  dashboard:
+    top:
+    center:
+    boxes:
+    search:
+    usermenu:
+      - icons
+      - logout
+    adder:
+    tools:
+    settings:
+  menu:
+    users:Item 1:
+      Item 1.1:
+        Sair: logout
+    Sair: logout

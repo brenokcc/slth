@@ -1,4 +1,5 @@
-import { createRoot } from "react-dom/client";
+import { React } from "react";
+import ReactDOM from "react-dom/client";
 import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Factory";
 import { hideMessages } from "./Message";
@@ -7,9 +8,9 @@ import { request, apiurl } from "./Request.jsx";
 
 function createLayer() {
   if (document.querySelector(".layer") == null) {
-    createRoot(document.body.appendChild(document.createElement("div"))).render(
-      <Layer />
-    );
+    ReactDOM.createRoot(
+      document.body.appendChild(document.createElement("div"))
+    ).render(<Layer />);
   }
 }
 
@@ -19,17 +20,17 @@ function openDialog(url, reloader) {
   window.reloader = reloader;
   var dialogs = document.getElementsByTagName("dialog");
   for (var i = 0; i < dialogs.length; i++) dialogs[i].style.display = "none";
-  createRoot(document.body.appendChild(document.createElement("div"))).render(
-    <Dialog url={apiurl(url)} />
-  );
+  ReactDOM.createRoot(
+    document.body.appendChild(document.createElement("div"))
+  ).render(<Dialog url={apiurl(url)} />);
 }
 
 function openIFrameDialog(url) {
   hideMessages();
   createLayer();
-  createRoot(document.body.appendChild(document.createElement("div"))).render(
-    <IDialog url={apiurl(url)} />
-  );
+  ReactDOM.createRoot(
+    document.body.appendChild(document.createElement("div"))
+  ).render(<IDialog url={apiurl(url)} />);
 }
 
 function closeDialog(message) {

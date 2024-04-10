@@ -1,3 +1,4 @@
+import { React } from "react";
 import ReactDOM from "react-dom/client";
 import { ComponentFactory } from "./Factory";
 import { Form } from "./Form";
@@ -91,4 +92,4 @@ window.load = function (url) {
   });
 };
 
-export default window;
+export default ComponentFactory;

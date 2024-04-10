@@ -1,3 +1,5 @@
+import { React } from "react";
+import ReactDOM from "react-dom/client";
 import { useState, useEffect } from "react";
 import { toLabelCase } from "./Utils";
 import { closeDialog, openDialog } from "./Modal";
@@ -8,7 +10,6 @@ import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
 import { Button } from "./Button.jsx";
 import { Action } from "./Action.jsx";
-import { createRoot } from "react-dom/client";
 
 const INPUT_TYPES = [
   "text",
@@ -898,7 +899,7 @@ function OneToMany(props) {
         });
       });
     }
-    createRoot(
+    ReactDOM.createRoot(
       document.getElementById(id).appendChild(document.createElement("div"))
     ).render(renderForm(form, "inline"));
     setTimeout(checkMessageDisplay, 100);

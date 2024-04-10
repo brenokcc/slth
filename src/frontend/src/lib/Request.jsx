@@ -1,6 +1,6 @@
 import { showMessage } from "./Message";
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 function Response(props) {
   return response(props.data);

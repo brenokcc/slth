@@ -8,6 +8,7 @@ function Menu() {
       height: 150,
       borderRadius: "50%",
     };
+    //`${import.meta.env.VITE_BACKEND_URL}/static/images/user.png`
     return (
       <div align="center">
         <div>

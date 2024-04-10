@@ -1,4 +1,5 @@
-import { createRoot } from "react-dom/client";
+import { React } from "react";
+import ReactDOM from "react-dom/client";
 import Icon from "./Icon";
 
 function Message(props) {
@@ -28,7 +29,7 @@ function Message(props) {
 function showMessage(text, isError = false) {
   const div = document.createElement("div");
   div.classList.add("message");
-  createRoot(document.body.appendChild(div)).render(
+  ReactDOM.createRoot(document.body.appendChild(div)).render(
     <Message text={text} isError={isError} />
   );
   setTimeout(function () {

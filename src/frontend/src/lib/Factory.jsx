@@ -8,5 +8,8 @@ function ComponentFactory(props) {
 ComponentFactory.register = function (type, func) {
   MAP[type] = func;
 };
+ComponentFactory.build = function (url) {
+  window.reload(url);
+};
 
 export { ComponentFactory };

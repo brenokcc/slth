@@ -1,3 +1,1 @@
-#!/bin/sh
-rm -f dist/*
-npm run build
+docker build -t slth-frontend .
