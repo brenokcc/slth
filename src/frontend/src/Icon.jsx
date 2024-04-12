@@ -29,6 +29,18 @@ function IconSet(props) {
   );
 }
 
+function Spin(props) {
+  function render() {
+    return (
+      <i
+        style={props.style}
+        className="fa-solid fa-circle-notch fa-spin fa-1x spin"
+      ></i>
+    );
+  }
+  return render();
+}
+
 function Icon(props) {
   var className = "fa-solid fa-" + props.icon;
   if (props.className) className += " " + props.className;
@@ -73,7 +85,7 @@ function IconButton(props) {
   return render();
 }
 
-export { Icon, IconSet, IconButton };
+export { Icon, IconSet, IconButton, Spin };
 export default Icon;
 
 const ICONS = [

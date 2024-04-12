@@ -336,7 +336,7 @@ class Search(Endpoint):
     
 class Dashboard(Endpoint):
     def get(self):
-        if 1 or self.request.user.is_authenticated:
+        if self.request.user.is_authenticated:
             serializer = Serializer(request=self.request)
             if APPLICATON['dashboard']['boxes']:
                 boxes = Boxes('Acesso Rápido')

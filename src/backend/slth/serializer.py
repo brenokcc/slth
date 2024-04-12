@@ -1,3 +1,4 @@
+import os
 import slth
 import json
 import types
@@ -7,18 +8,26 @@ from django.template.loader import render_to_string
 from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
 from .exceptions import JsonResponseException
-from .utils import absolute_url
-from django.db.models.fields.files import ImageFieldFile
+from .utils import absolute_url, build_url
+from .components import Image, FileLink, FileViewer
+from django.db.models.fields.files import ImageFieldFile, FieldFile
 
 
 def to_snake_case(name):
     return slugify(name).replace('-', '_')
 
 
-def serialize(obj, primitive=False):
+def serialize(obj, primitive=False, request=None):
     if obj is None:
         return None
     elif isinstance(obj, dict):
+        if request:
+            if isinstance(obj, Image):
+                if isinstance(obj['src'], ImageFieldFile):
+                    obj['src'] = build_url(request, obj['src'].url) if obj['src'] else None
+            elif isinstance(obj, FileLink) or isinstance(obj, FileViewer):
+                if isinstance(obj['url'], FieldFile):
+                    obj['url'] = build_url(request, obj['url'].url) if obj['url'] else None
         return obj
     elif isinstance(obj, date):
         return obj.strftime('%d/%m/%Y')
@@ -50,7 +59,7 @@ def getfield(obj, name_or_names, request=None):
             value = attr
             label = getattr(type(obj), name_or_names).field.verbose_name
         label = label.title() if label and label.islower() else label
-        field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True))
+        field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True, request=request))
         return field
     elif isinstance(name_or_names, LinkField):
         value = getattr(obj, name_or_names.name) if obj else None
@@ -62,7 +71,7 @@ def getfield(obj, name_or_names, request=None):
     else:
         fields = []
         for name in name_or_names:
-            fields.append(getfield(obj, name))
+            fields.append(getfield(obj, name, request))
         return fields
 
 class LinkField:

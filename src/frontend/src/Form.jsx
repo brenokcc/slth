@@ -1063,6 +1063,7 @@ function Form(props) {
           primary
           display="inline"
           icon="chevron-right"
+          spin
         />
       </div>
     );
@@ -1104,6 +1105,12 @@ function Form(props) {
       "POST",
       props.data.url,
       function callback(data) {
+        if (e.target.dataset.spinning) {
+          e.target.querySelector("i.fa-spin").style.display = "none";
+          e.target.querySelector(
+            "i.fa-" + e.target.dataset.spinning
+          ).style.display = "inline-block";
+        }
         if (data.type == "response") {
           closeDialog();
           reloadState();

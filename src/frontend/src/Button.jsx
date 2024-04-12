@@ -1,6 +1,6 @@
-import { Icon } from "./Icon";
+import { Icon, Spin } from "./Icon";
 
-function Button({ id, onClick, icon, label, display, primary, compact }) {
+function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
   function renderContent() {
     if (icon) {
       if (compact || !label) {
@@ -8,7 +8,8 @@ function Button({ id, onClick, icon, label, display, primary, compact }) {
       } else {
         return (
           <>
-            <Icon icon={icon} style={{ paddingRight: 10 }} />
+            <Spin style={{ marginRight: 10, display: "none" }} />
+            <Icon icon={icon} style={{ marginRight: 10 }} />
             {label || ""}
           </>
         );
@@ -42,6 +43,11 @@ function Button({ id, onClick, icon, label, display, primary, compact }) {
         style={style}
         onClick={(e) => {
           e.preventDefault();
+          if (icon && spin) {
+            e.target.dataset.spinning = icon;
+            e.target.querySelector("i.fa-spin").style.display = "inline-block";
+            e.target.querySelector("i.fa-" + icon).style.display = "none";
+          }
           onClick(e);
         }}
       >

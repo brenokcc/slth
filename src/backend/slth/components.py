@@ -16,15 +16,21 @@ class Image(dict):
         self['src'] = src
         self['width'] = width
         self['height'] = height
-        self['round'] = False
+        self['round'] = round
 
 
-class Link(dict):
-    def __init__(self, url, target='_blank', icon=None):
-        self['type'] = 'link'
+class FileLink(dict):
+    def __init__(self, url, modal=False, icon=None):
+        self['type'] = 'file_link'
         self['url'] = url
-        self['target'] = target
+        self['modal'] = modal
         self['icon'] = icon
+
+
+class FileViewer(dict):
+    def __init__(self, url):
+        self['type'] = 'file_viewer'
+        self['url'] = url
 
 
 class QrCode(dict):

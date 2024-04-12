@@ -18,11 +18,16 @@ function Banner(props) {
 }
 
 function Image(props) {
+  const style = { width: "100%", textAlign: "center" };
   return (
-    <div style={{ width: "100%", textAlign: "center" }}>
+    <div style={style}>
       <img
         src={props.data.src}
-        style={{ width: props.data.width, height: props.data.height }}
+        style={{
+          width: props.data.width,
+          height: props.data.height,
+          borderRadius: props.data.round ? "50%" : 0,
+        }}
       />
     </div>
   );
@@ -268,11 +273,25 @@ function Shell(props) {
 function FileLink(props) {
   function render() {
     return props.data.url ? (
-      <Link href={props.data.url} imodal>
+      <Link href={props.data.url} imodal={props.data.modal ? true : false}>
         {props.data.icon ? <Icon icon={props.data.icon} /> : props.data.url}
       </Link>
     ) : (
       <span>-</span>
+    );
+  }
+  return render();
+}
+
+function FilePreview(props) {
+  function render() {
+    return (
+      <iframe
+        src={props.data.url}
+        width="100%"
+        height={500}
+        style={{ border: 0 }}
+      ></iframe>
     );
   }
   return render();
@@ -361,6 +380,7 @@ export {
   QrCode,
   Indicators,
   FileLink,
+  FilePreview,
   Grid,
 };
 export default Html;

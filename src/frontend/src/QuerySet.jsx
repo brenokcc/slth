@@ -393,7 +393,7 @@ function QuerySet(props) {
     const form = document.getElementById("form-" + props.data.id);
     if (form) {
       const input = form.querySelector("input[name=page]");
-      input.value = data.pagination.page.current;
+      if (input) input.value = data.pagination.page.current;
     }
     const style = {
       display: "flex",

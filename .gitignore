@@ -7,7 +7,7 @@ local.env
 dist
 node_modules
 *.pyc
-
+*static/admin*
 # Logs
 logs
 *.log
