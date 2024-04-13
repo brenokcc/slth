@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { useState, useEffect } from "react";
 import { toLabelCase } from "./Utils";
 import { closeDialog, openDialog } from "./Modal";
-import { ComponentFactory } from "./Factory";
+import { ComponentFactory } from "./Root.jsx";
 import { showMessage, Info } from "./Message";
 import { request, response } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
@@ -172,6 +172,8 @@ function Field(props) {
     else if (props.data.type == "decimal")
       return <InputField data={props.data} />;
     else if (props.data.type == "boolean") return <Boolean data={props.data} />;
+    else if (props.data.type == "textarea")
+      return <Textarea data={props.data} />;
     else return <span>{props.data.name}</span>;
   }
 
@@ -588,17 +590,19 @@ function Selector(props) {
 
 function Textarea(props) {
   function render() {
+    var style = { ...INPUT_STYLE };
+    style.paddingheight = 200;
     return (
       <textarea
-        className="form-control"
         id={props.data.name}
         name={props.data.name}
         data-label={toLabelCase(props.data.label)}
-        style={{ height: 200 }}
+        style={style}
         defaultValue={props.data.value || ""}
       ></textarea>
     );
   }
+  return render();
 }
 
 function Boolean(props) {

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { ComponentFactory } from "./Factory";
+import { ComponentFactory } from "./Root";
 import { appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
 import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 import { SystemLayout } from "./Layout.jsx";
 import { Menu } from "./Menu.jsx";
-import Icon from "./Icon.jsx";
+import { Icon, PushWebNotification } from "./Icon.jsx";
 
 function Content(props) {
   const [data, setData] = useState(props.data);
@@ -26,13 +26,24 @@ function Content(props) {
 }
 
 function Application(props) {
+  const SMALL_WIDTH = 800;
+
   useEffect(() => {
     const message = localStorage.getItem("message");
     if (message) {
       localStorage.removeItem("message");
       showMessage(message);
     }
+    window.addEventListener("resize", () => {
+      const menu = document.querySelector("aside");
+      menu.style.display = window.innerWidth < SMALL_WIDTH ? "none" : "block";
+    });
   }, []);
+
+  function toggleMenu() {
+    const menu = document.querySelector("aside");
+    menu.style.display = menu.style.display == "none" ? "block" : "none";
+  }
 
   function renderHeader() {
     const style = {
@@ -53,25 +64,33 @@ function Application(props) {
     return props.data.navbar ? (
       <div style={style}>
         <div style={{ padding: 20 }}>
+          <Icon
+            icon="navicon"
+            style={{ fontSize: "1.5rem", marginRight: 10, cursor: "pointer" }}
+            onClick={toggleMenu}
+          />
           <a href="/">{props.data.navbar.title}</a>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
           {props.data.navbar.adder && (
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: 10 }}>
               <Dropdown actions={props.data.navbar.adder} position={{}}>
                 <Icon icon="plus" />
               </Dropdown>
             </div>
           )}
+          <div style={{ padding: 10 }}>
+            <PushWebNotification />
+          </div>
           {props.data.navbar.tools && (
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: 10 }}>
               <Dropdown actions={props.data.navbar.tools} position={{}}>
                 <Icon icon="tools" />
               </Dropdown>
             </div>
           )}
           {props.data.navbar.settings && (
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: 10 }}>
               <Dropdown actions={props.data.navbar.settings} position={{}}>
                 <Icon icon="gear" />
               </Dropdown>
@@ -83,7 +102,7 @@ function Application(props) {
             onSelect={(option) => (document.location.href = appurl(option.id))}
           />
           {props.data.navbar.usermenu && (
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: 10 }}>
               <Dropdown actions={props.data.navbar.usermenu} position={{}}>
                 {props.data.navbar.user}
               </Dropdown>
@@ -94,10 +113,28 @@ function Application(props) {
     ) : null;
   }
   function renderAside() {
-    return window.application.menu && <Menu />;
+    return (
+      window.application.menu && (
+        <aside
+          style={{
+            flexGrow: 2,
+            maxWidth: "350px",
+            minWidth: "350px",
+            display: window.innerWidth < SMALL_WIDTH ? "none" : "block",
+          }}
+        >
+          <Menu />
+        </aside>
+      )
+    );
   }
   function renderMain() {
-    return <Content data={props.data.content} />;
+    return (
+      <main style={{ flexGrow: 6, minWidth: "400px" }}>
+        <Content data={props.data.content} />
+        <footer>{renderFooter()}</footer>
+      </main>
+    );
   }
   function renderFooter() {
     return props.data.footer ? (
@@ -109,14 +146,24 @@ function Application(props) {
   }
   function render() {
     return (
-      <SystemLayout
-        header={renderHeader()}
-        aside={renderAside()}
-        main={renderMain()}
-        footer={renderFooter()}
-      />
+      <div>
+        <header>{renderHeader()}</header>
+        <div
+          style={{
+            overflowX: "hide",
+            width: "100%",
+            display: "flex",
+            overflow: "hidden",
+            minHeight: window.innerHeight - 70,
+          }}
+        >
+          {renderAside()}
+          {renderMain()}
+        </div>
+      </div>
     );
   }
+  return render();
   return render();
 }
 

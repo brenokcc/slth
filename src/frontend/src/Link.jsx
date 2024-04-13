@@ -4,7 +4,6 @@ import { toLabelCase } from "./Utils";
 
 function Link({
   id,
-  key,
   href,
   modal,
   imodal,
@@ -26,7 +25,6 @@ function Link({
     return (
       <a
         id={id}
-        key={key}
         onClick={onClick || onClickDefault}
         href={url || "#"}
         data-label={toLabelCase(dataLabel)}

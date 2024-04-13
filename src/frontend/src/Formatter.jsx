@@ -1,4 +1,4 @@
-import { ComponentFactory } from "./Factory";
+import { ComponentFactory } from "./Root.jsx";
 
 function format(obj) {
   if (obj === null) return "-";

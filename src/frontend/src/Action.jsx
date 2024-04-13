@@ -78,10 +78,21 @@ function Action(props) {
 }
 
 function Dropdown(props) {
+  function getListElement(e) {
+    var dropdown = e.target.parentNode.querySelector(".dropdown");
+    if (dropdown == null) {
+      dropdown = e.target.parentNode.parentNode.querySelector(".dropdown");
+    }
+    if (dropdown == null) {
+      dropdown =
+        e.target.parentNode.parentNode.parentNode.querySelector(".dropdown");
+    }
+    return dropdown;
+  }
   function onClick(e) {
     const rect = e.target.getBoundingClientRect();
     // the user clicks in the icon
-    const dropdown = e.target.parentNode.parentNode.querySelector(".dropdown");
+    const dropdown = getListElement(e);
     document
       .querySelectorAll(".dropdown")
       .forEach((dropdown) => (dropdown.style.display = "none"));
@@ -90,10 +101,7 @@ function Dropdown(props) {
   }
   function onMouseLeave(e) {
     // the user leaves the LI or A tag
-    const dropdown =
-      e.target.tagName == "LI"
-        ? e.target.parentNode
-        : e.target.parentNode.parentNode;
+    const dropdown = getListElement(e);
     dropdown.style.display = "none";
   }
   function render() {

@@ -1,6 +1,5 @@
 import { React } from "react";
 import ReactDOM from "react-dom/client";
-import { ComponentFactory } from "./Factory";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
 import { Object, Fieldset, Field, Section, Group } from "./Viewer";
@@ -25,9 +24,38 @@ import {
   FilePreview,
 } from "./Library";
 
+import "./vendors/css/fonts/Eina02-Bold.f8011405.ttf";
+import "./vendors/css/fonts/Eina02-Regular.2e682693.ttf";
+import "./vendors/css/slth.css";
+
+import "./vendors/css/fonts/fa-solid-900.ttf";
+import "./vendors/css/fonts/fa-solid-900.woff2";
+import "./vendors/css/fontawesome.min.css";
+import "./vendors/css/solid.min.css";
+
+import "./vendors/js/echarts.min.js";
+import "./vendors/js/peerjs.min.js";
+import "./vendors/js/service-worker.js";
+import "./vendors/js/slth.js";
+import "./vendors/js/vanilla-masker.min.js";
+import "./vendors/js/react-trigger-change.js";
+
+var ROOT;
+var COMPONENT_REGISTRY = {};
 const APPLICATION_URL = "/api/application/";
 const APPLICATION_DATA = localStorage.getItem("application");
-const ROOT = ReactDOM.createRoot(document.getElementById("root"));
+
+function ComponentFactory(props) {
+  const func = COMPONENT_REGISTRY[props.data.type];
+  return func ? func(props.data) : <div>{JSON.stringify(props.data)}</div>;
+}
+ComponentFactory.register = function (type, func) {
+  COMPONENT_REGISTRY[type] = func;
+};
+ComponentFactory.render = function (root) {
+  ROOT = root;
+  window.reload(document.location.href);
+};
 
 ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
@@ -98,4 +126,5 @@ window.load = function (url) {
   }
 };
 
+export { ComponentFactory };
 export default ComponentFactory;

@@ -77,7 +77,7 @@ class ListarPessoas(ListEndpoint[Pessoa]):
         verbose_name = 'Listar Pessoas'
     def get(self):
         return (
-            super().get().fields('nome', 'get_foto', 'sexo', 'cor_preferida').search('nome').filters('data_nascimento', 'casado', 'sexo')
+            super().get().fields('nome', 'get_foto', 'sexo', 'cor_preferida', 'get_hello').search('nome').filters('data_nascimento', 'casado', 'sexo')
             .subsets('homens', 'mulheres')
             .actions('visualizarpessoa2', 'edit', 'add').limit(2, 4)
         )
@@ -88,7 +88,8 @@ class VisualizarPessoa(ViewEndpoint[Pessoa]): pass
 class VisualizarPessoa2(ViewEndpoint[Pessoa]):
     class Meta:
         modal = False
-        verbose_name = 'Adicionar'
+        verbose_name = 'Visualizar'
+        
     def get(self):
         return (
             super().get()

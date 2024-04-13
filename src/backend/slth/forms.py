@@ -15,6 +15,7 @@ from .exceptions import JsonResponseException
 from .utils import absolute_url
 from .serializer import Serializer
 from .components import Response
+from .notifications import send_push_web_notification
 from slth import ENDPOINTS
 
 
@@ -91,7 +92,7 @@ class FormMixin:
 
     def to_dict(self, prefix=None):
         data = dict(
-            type='form', title=self.get_metadata('title', type(self).__name__), icon=self.get_metadata('icon'),
+            type='form', title=self.get_metadata('title', self._title), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request), info=self._info
         )
         data.update(controls=self.controls, width=self.get_metadata('width', '100%'))
@@ -174,6 +175,8 @@ class FormMixin:
                 mask = getattr(field, 'mask', None)
                 if mask:
                     data.update(mask=mask)
+            if isinstance(field, CharField) and isinstance(field.widget, Textarea):
+                data.update(type='textarea')
             if ftype == 'decimal':
                 data.update(mask='decimal')
             elif ftype == 'choice':
@@ -298,15 +301,22 @@ class FormMixin:
                 pass
             return default if value is None else value
 
+    def settitle(self, title):
+        self._title = title 
+        return self
+    
+
 class Form(DjangoForm, FormMixin):
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, request=None, endpoint=None, **kwargs):
         self.fieldsets = {}
         self.fields = dict(self.fieldsets)
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
-        self.request = kwargs.pop('request', None)
+        self.endpoint = endpoint
+        self.request = request
         self._info = None
+        self._title = type(self).__name__
         self._actions = {}
         self.parse_json()
         if 'data' not in kwargs:
@@ -338,13 +348,16 @@ class Form(DjangoForm, FormMixin):
 
 class ModelForm(DjangoModelForm, FormMixin):
 
-    def __init__(self, instance=None, request=None, delete=False, **kwargs):
+    def __init__(self, instance=None, request=None, endpoint=None, delete=False, **kwargs):
         self.fieldsets = {}
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
         self.request = request
+        self.endpoint = endpoint
+        self.endpoint = kwargs.pop('endpoint', None)
         self.delete = delete
         self._info = None
+        self._title = type(self).__name__
         self._actions = {}
         self.parse_json()
         if 'data' not in kwargs:
@@ -500,6 +513,13 @@ class LoginForm(Form):
         
     def submit(self):
         return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key, application=None))
+
+class SendPushNotificationForm(Form):
+    message = CharField(label='Text', widget=Textarea())
+
+    def submit(self):
+        send_push_web_notification(self.endpoint.source, self.cleaned_data['message'])
+        return Response(message='Notificação enviada com sucesso.')
 
 
 FIELD_TYPES = {

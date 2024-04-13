@@ -1,7 +1,7 @@
 import { React } from "react";
 import ReactDOM from "react-dom/client";
 import { useState, useEffect } from "react";
-import { ComponentFactory } from "./Factory";
+import { ComponentFactory } from "./Root.jsx";
 import { hideMessages } from "./Message";
 import { Icon } from "./Icon";
 import { request, apiurl } from "./Request.jsx";

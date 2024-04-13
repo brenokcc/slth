@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ComponentFactory } from "./Factory";
+import { ComponentFactory } from "./Root.jsx";
 import { request } from "./Request.jsx";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action.jsx";
@@ -62,7 +62,6 @@ function Fieldset(props) {
 
   function loadContent(url) {
     request("GET", url, function (data) {
-      console.log(data);
       setContent(data);
     });
   }

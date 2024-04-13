@@ -1,19 +1,23 @@
 
-from typing import TypeVar, Generic
+import json
 import inspect
 from django.apps import apps
+from typing import TypeVar, Generic
 from django.core.cache import cache
 from django.conf import settings
 from django.utils.text import slugify
 from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .forms import LoginForm, ModelForm, Form, FormFactory
+from .forms import LoginForm, ModelForm, Form, FormFactory, SendPushNotificationForm
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
 from .utils import build_url, append_url
+from .models import PushSubscription
+from slth.queryset import QuerySet
 from slth import APPLICATON, ENDPOINTS
+from django.contrib.auth.models import User
 
 
 import slth
@@ -86,13 +90,15 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = self.post()
         else:
             data = {}
-       
+        title = self.get_metadata('verbose_name')
         if isinstance(data, models.QuerySet):
-            data = data.contextualize(self.request)
+            data = data.contextualize(self.request).title(title)
         elif isinstance(data, Serializer):
             data = data.contextualize(self.request)
         elif isinstance(data, FormFactory):
             data = data.form(self.request)
+        elif isinstance(data, Form) or isinstance(data, ModelForm):
+            data = data.settitle(title)
         return data
     
     def serialize(self):
@@ -194,7 +200,7 @@ class AdminEndpoint(Generic[T], ModelEndpoint):
         return self.model.objects.all().actions(*actions)
     
 class ListEndpoint(Generic[T], ModelEndpoint):
-    def get(self):
+    def get(self) -> QuerySet:
         return self.model.objects.all()
 
 class AddEndpoint(Generic[T], ModelEndpoint):
@@ -213,6 +219,11 @@ class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
     pass
 
 class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
+
+    class Meta:
+        modal = False
+        verbose_name = 'Visualizar'
+
     def get(self) -> Serializer:
         return self.serializer(self.get_instance())
         
@@ -268,6 +279,27 @@ class ChildInstanceEndpoint(ChildEndpoint):
 
     def get_instance(self):
         return self.instance
+    
+class ChildFormEndpoint(Generic[T], Endpoint):
+
+    def get_form_cls(self):
+        return self.__orig_bases__[0].__args__[0]
+
+    def get(self):
+        return self.get_form_cls()(request=self.request, endpoint=self)
+    
+
+class ChildInstanceFormEndpoint(Generic[T], ChildEndpoint):
+
+    def __init__(self, source):
+        self.source = source
+        super().__init__()
+
+    def get_form_cls(self):
+        return self.__orig_bases__[0].__args__[0]
+
+    def get(self):
+        return self.get_form_cls()(request=self.request, endpoint=self)
 
 class View(ChildInstanceEndpoint):
     class Meta:
@@ -334,6 +366,15 @@ class Search(Endpoint):
             result = options
         return result[0:10]
     
+class Users(ListEndpoint[User]):
+
+    class Meta:
+        modal = False
+        verbose_name = 'Usuários'
+
+    def get(self):
+        return super().get().fields('username', 'email', 'is_superuser').actions('sendpushnotification')
+
 class Dashboard(Endpoint):
     def get(self):
         if self.request.user.is_authenticated:
@@ -397,3 +438,57 @@ class Application(Endpoint):
             menu = Menu(items)
         footer = Footer(APPLICATON['version'])
         return Application_(navbar=navbar, menu=menu, footer=footer)
+    
+class Manifest(Endpoint):
+
+    class Meta:
+        verbose_name = 'Manifest'
+
+    def get(self):
+        return Response(
+            {
+                "name": APPLICATON['title'],
+                "short_name": APPLICATON['title'],
+                "lang": 'pt-BR',
+                "start_url": "/",
+                "scope": "/",
+                "display": "standalone",
+                "icons": [{
+                    "src": build_url(self.request, APPLICATON['logo']),
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }]
+            }
+        )
+
+    def check_permission(self):
+        return True
+
+
+class PushSubscribe(Endpoint):
+
+    class Meta:
+        verbose_name = 'Subscrever para Notificações'
+
+    def post(self):
+        data = json.loads(self.request.POST.get('subscription'))
+        device = self.request.META.get('HTTP_USER_AGENT', '')
+        qs = PushSubscription.objects.filter(user=User.objects.first(), device=device)
+        qs.update(data=data) if qs.exists() else PushSubscription.objects.create(
+            user=User.objects.first(), data=data, device=device
+        )
+        return Response()
+
+    def check_permission(self):
+        return True
+    
+class PushSubscriptions(ListEndpoint[PushSubscription]):
+    class Meta:
+        verbose_name = 'Notificações'
+
+class SendPushNotification(ChildInstanceFormEndpoint[SendPushNotificationForm]):
+    class Meta:
+        verbose_name = 'Enviar Notificação'
+
+
+

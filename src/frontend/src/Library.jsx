@@ -2,12 +2,9 @@ import { useEffect } from "react";
 import { Icon } from "./Icon";
 import { apiurl, appurl } from "./Request";
 import { COLORS } from "./Theme";
-import { toLabelCase } from "./Utils";
-import { openIFrameDialog } from "./Modal";
-import { ComponentFactory } from "./Factory";
+import { ComponentFactory } from "./Root.jsx";
 import { GridLayout } from "./Layout";
 import { Link } from "./Link";
-import { Action } from "./Action";
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -192,7 +189,7 @@ function Boxes(props) {
       marginLeft: -20,
       marginRight: -20,
       textAlign: "center",
-      backgroundColor: "#f8f8f8",
+      //backgroundColor: "#f8f8f8",
     };
     const h2 = {
       color: "blue",

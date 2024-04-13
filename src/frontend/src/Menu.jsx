@@ -19,7 +19,7 @@ function Menu() {
     );
   }
 
-  function toggleItem(e) {
+  function onClick(e) {
     var item = e.target;
     const child = item.querySelector(":scope > ul, :scope > li");
     if (child) {
@@ -51,6 +51,9 @@ function Menu() {
       e.stopPropagation();
       e.cancelBubble = true;
       return false;
+    } else {
+      const menu = document.querySelector("aside");
+      menu.style.display = window.innerWidth < 800 ? "none" : "block";
     }
   }
 
@@ -77,7 +80,7 @@ function Menu() {
       );
     } else {
       return (
-        <li key={Math.random()} onClick={toggleItem} style={style}>
+        <li key={Math.random()} onClick={onClick} style={style}>
           {level == 0 && (
             <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
           )}
@@ -110,8 +113,8 @@ function Menu() {
   function render() {
     const style = {
       padding: 25,
-      borderRight: "solid 1px #DDD",
       height: "100%",
+      borderRight: "solid 1px #EEE",
     };
     return (
       <div style={style}>

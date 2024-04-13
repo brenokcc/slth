@@ -1,6 +1,8 @@
 import { showMessage } from "./Message";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const API_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  document.location.origin.replace(":5173", ":8000");
 
 function Response(props) {
   return response(props.data);
@@ -19,6 +21,7 @@ function request(method, url, callback, data) {
   var headers = { Accept: "application/json" };
   if (token) headers["Authorization"] = "Token " + token;
   url = url.replace(document.location.origin, "");
+  url = url.replace(document.location.search, "");
   url = apiurl(url);
   url = url + document.location.search;
   if (url.indexOf(API_URL) == -1) url = API_URL + url;

@@ -59,6 +59,9 @@ class Pessoa(models.Model):
     def get_foto(self):
         # return FileViewer(self.foto)
         return Image(self.foto, width=100, round=True)
+    
+    def get_hello(self):
+        return dict(type='hello-world', name=self.nome)
 
 class Cidade(models.Model):
     nome = models.CharField('Nome', max_length=255)

@@ -127,19 +127,22 @@ function QuerySet(props) {
         borderSpacing: 0,
         borderCollapse: "collapse",
         marginTop: 15,
+        marginBottom: 15,
       };
 
       const day = {
         marginLeft: "17",
         textAlign: "right",
-        paddingRight: 5,
-        paddingTop: 5,
+        paddingRight: 2,
+        paddingTop: 2,
         float: "right",
+        fontSize: "0.8rem",
       };
       const td = {
         verticalAlign: "top",
         width: "14.2%",
         height: 55,
+        border: "solid 1px #EEE",
       };
 
       const number = {
@@ -487,7 +490,7 @@ function QuerySet(props) {
 
   function renderActions() {
     return (
-      <div align="right" style={{ margin: 10 }}>
+      <div align="right" style={{ marginTop: 20, marginBottom: 20 }}>
         {data.actions.map(function (action) {
           return <Action key={Math.random()} data={action} primary />;
         })}
