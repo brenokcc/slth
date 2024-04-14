@@ -1,8 +1,13 @@
-
-function toLabelCase(text){
-    if(text!=null) text = text.toString().replace('-', '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace('_', '').toLowerCase();
-    return text;
+function toLabelCase(text) {
+  if (text != null)
+    text = text
+      .toString()
+      .replace("-", "")
+      .normalize("NFD")
+      .replace("_", "")
+      .toLowerCase();
+  return text;
 }
 
-export default toLabelCase
-export {toLabelCase}
+export default toLabelCase;
+export { toLabelCase };

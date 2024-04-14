@@ -7,6 +7,10 @@
     ".": {
       "import": "./dist/library.es.js",
       "require": "./dist/library.umd.js"
+    },
+    "./dist/style.css": {
+      "import": "./dist/style.css",
+      "require": "./dist/style.css"
     }
   },
   "main": "./dist/library.umd.js",

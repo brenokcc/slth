@@ -1,7 +1,5 @@
 import os
 import signal
-import subprocess
-import sys
 import warnings
 from subprocess import DEVNULL, check_call
 
@@ -43,9 +41,9 @@ class SeleniumTestCase(LiveServerTestCase):
     RESTORE = cache.get("RESTORE")
     LOG_ACTION = cache.get("LOG_ACTION", False)
 
+    FRONTEND_HOST_URL = None
+    FRONTEND_PROJECT_DIR = None
     FRONTEND_PROCESS_PID = None
-    FRONTEND_PROJECT_DIR = os.environ.get("FRONTEND_PROJECT_DIR")
-    FRONTEND_HOST_URL = os.environ.get("FRONTEND_HOST_URL")
 
     static_handler = TestStaticFilesHandler
 
@@ -55,47 +53,23 @@ class SeleniumTestCase(LiveServerTestCase):
         self.current_username = None
         warnings.filterwarnings("ignore")
 
-        self._url = "/app/dashboard/login/"
+        self._url = "/app/login/"
         self._execute = 1
         self._step = 0
         self._adverb = 0
 
     @classmethod
     def setUpClass(cls):
-        # Frontend is configured to access (by the default) the API at http://127.0.0.1:8000
-        if cls.FRONTEND_HOST_URL:
-            cls.host = "127.0.0.1"
-            cls.port = 8000
-            super().setUpClass()
-        # Backend is configured to be accessed (by the default) from http://127.0.0.1:3000
-        elif cls.FRONTEND_PROJECT_DIR:
-            cls.host = "127.0.0.1"
-            cls.port = 8000
-            super().setUpClass()
-            env = os.environ.copy()
-            env["TEST_NEXT_PUBLIC_URL_API"] = cls.live_server_url
-            if SeleniumTestCase.NOBUILD:
-                cmd = ["echo", "npm", "run", "build"]
-            else:
-                cmd = ["npm", "run", "build"]
-            process = subprocess.Popen(cmd, cwd=cls.FRONTEND_PROJECT_DIR, env=env, preexec_fn=os.setsid)
-            stat = process.communicate()
-            print(f"Builded with status: {stat}")
-            process = subprocess.Popen(
-                ["npm", "run", "start"], cwd=cls.FRONTEND_PROJECT_DIR, env=env, preexec_fn=os.setsid
-            )
-            cls.FRONTEND_PROCESS_PID = process.pid
-        else:
-            cls.host = "tester"
-            cls.port = 9000
-            super().setUpClass()
-            # print("[ERROR] Please, setup FRONTEND_HOST_URL or FRONTEND_PROJECT_DIR environment variables.")
-            # sys.exit()
+        cls.host = os.environ.get('BACKEND_HOST', '127.0.0.1')
+        cls.port = int(os.environ.get('BACKEND_PORT', '8000'))
+        super().setUpClass()
         print(cls.live_server_url)
         cache.clear()
-        cls.browser = Browser(
-            cls.live_server_url or cls.FRONTEND_HOST_URL or "http://127.0.0.1:3000", slowly=False, headless=SeleniumTestCase.HEADLESS
+        url = "http://{}:{}".format(
+            os.environ.get('FRONTEND_HOST', '127.0.0.1'),
+            os.environ.get('FRONTEND_PORT', '5173')
         )
+        cls.browser = Browser(url, slowly=False, headless=SeleniumTestCase.HEADLESS)
         for app_label in settings.INSTALLED_APPS:
             app_module = __import__(app_label)
             app_dir = os.path.dirname(app_module.__file__)
@@ -104,9 +78,9 @@ class SeleniumTestCase(LiveServerTestCase):
                 call_command("loaddata", fixture_path)
         settings.DEBUG = True
 
-    def create_superuser(self, email, password):
-        if not User.objects.filter(email=email).exists():
-            User.objects.create_superuser(email, password)
+    def create_superuser(self, username, password):
+        if not User.objects.filter(username=username).exists():
+            User.objects.create_superuser(username, password=password)
 
     def wait(self, seconds=1):
         self.browser.wait(seconds)
@@ -114,6 +88,16 @@ class SeleniumTestCase(LiveServerTestCase):
     def open(self, url="/"):
         self.browser.open(url)
         self._url = url
+
+    def login(self, username, password):
+        self.open('/app/login/')
+        self.enter('Username', username)
+        self.enter('Senha', password)
+        self.click('Enviar')
+
+    def logout(self, username):
+        self.click(username)
+        self.click('Sair')
 
     def slow(self, slowly=False):
         self.browser.slow(slowly)
@@ -179,9 +163,7 @@ class SeleniumTestCase(LiveServerTestCase):
         except ProcessLookupError:
             pass
 
-        # cls.browser.close()
-        cls.browser.quit()
-        # cls.browser.service.stop()
+        cls.browser.close()
 
     def postgres_parameters(self):
         dbhost = settings.DATABASES["default"]["HOST"]

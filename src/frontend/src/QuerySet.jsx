@@ -8,6 +8,7 @@ import { GridLayout } from "./Layout";
 import { Button } from "./Button";
 import { Link } from "./Link";
 import { Icon, IconButton } from "./Icon";
+import toLabelCase from "./Utils";
 
 function QuerySet(props) {
   if (props.data.id == null) props.data.id = Math.random();
@@ -15,9 +16,9 @@ function QuerySet(props) {
 
   function renderTitleText() {
     if (data.attrname) {
-      return <h2>{data.title}</h2>;
+      return <h2 data-label={toLabelCase(data.title)}>{data.title}</h2>;
     } else {
-      return <h1>{data.title}</h1>;
+      return <h1 data-label={toLabelCase(data.title)}>{data.title}</h1>;
     }
   }
 

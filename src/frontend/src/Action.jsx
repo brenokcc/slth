@@ -118,7 +118,11 @@ function Dropdown(props) {
     const li = { listStyleType: "none", padding: 10 };
     return (
       <>
-        <div onClick={onClick} style={{ cursor: "pointer" }}>
+        <div
+          onClick={onClick}
+          style={{ cursor: "pointer" }}
+          data-label={toLabelCase(props.dataLabel)}
+        >
           {props.children}
         </div>
         {props.actions && props.actions.length > 0 && (

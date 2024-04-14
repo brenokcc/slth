@@ -1,4 +1,5 @@
 import datetime
+import unicodedata
 import os
 import sys
 import time
@@ -19,6 +20,10 @@ from selenium.webdriver import Remote
 from selenium.webdriver.remote.file_detector import LocalFileDetector
 from selenium.webdriver.remote.webelement import WebElement
 
+
+def to_label_case(text):
+    return unicodedata.normalize('NFD', text.replace('-', '').replace('_', '').lower())
+
 def _upload(self, filename):
     return filename
 
@@ -34,8 +39,11 @@ class Browser(Remote):
             options.add_argument("--window-size=720x800")
         if headless and "-v" not in sys.argv:
             options.add_argument("--headless")
-
-        super().__init__(command_executor='http://selenium:4444', options=options)
+        url = 'http://{}:{}'.format(
+            os.environ.get('SELENIUM_HOST', '127.0.0.1'),
+            os.environ.get('SELENIUM_POST', '4444')
+        )
+        super().__init__(command_executor=url, options=options)
         self.file_detector = LocalFileDetector()
 
         self.cursor = None
@@ -166,16 +174,13 @@ class Browser(Remote):
             if len(value) == 10 and value[2] == "/" and value[5] == "/":
                 value = datetime.datetime.strptime(value, "%d/%m/%Y").strftime("%Y-%m-%d")
         try:
-            widget = self.find_element("css selector", f'[data-label="{name}"]')
+            widget = self.find_element("css selector", f'[data-label="{to_label_case(name)}"]')
             if widget.tag_name == "input" and widget.get_property("type") == "file":
                 value = os.path.join(settings.BASE_DIR, value)
             widget.clear()
             widget.send_keys(value)
         except WebDriverException as e:
             if count:
-                import traceback 
-                traceback.print_exc()
-                breakpoint()
                 self.wait()
                 self.enter(name, value, submit, count - 1)
             else:
@@ -186,7 +191,7 @@ class Browser(Remote):
     def choose(self, name, value, count=4):
         self.print('{} "{}" for "{}"'.format("Choosing", value, name))
         try:
-            widgets = self.find_elements(By.CSS_SELECTOR, f'select[data-label="{name}"]')
+            widgets = self.find_elements(By.CSS_SELECTOR, f'select[data-label="{to_label_case(name)}"]')
             if widgets:
                 if widgets[0].tag_name.lower() == "select":
                     select = Select(widgets[0])
@@ -197,13 +202,13 @@ class Browser(Remote):
                         # print('Trying ({}) click at "{}"...'.format(i, value))
                         self.wait(0.5)
                         try:
-                            super().find_element(By.CSS_SELECTOR, f'.autocomplete-item[data-label*="{value}"]').click()
+                            super().find_element(By.CSS_SELECTOR, f'.autocomplete-item[data-label*="{to_label_case(value)}"]').click()
                             break
                         except WebDriverException:
                             pass
             else:
                 self.look_at(name)
-                inputs = self.find_elements(By.CSS_SELECTOR, f'input[data-label="{value}"]')
+                inputs = self.find_elements(By.CSS_SELECTOR, f'input[data-label="{to_label_case(value)}"]')
                 if inputs:
                     if inputs[0].get_dom_attribute("type") == "radio":
                         inputs[0].click()
@@ -247,7 +252,7 @@ class Browser(Remote):
     def look_at(self, text, count=4):
         self.print(f'Loking at "{text}"')
         try:
-            self.cursor = self.find_element(By.CSS_SELECTOR, f'[data-label="{text}"]')
+            self.cursor = self.find_element(By.CSS_SELECTOR, f'[data-label="{to_label_case(text)}"]')
             if self.cursor:
                 self.execute_script("arguments[0].scrollIntoView();", self.cursor)
                 self.debug(f"Cursor is now at {self.cursor.tag_name}")
@@ -263,7 +268,7 @@ class Browser(Remote):
     def click(self, text, count=4):
         self.print(f'Clicking "{text}"')
         try:
-            elements = self.find_elements("css selector", f'[data-label="{text}"]')
+            elements = self.find_elements("css selector", f'[data-label="{to_label_case(text)}"]')
             if elements:
                 for element in elements:
                     try:

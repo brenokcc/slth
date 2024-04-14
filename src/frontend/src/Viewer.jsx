@@ -4,6 +4,7 @@ import { request } from "./Request.jsx";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action.jsx";
 import { Link } from "./Link.jsx";
+import toLabelCase from "./Utils";
 
 function Field(props) {
   function render() {
@@ -90,10 +91,14 @@ function Title(props) {
     return (
       <div style={div}>
         {props.data.title && !props.auxiliary && (
-          <h1 style={h1}>{props.data.title}</h1>
+          <h1 style={h1} data-label={toLabelCase(props.data.title)}>
+            {props.data.title}
+          </h1>
         )}
         {props.data.title && props.auxiliary && (
-          <h2 style={h2}>{props.data.title}</h2>
+          <h2 style={h2} data-label={toLabelCase(props.data.title)}>
+            {props.data.title}
+          </h2>
         )}
         <div>
           {props.data.actions &&
@@ -203,7 +208,9 @@ function Group(props) {
   const [content, setContent] = useState(props.data.data[0]);
 
   function renderTitle() {
-    return <h2>{props.data.title}</h2>;
+    return (
+      <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+    );
   }
 
   function renderTabs() {

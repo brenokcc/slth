@@ -2,7 +2,12 @@ import { showMessage } from "./Message";
 
 const API_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  document.location.origin.replace(":5173", ":8000");
+  document.location.origin
+    .replace(
+      (/\:\d+/i.exec(document.location.origin) || ["|"]).join(""),
+      ":8000"
+    )
+    .replace("frontend", "backend");
 
 function Response(props) {
   return response(props.data);

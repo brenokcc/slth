@@ -1,4 +1,5 @@
 import { Icon, Spin } from "./Icon";
+import toLabelCase from "./Utils";
 
 function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
   function renderContent() {
@@ -41,6 +42,7 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
       <a
         id={id}
         style={style}
+        data-label={toLabelCase(label || icon)}
         onClick={(e) => {
           e.preventDefault();
           if (icon && spin) {

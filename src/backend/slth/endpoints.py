@@ -330,6 +330,7 @@ class Login(Endpoint):
 class Logout(Endpoint):
     class Meta:
         modal = False
+        verbose_name = 'Sair'
         
     def get(self):
         return Response(message='Logout realizado com sucesso.', redirect='/api/login/', store=dict(token=None, application=None))
@@ -349,7 +350,7 @@ class Search(Endpoint):
         key = '_options_'
         options = self.cache.get(key)
         term = self.request.GET.get('term')
-        if options is None:
+        if options is None and APPLICATON['dashboard']['search']:
             options = []
             for endpoint in APPLICATON['dashboard']['search']:
                 cls = ENDPOINTS[endpoint]

@@ -1,5 +1,6 @@
 import ReactDOM from "react-dom/client";
-import ComponentFactory from "/Users/breno/Documents/Workspace/slth/src/frontend/src/Root";
+import ComponentFactory from "slth";
+import "slth/dist/style.css";
 
 function Hello(props) {
   return <p>Hello {props.data.name}!</p>;

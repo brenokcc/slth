@@ -1,5 +1,6 @@
 import Link from "./Link";
 import Icon from "./Icon";
+import { toLabelCase } from "./Utils";
 
 function Menu() {
   function renderUser() {
@@ -70,7 +71,7 @@ function Menu() {
     if (item.url) {
       return (
         <li key={Math.random()} style={style}>
-          <Link href={item.url}>
+          <Link href={item.url} dataLabel={toLabelCase(item.label)}>
             {level == 0 && (
               <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
             )}
@@ -80,7 +81,12 @@ function Menu() {
       );
     } else {
       return (
-        <li key={Math.random()} onClick={onClick} style={style}>
+        <li
+          key={Math.random()}
+          onClick={onClick}
+          style={style}
+          data-label={toLabelCase(item.label)}
+        >
           {level == 0 && (
             <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
           )}

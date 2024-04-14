@@ -1,5 +1,6 @@
 import { ChartFactory } from "./Chart";
 import format from "./Formatter";
+import toLabelCase from "./Utils";
 
 function Statistics(props) {
   function render1D() {
@@ -18,7 +19,9 @@ function Statistics(props) {
 
     return (
       <div className="statistics">
-        {props.data.title && <h2>{props.data.title}</h2>}
+        {props.data.title && (
+          <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+        )}
         <table style={{ width: "100%" }}>
           <tbody>
             {rows.map((row) => (
@@ -78,7 +81,9 @@ function Statistics(props) {
 
     return (
       <div className="statistics">
-        {props.data.title && <h2>{props.data.title}</h2>}
+        {props.data.title && (
+          <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+        )}
         <table style={{ width: "100%" }}>
           {headers && (
             <thead>

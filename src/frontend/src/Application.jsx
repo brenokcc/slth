@@ -6,7 +6,9 @@ import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 import { SystemLayout } from "./Layout.jsx";
 import { Menu } from "./Menu.jsx";
-import { Icon, PushWebNotification } from "./Icon.jsx";
+import { Icon } from "./Icon.jsx";
+import { PushWebNotification } from "./Notification.jsx";
+import toLabelCase from "./Utils.jsx";
 
 function Content(props) {
   const [data, setData] = useState(props.data);
@@ -74,7 +76,11 @@ function Application(props) {
         <div style={{ display: "flex", alignItems: "center" }}>
           {props.data.navbar.adder && (
             <div style={{ padding: 10 }}>
-              <Dropdown actions={props.data.navbar.adder} position={{}}>
+              <Dropdown
+                actions={props.data.navbar.adder}
+                position={{}}
+                dataLabel="plus"
+              >
                 <Icon icon="plus" />
               </Dropdown>
             </div>
@@ -84,14 +90,22 @@ function Application(props) {
           </div>
           {props.data.navbar.tools && (
             <div style={{ padding: 10 }}>
-              <Dropdown actions={props.data.navbar.tools} position={{}}>
+              <Dropdown
+                actions={props.data.navbar.tools}
+                position={{}}
+                dataLabel="tools"
+              >
                 <Icon icon="tools" />
               </Dropdown>
             </div>
           )}
           {props.data.navbar.settings && (
             <div style={{ padding: 10 }}>
-              <Dropdown actions={props.data.navbar.settings} position={{}}>
+              <Dropdown
+                actions={props.data.navbar.settings}
+                position={{}}
+                dataLabel="gear"
+              >
                 <Icon icon="gear" />
               </Dropdown>
             </div>
@@ -103,7 +117,11 @@ function Application(props) {
           />
           {props.data.navbar.usermenu && (
             <div style={{ padding: 10 }}>
-              <Dropdown actions={props.data.navbar.usermenu} position={{}}>
+              <Dropdown
+                actions={props.data.navbar.usermenu}
+                position={{}}
+                dataLabel={toLabelCase(props.data.navbar.user)}
+              >
                 {props.data.navbar.user}
               </Dropdown>
             </div>

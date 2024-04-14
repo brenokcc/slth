@@ -1,4 +1,5 @@
 import os
+import sys
 """
 Django settings for app project.
 
@@ -152,7 +153,7 @@ _CACHES = {
     }
 }
 
-if os.environ.get('REDIS_HOST'):
+if os.environ.get('REDIS_HOST') and 'test' not in sys.argv:
     REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
     REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
@@ -173,7 +174,7 @@ if os.environ.get('REDIS_HOST'):
     }
 
 
-if os.environ.get('POSTGRES_HOST'):
+if os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',

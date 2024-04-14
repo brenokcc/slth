@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   frontend: &frontend
+    hostname: frontend
     env_file:
       - base.env
       - local.env
@@ -13,6 +14,8 @@ services:
     restart: always
     working_dir: /project
     entrypoint: ./run.sh
+    healthcheck:
+      test: curl http://localhost:5173
   frontend-builder:
     <<: *frontend
     volumes:
@@ -30,6 +33,7 @@ services:
       frontend-builder:
         condition: service_completed_successfully
   backend: &backend
+    hostname: backend
     env_file:
       - base.env
       - local.env
@@ -49,13 +53,14 @@ services:
     entrypoint: ./run.sh
   tester:
     <<: *backend
-    ports:
-      - "9000"
     depends_on:
       selenium:
         condition: service_started
-    entrypoint: ./test.sh
+      frontend:
+        condition: service_healthy
+    entrypoint: ./run.sh
   selenium:
+    hostname: selenium
     env_file:
       - base.env
       - local.env
@@ -66,11 +71,11 @@ services:
       dockerfile: Dockerfile
     restart: always
   redis:
+    hostname: redis
     env_file:
       - base.env
       - local.env
     image: redis
-    hostname: redis
     restart: always
     ports:
       - "6379"

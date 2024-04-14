@@ -823,7 +823,9 @@ function OneToOne(props) {
     const style = { margin: 0 };
     return (
       <div className="form-fieldset">
-        <h2 style={style}>{props.data.label}</h2>
+        <h2 style={style} data-label={toLabelCase(props.data.label)}>
+          {props.data.label}
+        </h2>
         {renderInfo()}
         {renderForm()}
       </div>
@@ -957,7 +959,9 @@ function OneToMany(props) {
     const style = { margin: 0 };
     return (
       <div className="form-fieldset">
-        <h2 style={style}>{props.data.label}</h2>
+        <h2 style={style} data-label={toLabelCase(props.data.label)}>
+          {props.data.label}
+        </h2>
         <div>{false && JSON.stringify(props.data.value)}</div>
         <div id={id} className="fieldset-inline-forms">
           {renderInfo()}
@@ -1000,7 +1004,7 @@ function FormContent(props) {
             renderField(fieldset)
           ) : (
             <>
-              <h2>{fieldset.title}</h2>
+              <h2 data-label={toLabelCase(fieldset.title)}>{fieldset.title}</h2>
               <div className="fieldset-fields">
                 {fieldset.fields.map((list) => (
                   <div key={Math.random()}>

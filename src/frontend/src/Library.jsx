@@ -4,6 +4,7 @@ import { apiurl, appurl } from "./Request";
 import { COLORS } from "./Theme";
 import { ComponentFactory } from "./Root.jsx";
 import { GridLayout } from "./Layout";
+import { toLabelCase } from "./Utils";
 import { Link } from "./Link";
 
 function Html(props) {
@@ -223,7 +224,7 @@ function Boxes(props) {
 
     return props.data.items.length ? (
       <div style={boxes}>
-        <h2>{props.data.title}</h2>
+        <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
         <div>
           {props.data.items.map((item) => (
             <Link
@@ -318,7 +319,7 @@ function Indicators(props) {
   if (props.data) {
     return (
       <div className="indicators">
-        <h2>
+        <h2 data-label={toLabelCase(props.data.title)}>
           <TitleCase text={props.data.title} />
         </h2>
         <div>

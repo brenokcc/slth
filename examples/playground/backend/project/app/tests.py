@@ -1,6 +1,15 @@
 from slth.tests import ServerTestCase, HttpRequest
 from slth.serializer import Serializer
 from datetime import date, timedelta
+from slth.selenium import SeleniumTestCase
+class IntegrationTestCase(SeleniumTestCase):
+    
+    def test(self):
+        self.create_superuser('admin', '123')
+        self.login('admin', '123')
+        self.wait(3)
+        self.logout('admin')
+
 
 class ApiTestCase(ServerTestCase):
 

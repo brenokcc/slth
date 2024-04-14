@@ -1,2 +1,3 @@
 #!/bin/sh
-npm run dev -- --host
+npm run build
+npm run preview -- --host --port 5173
