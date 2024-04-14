@@ -6,4 +6,4 @@ RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v0.32.0/gec
 RUN tar -xf geckodriver-v0.32.0-linux32.tar.gz
 RUN chmod +x geckodriver
 RUN mv geckodriver /usr/local/bin/
-ENTRYPOINT [ "geckodriver", "--host", "selenium", "--log", "error"]
+ADD run.sh .

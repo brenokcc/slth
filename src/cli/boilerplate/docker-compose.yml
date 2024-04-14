@@ -58,7 +58,7 @@ services:
         condition: service_started
       frontend:
         condition: service_healthy
-    entrypoint: ./run.sh
+    entrypoint: ./test.sh
   selenium:
     hostname: selenium
     env_file:
@@ -70,6 +70,7 @@ services:
       context: selenium
       dockerfile: Dockerfile
     restart: always
+    entrypoint: ./run.sh
   redis:
     hostname: redis
     env_file:

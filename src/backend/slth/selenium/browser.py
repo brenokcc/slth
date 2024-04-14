@@ -273,6 +273,7 @@ class Browser(Remote):
                 for element in elements:
                     try:
                         element.click()
+                        break
                     except ElementNotInteractableException:
                         pass
             else:
