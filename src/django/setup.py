@@ -1,13 +1,11 @@
-# python setup.py sdist && twine upload/yml-api-0.0.1.tar.gz
-
 import os
 from setuptools import find_packages, setup
 
 install_requires = open('requirements.txt').read().splitlines()
 
 setup(
-    name='slth',
-    version='0.0.1',
+    name='pyslth',
+    version='0.0.5',
     packages=find_packages(exclude=('xxx', 'xxx.*')),
     install_requires=install_requires,
     extras_require={

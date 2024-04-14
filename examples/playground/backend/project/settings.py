@@ -158,16 +158,14 @@ if os.environ.get('REDIS_HOST'):
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'default'
-  
+
     CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": "master/{}:{}/0".format(REDIS_HOST, REDIS_PORT),
-            "OPTIONS": {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://{}:{}/0'.format(REDIS_HOST, REDIS_PORT),
+            'OPTIONS': {
                 "PASSWORD": REDIS_PASSWORD,
-                "ALWAYS_MASTER": True,
-                "CLIENT_CLASS": "pnp.redis.PNPRedisClient",
-                "SENTINEL_TIMEOUT": 3
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient'
             }
         }
     }

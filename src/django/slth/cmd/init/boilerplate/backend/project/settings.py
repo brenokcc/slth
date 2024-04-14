@@ -161,14 +161,12 @@ if os.environ.get('REDIS_HOST') and 'test' not in sys.argv:
     SESSION_CACHE_ALIAS = 'default'
   
     CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": "master/{}:{}/0".format(REDIS_HOST, REDIS_PORT),
-            "OPTIONS": {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://{}:{}/0'.format(REDIS_HOST, REDIS_PORT),
+            'OPTIONS': {
                 "PASSWORD": REDIS_PASSWORD,
-                "ALWAYS_MASTER": True,
-                "CLIENT_CLASS": "pnp.redis.PNPRedisClient",
-                "SENTINEL_TIMEOUT": 3
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient'
             }
         }
     }

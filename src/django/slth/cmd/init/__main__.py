@@ -1,3 +1,4 @@
+import sys
 import os
 import shutil
 
@@ -12,6 +13,8 @@ def copy_files(src, dest):
             dirname = os.path.join(dest, file_name)
             os.makedirs(dirname, exist_ok=True)
             copy_files(full_file_name, dirname)
+
+
 src = os.path.join(os.path.dirname(__file__), 'boilerplate')
 dest = os.path.abspath('.')
-#copy_files(src, dest)
+copy_files(src, dest)
