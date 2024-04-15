@@ -11,7 +11,6 @@ def copy_files(src, dest):
             full_file_name = os.path.join(src, file_name)
             if os.path.isfile(full_file_name):
                 full_path = os.path.join(dest, file_name)
-                print(full_path, os.path.exists(full_path))
                 if file_name not in NO_OVERRIDE or not os.path.exists(full_path):
                     shutil.copy(full_file_name, dest)
             if os.path.isdir(full_file_name):
