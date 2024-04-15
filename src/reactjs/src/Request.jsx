@@ -91,7 +91,7 @@ function response(data) {
   }
   if (data.redirect) {
     if (data.message) localStorage.setItem("message", data.message);
-    document.location.href = data.redirect;
+    document.location.href = appurl(data.redirect);
   } else {
     if (data.message) showMessage(data.message);
   }

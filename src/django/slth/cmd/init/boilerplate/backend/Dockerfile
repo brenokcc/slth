@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 ADD manage.py .
 ADD run.sh .
 ADD test.sh .
-ADD project ./project
+ADD project project
 ADD application.yml .
 RUN pip install -U pyslth

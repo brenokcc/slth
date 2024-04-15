@@ -53,6 +53,7 @@ function Application(props) {
       width: "100%",
       justifyContent: "space-between",
       boxShadow: "0px 15px 10px -15px #DDD",
+      overflowX: "hidden",
     };
     const selector = {
       choices: "/api/search/",
@@ -110,11 +111,15 @@ function Application(props) {
               </Dropdown>
             </div>
           )}
-          <Selector
-            data={selector}
-            style={{ padding: 10 }}
-            onSelect={(option) => (document.location.href = appurl(option.id))}
-          />
+          {window.innerWidth > 800 && (
+            <Selector
+              data={selector}
+              style={{ padding: 10 }}
+              onSelect={(option) =>
+                (document.location.href = appurl(option.id))
+              }
+            />
+          )}
           {props.data.navbar.usermenu && (
             <div style={{ padding: 10 }}>
               <Dropdown
