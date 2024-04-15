@@ -34,4 +34,5 @@ slth/migrations/0002_email_role_pushsubscription_error.py
 slth/migrations/__init__.py
 slth/selenium/__init__.py
 slth/selenium/browser.py
+slth/static/images/logo.png
 slth/static/images/logo.svg

@@ -446,12 +446,12 @@ class Manifest(Endpoint):
         verbose_name = 'Manifest'
 
     def get(self):
-        return Response(
+        return dict(
             {
                 "name": APPLICATON['title'],
                 "short_name": APPLICATON['title'],
                 "lang": 'pt-BR',
-                "start_url": "/",
+                "start_url": "/app/login/",
                 "scope": "/",
                 "display": "standalone",
                 "icons": [{

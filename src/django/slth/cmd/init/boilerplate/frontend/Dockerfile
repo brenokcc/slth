@@ -1,5 +1,5 @@
 FROM node:20-alpine
-RUN apk add curl nginx
+RUN apk add curl nginx vim
 WORKDIR /project
 ADD package.json .
 RUN npm install

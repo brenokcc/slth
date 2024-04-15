@@ -16,6 +16,9 @@ services:
     entrypoint: ./run.sh
     healthcheck:
       test: curl http://localhost:5173
+    depends_on:
+      backend:
+        condition: service_healthy
   frontend-builder:
     <<: *frontend
     volumes:
@@ -49,6 +52,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: curl http://127.0.0.1:8000/api/login/
     working_dir: /project
     entrypoint: ./run.sh
   tester:
