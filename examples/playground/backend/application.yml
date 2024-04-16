@@ -66,6 +66,9 @@ application:
       - listarpessoas
       - listarcidades
   menu:
+    Cadastros Gerais:
+      Estados: estados
+      Municípios: municipios
     users:Item 1:
       Item 1.1:
         Listar Funcionários: listarfuncionario

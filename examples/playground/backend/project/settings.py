@@ -1,4 +1,5 @@
 import os
+import sys
 """
 Django settings for app project.
 
@@ -122,6 +123,8 @@ X_FRAME_OPTIONS = 'ALLOWALL'
 
 DECIMAL_SEPARATOR = ','
 USE_THOUSAND_SEPARATOR = False
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 LOGGING_ = {
     'version': 1,
@@ -152,13 +155,13 @@ _CACHES = {
     }
 }
 
-if os.environ.get('REDIS_HOST'):
+if os.environ.get('REDIS_HOST') and 'test' not in sys.argv:
     REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
     REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
     REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
     SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
     SESSION_CACHE_ALIAS = 'default'
-
+  
     CACHES = {
         'default': {
             'BACKEND': 'django_redis.cache.RedisCache',
@@ -171,7 +174,7 @@ if os.environ.get('REDIS_HOST'):
     }
 
 
-if os.environ.get('POSTGRES_HOST'):
+if os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',

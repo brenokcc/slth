@@ -195,7 +195,7 @@ class ModelEndpoint(Endpoint):
         super().__init__()
 
 class AdminEndpoint(Generic[T], ModelEndpoint):
-    def get(self):
+    def get(self) -> QuerySet:
         actions = ['add', 'view', 'edit', 'delete']
         return self.model.objects.all().actions(*actions)
     

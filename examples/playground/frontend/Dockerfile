@@ -1,7 +1,7 @@
 FROM node:20-alpine
+RUN apk add curl nginx vim
 WORKDIR /project
 ADD package.json .
-ADD package-lock.json .
 RUN npm install
 ADD public public
 ADD index.html .

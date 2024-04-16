@@ -180,24 +180,27 @@ class FormMixin:
             if ftype == 'decimal':
                 data.update(mask='decimal')
             elif ftype == 'choice':
-                if isinstance(field.choices, ModelChoiceIterator):
-                    if choices_field_name == fname:
-                        method_name = f'get_{fname}_queryset'
-                        qs = field.choices.queryset
-                        if hasattr(self, method_name):
-                            values = {}
-                            for name2 in self.fields:
-                                value2 = self.getdata(name2, self.request.GET.get(name2))
-                                if value2:
-                                    values[name2] = value2
-                            qs = getattr(self, method_name)(qs, values)
-                        if 'term' in self.request.GET:
-                            qs = qs.apply_search(self.request.GET['term'])
-                        raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
-                    else:
-                        data['choices'] = absolute_url(self.request, f'choices={fname}')
+                if name in self.request.GET:
+                    data.update(type='hidden', value=self.request.GET[name])
                 else:
-                    data['choices'] = [dict(id=k, value=v) for k, v in field.choices]
+                    if isinstance(field.choices, ModelChoiceIterator):
+                        if choices_field_name == fname:
+                            method_name = f'get_{fname}_queryset'
+                            qs = field.choices.queryset
+                            if hasattr(self, method_name):
+                                values = {}
+                                for name2 in self.fields:
+                                    value2 = self.getdata(name2, self.request.GET.get(name2))
+                                    if value2:
+                                        values[name2] = value2
+                                qs = getattr(self, method_name)(qs, values)
+                            if 'term' in self.request.GET:
+                                qs = qs.apply_search(self.request.GET['term'])
+                            raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
+                        else:
+                            data['choices'] = absolute_url(self.request, f'choices={fname}')
+                    else:
+                        data['choices'] = [dict(id=k, value=v) for k, v in field.choices]
         attr_name = f'on_{name}_change'
         if hasattr(self, attr_name):
             data['onchange'] = absolute_url(self.request, f'on_change={name}')

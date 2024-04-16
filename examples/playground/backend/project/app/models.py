@@ -164,3 +164,42 @@ class Produto(models.Model):
 
     def __str__(self):
         return self.nome
+    
+
+class EstadoQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class Estado(models.Model):
+    sigla = models.CharField(verbose_name='Sigla')
+    nome = models.CharField(verbose_name='Nome')
+    class Meta:
+        verbose_name = 'Estado'
+        verbose_name_plural = 'Estados'
+
+    objects = EstadoQuerySet()
+
+    def __str__(self):
+        return f'{self.sigla}'
+    
+    def get_cidades(self):
+        return self.cidade_set.all()
+
+
+class MunicipioQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class Municipio(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+    estado = models.ForeignKey(Estado, verbose_name='Estado', on_delete=models.CASCADE)
+    class Meta:
+        verbose_name = 'Município'
+        verbose_name_plural = 'Municípios'
+
+    objects = MunicipioQuerySet()
+
+    def __str__(self):
+        return f'{self.nome} / {self.estado}'

@@ -77,6 +77,9 @@ class HttpRequest:
 
     def get_host(self):
         return 'localhost'
+    
+    def get_port(self):
+        return '8000'
 
 class ServerTestCase(StaticLiveServerTestCase):
 

@@ -62,10 +62,15 @@ class QuerySet(models.QuerySet):
         self.metadata['filters'] = names
         return self
 
-    def actions(self, *names):
+    def actions(self, *names, **replacement):
         if 'actions' not in self.metadata:
             self.metadata['actions'] = []
         self.metadata['actions'].extend(names)
+        for k, v in replacement.items():
+            if k in self.metadata['actions']:
+                self.metadata['actions'].remove(k)
+            self.metadata['actions'].append(v)
+            print(self.metadata['actions'])
         return self
 
     def subsets(self, *names):
@@ -83,6 +88,10 @@ class QuerySet(models.QuerySet):
     
     def calendar(self, name):
         self.metadata['calendar'] = name
+        return self
+    
+    def relation(self, name, value):
+        self.metadata['relation'] = (name, value)
         return self
     
     def limit(self, limit, *limits):
@@ -189,6 +198,7 @@ class QuerySet(models.QuerySet):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
         title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
+        relation = self.metadata.get('relation')
         subset = None
         actions = []
         filters = []
@@ -214,6 +224,8 @@ class QuerySet(models.QuerySet):
             if cls.instantiate(self.request, self).check_permission():
                 action = cls.get_api_metadata(self.request, base_url)
                 action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
+                if relation:
+                        action['url'] = '{}&{}={}'.format(action['url'], relation[0], relation[1])
                 actions.append(action)
 
         subset = self.parameter('subset')
@@ -256,23 +268,28 @@ class QuerySet(models.QuerySet):
         page = min(int(self.parameter('page', 1)), pages) or 1
         start = page_size * (page - 1)
         end = start + page_size
-        serializer:Serializer = qs.metadata.get('serializer')
         previous = None if page ==1 else page -1
         next = None if page == pages else page + 1
         count = qs[start:end].count()
+
+        serializer:Serializer = qs.metadata.get('serializer')
+        if serializer is None:
+            fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
+            if relation:
+                fields = [field_name for field_name in fields if field_name != relation[0]]
+            serializer = Serializer(None, self.request).fields(*fields)
+        serializer.request = self.request
+        
         for obj in qs[start:end]:
-            if serializer:
-                serializer.obj = obj
-                serializer.request = self.request
-                serializer.title = str(obj)
-            else:
-                fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
-                serializer = Serializer(obj, self.request).fields(*fields)
+            serializer.title = str(obj)
+            serializer.obj = obj
             serialized = serializer.serialize(forward_exception=True)
             for cls in instance_actions:
                 if cls.instantiate(self.request, obj).check_permission():
                     action = cls.get_api_metadata(self.request, base_url, obj.pk)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
+                    if relation:
+                        action['url'] = '{}&{}={}'.format(action['url'], relation[0], relation[1])
                     serialized['actions'].append(action)
             objs.append(serialized)
 

@@ -109,8 +109,8 @@ class Serializer:
         self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=fields, attr=attr, actions=actions)))
         return self
         
-    def queryset(self, title, name):
-        self.metadata['content'].append(('queryset', name, dict(title=title)))
+    def queryset(self, title, name, actions=(), related_field=None):
+        self.metadata['content'].append(('queryset', name, dict(title=title, actions=actions, related_field=related_field)))
         return self
     
     def endpoint(self, title, cls, wrap=True):
@@ -217,6 +217,12 @@ class Serializer:
                         else:
                             value = attr.filter()
                             title = getattr(type(self.obj), key).field.verbose_name
+                        
+                        if item['actions']:
+                            value = value.actions(*item['actions'])
+                        if item['related_field']:
+                            value = value.relation(item['related_field'], self.obj.id)
+                        
                         if lazy:
                             data = dict(type='queryset', title=title, key=key)
                         else:

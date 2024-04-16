@@ -1,7 +1,7 @@
 from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, ListEndpoint, AddEndpoint, InstanceEndpoint, DeleteEndpoint, FormEndpoint, ChildEndpoint, InstanceFormEndpoint
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm
 from django.contrib.auth.models import User, Group
-from .models import Pessoa, Cidade, Funcionario, Telefone
+from .models import Pessoa, Cidade, Funcionario, Telefone, Estado, Municipio
 from slth.serializer import LinkField
 from slth.components import Grid
 
@@ -204,3 +204,18 @@ class CadastrarFuncionario(AddEndpoint[Funcionario]):
         verbose_name = 'Cadastrar Funcionário'
     def get(self):
         return super().get().info('Preencha o formulário corretamente')
+    
+class Estados(AdminEndpoint[Estado]):
+    def get(self):
+        return super().get().actions(view='visualizarestado')
+
+class VisualizarEstado(ViewEndpoint[Estado]):
+    def get(self):
+        return (
+            super().get()
+            .fieldset('Dados Gerais', [('sigla', 'nome')])
+            .queryset('Municípios', 'municipio_set', actions=('edit', 'delete', 'add'), related_field='estado')
+        )
+
+class Municipios(AdminEndpoint[Municipio]):
+    pass
