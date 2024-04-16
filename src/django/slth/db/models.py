@@ -26,6 +26,10 @@ class ForeignKey(ForeignKey):
         self.pick = kwargs.pop('pick', False)
         self.addable = kwargs.pop('addable', False)
         super().__init__(to, on_delete or CASCADE, **kwargs)
+    
+    def formfield(self, *args, **kwargs):
+        field = super().formfield(*args, **kwargs)
+        return field
 
 
 class ManyToManyField(ManyToManyField):
@@ -33,6 +37,10 @@ class ManyToManyField(ManyToManyField):
         self.pick = kwargs.pop('pick', False)
         self.addable = kwargs.pop('addable', False)
         super().__init__(*args, **kwargs)
+
+    def formfield(self, *args, **kwargs):
+        field = super().formfield(*args, **kwargs)
+        return field
 
 class OneToManyField(ManyToManyField):
     def __init__(self, *args, **kwargs):

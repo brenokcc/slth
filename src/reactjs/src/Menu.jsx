@@ -11,12 +11,16 @@ function Menu() {
     };
     //`${import.meta.env.VITE_BACKEND_URL}/static/images/user.png`
     return (
-      <div align="center">
-        <div>
-          <img src="/images/user.png" style={img} />
+      window.application.menu.user && (
+        <div align="center">
+          {window.application.menu.image && (
+            <div>
+              <img src={window.application.menu.image} style={img} />
+            </div>
+          )}
+          <div>{window.application.menu.user}</div>
         </div>
-        <div>Breno Silva</div>
-      </div>
+      )
     );
   }
 

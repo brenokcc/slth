@@ -66,16 +66,12 @@ application:
       - listarpessoas
       - listarcidades
   menu:
-    Cadastros Gerais:
+    list:Cadastros Gerais:
+      Pessoas Físicas: pessoasfisicas
       Estados: estados
       Municípios: municipios
-    users:Item 1:
-      Item 1.1:
-        Listar Funcionários: listarfuncionario
-        Listar Pessoas: listarpessoas
-      Listar Cidades: listarcidades
-    Grupos: grupos
-    Item 2:
-      Adicionar Usuário: adduser
-      Ícones: icons
-    Sair: logout
+    user-pen:Formação:
+      Instrumentos Avaliativos: instrumentosavaliativos
+    users:Usuários e Papéis:
+      Usuários: users
+    sign-out-alt:Sair: logout

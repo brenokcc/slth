@@ -351,7 +351,7 @@ function ChartFactory(props) {
   }
   function render() {
     return (
-      <div style={{ width: 400 }}>
+      <div style={{ width: 400, margin: "auto" }}>
         {props.title && <h2 className="title">{props.title}</h2>}
         {chart()}
       </div>

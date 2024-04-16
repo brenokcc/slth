@@ -151,12 +151,14 @@ class FormMixin:
             required = getattr(field, 'required2', field.required)
             data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
         else:
-            ftype = FIELD_TYPES.get(type(field), 'text')
+            ftype = FIELD_TYPES.get(type(field).__name__, 'text')
             value = field.initial or self.initial.get(name)
             if callable(value):
                 value = value()
-            if value and isinstance(field, ModelMultipleChoiceField):
-                value = [dict(id=obj.id, label=str(obj)) for obj in value]
+            if isinstance(field, ModelMultipleChoiceField):
+                value = [dict(id=obj.id, label=str(obj)) for obj in value] if value else []
+            if isinstance(field, MultipleChoiceField):
+                value = value if value else []
             elif value and isinstance(field, ModelChoiceField):
                 obj = field.queryset.get(pk=value)
                 value = dict(id=obj.id, label=str(obj))
@@ -201,6 +203,9 @@ class FormMixin:
                             data['choices'] = absolute_url(self.request, f'choices={fname}')
                     else:
                         data['choices'] = [dict(id=k, value=v) for k, v in field.choices]
+                    if getattr(field, 'pick', False):
+                        data.update(pick=True)
+                    
         attr_name = f'on_{name}_change'
         if hasattr(self, attr_name):
             data['onchange'] = absolute_url(self.request, f'on_change={name}')
@@ -492,6 +497,29 @@ class DecimalField(DecimalField):
 class ColorField(CharField):
     pass
 
+class ChoiceField(ChoiceField):
+    
+    def __init__(self, *args, **kwargs):
+        self.pick = kwargs.pop('pick', False)
+        super().__init__(*args, **kwargs)
+    
+class MultipleChoiceField(MultipleChoiceField):
+    
+    def __init__(self, *args, **kwargs):
+        self.pick = kwargs.pop('pick', False)
+        super().__init__(*args, **kwargs)
+
+class ModelChoiceField(ModelChoiceField):
+    
+    def __init__(self, *args, **kwargs):
+        self.pick = kwargs.pop('pick', False)
+        super().__init__(*args, **kwargs)
+
+class ModelMultipleChoiceField(ModelMultipleChoiceField):
+    
+    def __init__(self, *args, **kwargs):
+        self.pick = kwargs.pop('pick', False)
+        super().__init__(*args, **kwargs)
 
 class LoginForm(Form):
     username = CharField(label=_('Username'))
@@ -526,19 +554,19 @@ class SendPushNotificationForm(Form):
 
 
 FIELD_TYPES = {
-    CharField: 'text',
-    EmailField: 'email',
-    DecimalField: 'decimal',
-    BooleanField: 'boolean',
-    DateTimeField: 'datetime',
-    DateField: 'date',
-    IntegerField: 'number',
-    ChoiceField: 'choice',
-    TypedChoiceField : 'choice',
-    ModelChoiceField: 'choice',
-    MultipleChoiceField: 'choice',
-    ModelMultipleChoiceField: 'choice',
-    ColorField: 'color',
-    FileField: 'file',
-    ImageField: 'file',
+    'CharField': 'text',
+    'EmailField': 'email',
+    'DecimalField': 'decimal',
+    'BooleanField': 'boolean',
+    'DateTimeField': 'datetime',
+    'DateField': 'date',
+    'IntegerField': 'number',
+    'ChoiceField': 'choice',
+    'TypedChoiceField' : 'choice',
+    'ModelChoiceField': 'choice',
+    'MultipleChoiceField': 'choice',
+    'ModelMultipleChoiceField': 'choice',
+    'ColorField': 'color',
+    'FileField': 'file',
+    'ImageField': 'file',
 }

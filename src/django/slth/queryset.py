@@ -277,7 +277,12 @@ class QuerySet(models.QuerySet):
             fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
             if relation:
                 fields = [field_name for field_name in fields if field_name != relation[0]]
-            serializer = Serializer(None, self.request).fields(*fields)
+            list_fields = [
+                f'get_{field_name}' if hasattr(qs.model, f'get_{field_name}') else
+                (f'get_{field_name}_display' if hasattr(qs.model, f'get_{field_name}_display')
+                else field_name) for field_name in fields
+            ]
+            serializer = Serializer(None, self.request).fields(*list_fields)
         serializer.request = self.request
         
         for obj in qs[start:end]:
@@ -289,7 +294,7 @@ class QuerySet(models.QuerySet):
                     action = cls.get_api_metadata(self.request, base_url, obj.pk)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
                     if relation:
-                        action['url'] = '{}&{}={}'.format(action['url'], relation[0], relation[1])
+                        action['url'] = append_url(action['url'], '{}={}'.format(relation[0], relation[1]))
                     serialized['actions'].append(action)
             objs.append(serialized)
 

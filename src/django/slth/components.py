@@ -12,6 +12,10 @@ class Image(dict):
         if width is None and height is None:
             width = 200
             height = 200
+        if width and not height:
+            height = width
+        if height and not width:
+            width = height
         self['type'] = 'image'
         self['src'] = src
         self['width'] = width
@@ -201,9 +205,11 @@ class Navbar(dict):
         self[entrypoint].append(dict(name=name, url=url, modal=modal))
 
 class Menu(dict):
-    def __init__(self, items):
+    def __init__(self, items, user=None, image=None):
         self['type'] = 'menu'
         self['items'] = items
+        self['user'] = user
+        self['image'] = image
 
 class Footer(dict):
     def __init__(self, version):

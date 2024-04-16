@@ -167,9 +167,26 @@ function Field(props) {
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
       return <InputField data={props.data} />;
     else if (props.data.type == "choice" && Array.isArray(props.data.choices))
-      return <Select data={props.data} />;
-    else if (props.data.type == "choice") return <Selector data={props.data} />;
-    else if (props.data.type == "decimal")
+      return props.data.pick ? (
+        Array.isArray(props.data.value) ? (
+          <Checkbox data={props.data} />
+        ) : (
+          <Radio data={props.data} />
+        )
+      ) : (
+        <Select data={props.data} />
+      );
+    else if (props.data.type == "choice") {
+      return props.data.pick ? (
+        Array.isArray(props.data.value) ? (
+          <Checkbox data={props.data} />
+        ) : (
+          <Radio data={props.data} />
+        )
+      ) : (
+        <Selector data={props.data} />
+      );
+    } else if (props.data.type == "decimal")
       return <InputField data={props.data} />;
     else if (props.data.type == "boolean") return <Boolean data={props.data} />;
     else if (props.data.type == "textarea")
@@ -608,8 +625,8 @@ function Textarea(props) {
 function Boolean(props) {
   var field = props.data;
   field["choices"] = [
-    { id: true, text: "Sim" },
-    { id: false, text: "Não" },
+    { id: true, value: "Sim" },
+    { id: false, value: "Não" },
   ];
   return <Radio data={field} />;
 }
@@ -644,14 +661,14 @@ function Radio(props) {
     return (
       <div className="radio-group">
         {field.choices.map((choice, i) => (
-          <div key={key + i}>
+          <div key={key + i} style={{ paddingTop: 10 }}>
             <input
               id={field.name + key + i}
               type="radio"
               name={field.name}
               defaultValue={choice.id}
               defaultChecked={checked(choice)}
-              data-label={toLabelCase(choice.text)}
+              data-label={toLabelCase(choice.value)}
               onClick={function () {
                 toogle(field.name + key + i);
               }}
@@ -659,7 +676,7 @@ function Radio(props) {
                 ischecked(field.name + key + i);
               }}
             />
-            <label htmlFor={field.name + key + i}>{choice.text}</label>
+            <label htmlFor={field.name + key + i}>{choice.value}</label>
           </div>
         ))}
       </div>
@@ -690,16 +707,16 @@ function Checkbox(props) {
     return (
       <div className="checkbox-group">
         {field.choices.map((choice, i) => (
-          <div key={key + i}>
+          <div key={key + i} style={{ paddingTop: 10 }}>
             <input
               id={field.name + key + i}
               type="checkbox"
               name={field.name}
               defaultValue={choice.id}
               defaultChecked={checked(choice)}
-              data-label={toLabelCase(choice.text)}
+              data-label={toLabelCase(choice.value)}
             />
-            <label htmlFor={field.name + key + i}>{choice.text}</label>
+            <label htmlFor={field.name + key + i}>{choice.value}</label>
           </div>
         ))}
       </div>

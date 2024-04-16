@@ -99,7 +99,7 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = data.form(self.request)
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
-        return data
+        return {} if data is None else data
     
     def serialize(self):
         return serialize(self.getdata())
@@ -436,7 +436,7 @@ class Application(Endpoint):
                     return dict(dict(label=k, url=url))
             for k, v in APPLICATON['menu'].items():
                 items.append(get_item(k, v))
-            menu = Menu(items)
+            menu = Menu(items, user=self.request.user.username, image=build_url(self.request, '/api/static/images/user.png'))
         footer = Footer(APPLICATON['version'])
         return Application_(navbar=navbar, menu=menu, footer=footer)
     

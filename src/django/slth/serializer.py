@@ -55,6 +55,9 @@ def getfield(obj, name_or_names, request=None):
         if type(attr) == types.MethodType:
             value = attr()
             label = getattr(attr, 'verbose_name', name_or_names)
+        elif name_or_names.startswith('get_') and name_or_names.endswith('_display'):
+            value = attr()
+            label = getattr(type(obj), name_or_names[4:-8]).field.verbose_name
         else:
             value = attr
             label = getattr(type(obj), name_or_names).field.verbose_name
@@ -216,7 +219,6 @@ class Serializer:
                             value = attr().filter()
                         else:
                             value = attr.filter()
-                            title = getattr(type(self.obj), key).field.verbose_name
                         
                         if item['actions']:
                             value = value.actions(*item['actions'])
