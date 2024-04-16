@@ -156,7 +156,7 @@ function Field(props) {
     if (props.data.action) props.data.action.modal = true;
     return (
       <div style={style}>
-        <label>{props.data.label}</label>
+        <label className="bold">{props.data.label}</label>
         {props.data.action && (
           <Action data={props.data.action} style={{ padding: 0 }} />
         )}
@@ -608,7 +608,7 @@ function Selector(props) {
 function Textarea(props) {
   function render() {
     var style = { ...INPUT_STYLE };
-    style.paddingheight = 200;
+    style.height = 100;
     return (
       <textarea
         id={props.data.name}
@@ -1053,7 +1053,7 @@ function Form(props) {
   const id = Math.random();
 
   function getTitle() {
-    const style = { margin: 0 };
+    const style = { margin: 0, textAlign: "center" };
     return <h1 style={style}>{props.data.title}</h1>;
   }
 

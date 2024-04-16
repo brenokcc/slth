@@ -71,6 +71,8 @@ class EditarPessoa(EditEndpoint[Pessoa]):
             .fieldset('Telefone Pessoal', ('telefone_pessoal',))
             .fieldset('Telefones Profissionais', ('telefones_profissionais',))
         )
+    def check_permission(self):
+        return True
 
 class ListarPessoas(ListEndpoint[Pessoa]):
     class Meta:
@@ -246,7 +248,7 @@ class VisualizarInstrumentoAvaliativo(ViewEndpoint[InstrumentoAvaliativo]):
     def get(self):
         return (
             super().get()
-            .fieldset('Dados Gerais', [('responsavel', ('data_inicio', 'data_termino'), 'instrucoes')])
+            .fieldset('Dados Gerais', ['responsavel', ('data_inicio', 'data_termino'), 'instrucoes'])
             .queryset('Perguntas', 'pergunta_set', actions=('edit', 'delete', 'add', 'visualizarpergunta'), related_field='instrumento_avaliativo')
             .queryset('Questionários', 'questionario_set', actions=('add', 'responderquestionario', 'visualizarquestionario'), related_field='instrumento_avaliativo')
         )
@@ -278,3 +280,22 @@ class VisualizarPergunta(ViewEndpoint[Pergunta]):
             .queryset('Respostas', 'get_respostas')
             .fields('get_estatistica')
         )
+    
+class ResponderQuestionarioPendente(Endpoint):
+    class Meta:
+        verbose_name = 'Responder Questionário'
+
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.questionario = None
+    
+
+    def get(self):
+        return ResponderQuestionarioForm(instance=self.questionario, request=self.request)
+    
+    def check_permission(self):
+        self.questionario =  Questionario.objects.filter(
+            respondente__cpf=self.request.user.username
+        ).first()
+        return self.questionario

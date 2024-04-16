@@ -209,7 +209,9 @@ function Group(props) {
 
   function renderTitle() {
     return (
-      <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+      props.data.title != "Top" && (
+        <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+      )
     );
   }
 
@@ -248,12 +250,14 @@ function Group(props) {
   function render() {
     window[id] = () => loadContent(content.url);
     return (
-      <div className="reloadable" id={id}>
-        {renderTitle()}
-        {renderTabs()}
-        {renderContent()}
-        {renderSeparator()}
-      </div>
+      props.data.data.length > 0 && (
+        <div className="reloadable" id={id}>
+          {renderTitle()}
+          {renderTabs()}
+          {renderContent()}
+          {renderSeparator()}
+        </div>
+      )
     );
   }
   return render();

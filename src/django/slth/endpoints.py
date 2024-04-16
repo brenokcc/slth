@@ -78,7 +78,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         pass
     
     def check_permission(self):
-        return True
+        return self.request.user.is_superuser
     
     def redirect(self, url):
         raise JsonResponseException(dict(type='redirect', url=url))
@@ -186,6 +186,10 @@ class Endpoint(metaclass=EnpointMetaclass):
             if key == 'modal':
                 value = issubclass(cls, EditEndpoint) or issubclass(cls, DeleteEndpoint) or issubclass(cls, Endpoint) or issubclass(cls, ChildEndpoint)
         return default if value is None else value
+
+class PublicEndpoint(Endpoint):
+    def check_permission(self):
+        return True
 
 class ModelEndpoint(Endpoint):
     def __init__(self):
@@ -327,7 +331,7 @@ class Login(Endpoint):
     def get(self):
         return LoginForm(request=self.request)
 
-class Logout(Endpoint):
+class Logout(PublicEndpoint):
     class Meta:
         modal = False
         verbose_name = 'Sair'
@@ -335,8 +339,7 @@ class Logout(Endpoint):
     def get(self):
         return Response(message='Logout realizado com sucesso.', redirect='/api/login/', store=dict(token=None, application=None))
 
-
-class Icons(Endpoint):
+class Icons(PublicEndpoint):
     class Meta:
         modal = True
         verbose_name = 'Icons'
@@ -391,10 +394,11 @@ class Dashboard(Endpoint):
                         boxes.append(icon, label, url)
                 serializer.append('Acesso Rápido', boxes)
             if APPLICATON['dashboard']['top']:
-                group = serializer.group('Teste')
+                group = serializer.group('Top')
                 for endpoint in APPLICATON['dashboard']['top']:
                     cls = ENDPOINTS[endpoint]
-                    group.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
+                    if cls.instantiate(self.request, self.request.user).check_permission():
+                        group.endpoint(cls.get_metadata('verbose_name'), cls, wrap=False)
                 group.parent()
             if APPLICATON['dashboard']['center']:
                 for endpoint in APPLICATON['dashboard']['center']:
@@ -404,7 +408,7 @@ class Dashboard(Endpoint):
         else:
             self.redirect('/api/login/')
     
-class Application(Endpoint):
+class Application(PublicEndpoint):
     def get(self):
         navbar = None
         menu = None
@@ -426,21 +430,27 @@ class Application(Endpoint):
             def get_item(k, v):
                 if isinstance(v, dict):
                     icon, label = k.split(':') if ':' in k else (None, k)
-                    return dict(dict(icon=icon, label=label, items=[
-                        get_item(k1, v1) for k1, v1 in v.items()
-                    ]))
+                    subitems = []
+                    for k1, v1 in v.items():
+                        subitem = get_item(k1, v1)
+                        if subitem:
+                            subitems.append(subitem)
+                    return dict(dict(icon=icon, label=label, items=subitems))
                 else:
                     cls = ENDPOINTS[v]
                     if cls().instantiate(self.request, self).check_permission():
+                        icon, label = k.split(':') if ':' in k else (None, k)
                         url = build_url(self.request, cls.get_api_url())
-                    return dict(dict(label=k, url=url))
+                        return dict(dict(label=label, url=url, icon=icon))
             for k, v in APPLICATON['menu'].items():
-                items.append(get_item(k, v))
+                item = get_item(k, v)
+                if item:
+                    items.append(item)
             menu = Menu(items, user=self.request.user.username, image=build_url(self.request, '/api/static/images/user.png'))
         footer = Footer(APPLICATON['version'])
         return Application_(navbar=navbar, menu=menu, footer=footer)
     
-class Manifest(Endpoint):
+class Manifest(PublicEndpoint):
 
     class Meta:
         verbose_name = 'Manifest'

@@ -233,25 +233,25 @@ class Serializer:
                         data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'endpoint':
+                    data = {}
                     title = item['title']
                     cls = item['cls']
                     wrap = item['wrap']
                     if not only or key in only:
                         returned = {}
-                        if not lazy:
-                            args = (self.obj.pk,) if cls.has_args() else ()
-                            endpoint = cls(*args).configure(self.obj).contextualize(self.request)
-                            if endpoint.check_permission():
+                        endpoint = cls.instantiate(self.request, self.obj)
+                        if endpoint.check_permission():
+                            if not lazy:
                                 returned = endpoint.getdata()
-                        path = self.path + [key]
-                        if wrap:
-                            data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))
-                        else:
-                            data = serialize(returned)
-                            data['title'] = title
-                        if isinstance(data, dict):
-                            data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
-                        if leaf: raise JsonResponseException(data)
+                            path = self.path + [key]
+                            if wrap:
+                                data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))
+                            else:
+                                data = serialize(returned)
+                                data['title'] = title
+                            if isinstance(data, dict):
+                                data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
+                            if leaf: raise JsonResponseException(data)
                 elif datatype == 'component':
                     title = item['title']
                     component = item['component']

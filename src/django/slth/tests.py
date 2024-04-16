@@ -5,6 +5,7 @@ from django.apps import apps
 from django.core.cache import cache
 from django.core.management import call_command
 from .selenium import SeleniumTestCase
+from django.contrib.auth.models import User
 
 
 # @skipIf(os.environ.get("FRONTEND_PROJECT_DIR") is None, "FRONTEND_PROJECT_DIR is not set")
@@ -66,6 +67,7 @@ class HttpRequest:
         self.META = {
             'CONTENT_TYPE': '_application/json'
         }
+        self.user = User.objects.filter(is_superuser=True).first() or User()
         self.FILES = None
 
         if querystring:

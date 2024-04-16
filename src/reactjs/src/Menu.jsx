@@ -85,26 +85,28 @@ function Menu() {
       );
     } else {
       return (
-        <li
-          key={Math.random()}
-          onClick={onClick}
-          style={style}
-          data-label={toLabelCase(item.label)}
-        >
-          {level == 0 && (
-            <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
-          )}
-          {item.label}
-          <Icon
-            icon="chevron-right"
-            style={{ float: "right", paddingTop: 8 }}
-          />
-          <ul style={{ display: "none", paddingLeft: 15 }}>
-            {item.items.map(function (subitem) {
-              return renderItem(subitem, level + 1);
-            })}
-          </ul>
-        </li>
+        item.items.length > 0 && (
+          <li
+            key={Math.random()}
+            onClick={onClick}
+            style={style}
+            data-label={toLabelCase(item.label)}
+          >
+            {level == 0 && (
+              <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
+            )}
+            {item.label}
+            <Icon
+              icon="chevron-right"
+              style={{ float: "right", paddingTop: 8 }}
+            />
+            <ul style={{ display: "none", paddingLeft: 15 }}>
+              {item.items.map(function (subitem) {
+                return renderItem(subitem, level + 1);
+              })}
+            </ul>
+          </li>
+        )
       );
     }
   }
@@ -112,11 +114,13 @@ function Menu() {
   function renderItems() {
     const style = { padding: 0 };
     return (
-      <ul style={style}>
-        {window.application.menu.items.map(function (item) {
-          return renderItem(item, 0);
-        })}
-      </ul>
+      window.application.menu.items.length > 0 && (
+        <ul style={style}>
+          {window.application.menu.items.map(function (item) {
+            return renderItem(item, 0);
+          })}
+        </ul>
+      )
     );
   }
 

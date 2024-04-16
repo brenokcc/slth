@@ -272,7 +272,7 @@ class FormMixin:
                         for obj in self.cleaned_data[inline_field_name]:
                             if hasattr(obj, 'deleting'):
                                 obj.delete()
-                    response = Response(message='Action successfully performed.')
+                    response = Response(message='Ação realizada com sucesso')
                 else:
                     response = self.submit()
             return response

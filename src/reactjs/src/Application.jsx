@@ -75,7 +75,7 @@ function Application(props) {
           <a href="/">{props.data.navbar.title}</a>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
-          {props.data.navbar.adder && (
+          {props.data.navbar.adder.length > 0 && (
             <div style={{ padding: 10 }}>
               <Dropdown
                 actions={props.data.navbar.adder}
@@ -89,7 +89,7 @@ function Application(props) {
           <div style={{ padding: 10 }}>
             <PushWebNotification />
           </div>
-          {props.data.navbar.tools && (
+          {props.data.navbar.tools.length > 0 && (
             <div style={{ padding: 10 }}>
               <Dropdown
                 actions={props.data.navbar.tools}
@@ -100,7 +100,7 @@ function Application(props) {
               </Dropdown>
             </div>
           )}
-          {props.data.navbar.settings && (
+          {props.data.navbar.settings.length > 0 && (
             <div style={{ padding: 10 }}>
               <Dropdown
                 actions={props.data.navbar.settings}
@@ -120,7 +120,7 @@ function Application(props) {
               }
             />
           )}
-          {props.data.navbar.usermenu && (
+          {props.data.navbar.usermenu.length > 0 && (
             <div style={{ padding: 10 }}>
               <Dropdown
                 actions={props.data.navbar.usermenu}

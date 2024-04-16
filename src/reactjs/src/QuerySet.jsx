@@ -313,43 +313,65 @@ function QuerySet(props) {
       lineHeight: "3rem",
       //borderBottom: "solid 1px #1351b4",
     };
-    return (
-      <tr>
-        {data.map(function (item) {
-          return (
-            <th key={Math.random()} style={style}>
-              {item.label}
-            </th>
-          );
-        })}
-        <th style={style}></th>
-      </tr>
-    );
+    if (window.innerWidth < 800) {
+    } else {
+      return (
+        <tr>
+          {data.map(function (item) {
+            return (
+              <th key={Math.random()} style={style}>
+                {item.label}
+              </th>
+            );
+          })}
+          <th style={style}></th>
+        </tr>
+      );
+    }
   }
 
   function renderRow(row) {
     const td = { borderBottom: "solid 1px #DDD" };
     const actions = { borderBottom: "solid 1px #DDD", lineHeight: "3rem" };
-    return (
-      <tr key={Math.random()}>
-        {row.data.map(function (field) {
-          return (
-            <td key={Math.random()} style={td}>
-              {format(field.value)}
-            </td>
-          );
-        })}
-        <td style={actions}>
-          <div style={{ verticalAlign: "center" }}>
-            {row.actions.map(function (action) {
-              return (
-                <Action key={Math.random()} data={action} default compact />
-              );
-            })}
-          </div>
-        </td>
-      </tr>
-    );
+    if (window.innerWidth < 800) {
+      return (
+        <tr key={Math.random()}>
+          <td key={Math.random()} style={td}>
+            {row.title}
+          </td>
+          <td style={actions}>
+            <div style={{ verticalAlign: "center", textAlign: "right" }}>
+              {row.actions.map(function (action) {
+                return (
+                  <Action key={Math.random()} data={action} default compact />
+                );
+              })}
+            </div>
+          </td>
+        </tr>
+      );
+    } else {
+      return (
+        <tr key={Math.random()}>
+          {row.data.map(function (field) {
+            return (
+              <td key={Math.random()} style={td}>
+                {format(field.value)}
+              </td>
+            );
+          })}
+          <td style={actions}>
+            <div style={{ verticalAlign: "center" }}>
+              {row.actions.map(function (action) {
+                return (
+                  <Action key={Math.random()} data={action} default compact />
+                );
+              })}
+            </div>
+          </td>
+        </tr>
+      );
+    }
   }
 
   function renderRows() {

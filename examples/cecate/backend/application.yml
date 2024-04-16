@@ -1,20 +1,10 @@
 application:
   lang: pt-br
-  title: Sloth
-  subtitle: Take your time!
+  title: CECATE
+  subtitle: Sistema CECATE-NE
   icon: /api/static/images/logo.png
   logo: /api/static/images/logo.png
   version: 1.0.5
-  theme:
-    primary: 1351b4
-    secondary: 071e41
-    auxiliary: 2670e8
-    highlight: 0c326f
-    info: d4e5ff
-    success: 1351b4
-    warning: fff5c2
-    danger: e52207
-    radius: 100em
   oauth:
     govbr:
       name: gov.br
@@ -32,41 +22,23 @@ application:
         email: email
   groups:
     pf: Pessoa Física'
-    administrador: Administrador
-    operador: Operador
   index: dashboard
   dashboard:
     top:
-      - cadastrarpessoa2
-      - listarpessoas
     center:
       - responderquestionariopendente
-      - estatisticas
-      - adduser
     boxes:
-      - listarfuncionario
-      - listarpessoas
-      - listarcidades
+      - estados
+      - municipios
     search:
-      - listarfuncionario
-      - listarpessoas
-      - listarcidades
+      - municipios
+      - estados
     usermenu:
       - icons
-      - users
       - logout
     adder:
-      - listarfuncionario
-      - listarpessoas
-      - listarcidades
     tools:
-      - listarfuncionario
-      - listarpessoas
-      - listarcidades
     settings:
-      - listarfuncionario
-      - listarpessoas
-      - listarcidades
   menu:
     house:Início: dashboard
     list:Cadastros Gerais:

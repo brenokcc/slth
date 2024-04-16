@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  frontend: &frontend
+    hostname: frontend
+    env_file:
+      - base.env
+      - local.env
+    ports:
+      - "5173:5173"
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    restart: always
+    working_dir: /project
+    entrypoint: ./run.sh
+    healthcheck:
+      test: curl http://localhost:5173
+    depends_on:
+      backend:
+        condition: service_healthy
+  frontend-builder:
+    <<: *frontend
+    volumes:
+      - .deploy/html:/project/dist
+    restart: on-failure
+    working_dir: /project
+    entrypoint: ./build.sh
+  frontend-server:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - .deploy/html:/usr/share/nginx/html
+    depends_on:
+      frontend-builder:
+        condition: service_completed_successfully
+  backend: &backend
+    hostname: backend
+    env_file:
+      - base.env
+      - local.env
+    ports:
+      - "8000:8000"
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - .deploy/media:/project/media
+      - .deploy/static:/project/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: curl http://127.0.0.1:8000/api/login/
+    working_dir: /project
+    entrypoint: ./run.sh
+  tester:
+    <<: *backend
+    depends_on:
+      selenium:
+        condition: service_started
+      frontend:
+        condition: service_healthy
+    entrypoint: ./test.sh
+  selenium:
+    hostname: selenium
+    env_file:
+      - base.env
+      - local.env
+    ports:
+      - "4444"
+    build:
+      context: selenium
+      dockerfile: Dockerfile
+    restart: always
+    entrypoint: ./run.sh
+  redis:
+    hostname: redis
+    env_file:
+      - base.env
+      - local.env
+    image: redis
+    restart: always
+    ports:
+      - "6379"
+    command: redis-server --loglevel warning
+    volumes:
+      - .deploy/redis:/data
+  postgres:
+    env_file:
+      - base.env
+      - local.env
+    image: postgres
+    hostname: postgres
+    ports:
+      - "5432"
+    volumes:
+      - .deploy/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: psql -U postgres -d $$POSTGRES_DB -c "SELECT version();"
