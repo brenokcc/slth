@@ -10,6 +10,7 @@ class ResponderQuestionarioForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._info = self.instance.instrumento_avaliativo.instrucoes
         for pergunta_questionario in self.instance.perguntaquestionario_set.all():
             label = pergunta_questionario.pergunta.enunciado
             tipo = pergunta_questionario.pergunta.tipo_resposta

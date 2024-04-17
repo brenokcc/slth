@@ -28,11 +28,9 @@ application:
     center:
       - responderquestionariopendente
     boxes:
-      - estados
-      - municipios
+      - pessoasfisicas
     search:
-      - municipios
-      - estados
+      - pessoasfisicas
     usermenu:
       - icons
       - logout
@@ -42,9 +40,21 @@ application:
   menu:
     house:Início: dashboard
     list:Cadastros Gerais:
-      Pessoas Físicas: pessoasfisicas
-      Estados: estados
-      Municípios: municipios
+      Ensino:
+        Níveis de Ensino: niveisensino
+        Situação de Escolaridade: situacoesescolaridade
+      Organização:
+        Poderes: poderes
+        Esferas: esferas
+        Tipos de Orgãos: tiposorgao
+        Orgãos: orgaos
+      Pessoas:
+        Pessoas Físicas: pessoasfisicas
+      Estados e Municípios:
+        Estados: estados
+        Municípios: municipios
+      Redes Sociais:
+        Tipos de Rede Social: tiposredesocial
     user-pen:Formação:
       Instrumentos Avaliativos: instrumentosavaliativos
     users:Usuários e Papéis:

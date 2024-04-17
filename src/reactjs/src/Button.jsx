@@ -30,6 +30,7 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
       cursor: "pointer",
       display: display || "block",
       width: "fit-content",
+      textWrap: "nowrap",
     };
     if (primary) {
       style.backgroundColor = "#1351b4";

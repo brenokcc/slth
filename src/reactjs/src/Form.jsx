@@ -463,9 +463,19 @@ function Selector(props) {
       dialog = result;
 
       const rect = widget.getBoundingClientRect();
+      var top = rect.top + rect.height;
+      var left = rect.left;
+      if (dialog) {
+        const rect2 = dialog.getBoundingClientRect();
+        top = top - rect2.top;
+        left = left - rect2.left;
+      } else {
+        top += window.scrollY;
+        left += window.scrollX;
+      }
       ul.width = rect.width;
-      ul.top = dialog ? 0 : rect.top + rect.height + window.scrollY;
-      ul.left = dialog ? 0 : rect.left + window.scrollX;
+      ul.top = top;
+      ul.left = left;
     }
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
@@ -1021,7 +1031,12 @@ function FormContent(props) {
             renderField(fieldset)
           ) : (
             <>
-              <h2 data-label={toLabelCase(fieldset.title)}>{fieldset.title}</h2>
+              <h2
+                data-label={toLabelCase(fieldset.title)}
+                style={{ margin: 0 }}
+              >
+                {fieldset.title}
+              </h2>
               <div className="fieldset-fields">
                 {fieldset.fields.map((list) => (
                   <div key={Math.random()}>

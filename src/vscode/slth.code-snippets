@@ -1,0 +1,192 @@
+{
+	//cp "/Users/breno/Library/Application Support/Code/User/snippets/slth.code-snippets" /Users/breno/Documents/Workspace/slth/src/vscode/slth.code-snippets
+    // Place your global snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+	"Model": {
+		"scope": "python",
+		"prefix": "class",
+		"body": [
+			"class $1QuerySet(models.QuerySet):",
+			"    def all(self):",
+			"        return self",
+			"",
+			"",
+			"class $1(models.Model):",
+			"    $0",
+			"",
+			"    class Meta:",
+			"        verbose_name = '$2'",
+			"        verbose_name_plural = '$3'",
+			"",
+			"    objects = $1QuerySet()",
+			"",
+			"    def __str__(self):",
+			"        return f'$2 {self.id}'",
+			"",
+		],
+		"description": "Create class and queryset"
+	},
+	"CharField": {
+		"scope": "python",
+		"prefix": "CharField",
+		"body": [
+			"$1 = models.CharField(verbose_name='$2')$0",
+		],
+		"description": "Create CharField"
+	},
+	"ForeignKey": {
+		"scope": "python",
+		"prefix": "ForeignKey",
+		"body": [
+			"$1 = models.ForeignKey($2, verbose_name='$3', on_delete=models.CASCADE)$0",
+		],
+		"description": "Create ForeignKey"
+	},
+	"DateField": {
+		"scope": "python",
+		"prefix": "DateField",
+		"body": [
+			"$1 = models.DateField(verbose_name='$2')$0",
+		],
+		"description": "Create DateField"
+	},
+	"BooleanField": {
+		"scope": "python",
+		"prefix": "BooleanField",
+		"body": [
+			"$1 = models.BooleanField(verbose_name='$2')$0",
+		],
+		"description": "Create DateField"
+	},
+	"TextField": {
+		"scope": "python",
+		"prefix": "TextField",
+		"body": [
+			"$1 = models.TextField(verbose_name='$2')$0",
+		],
+		"description": "Create TextField"
+	},
+	"Admin": {
+		"scope": "python",
+		"prefix": "None",
+		"body": [
+			"class $1(AdminEndpoint[$2]):",
+			"    class Meta:",
+			"        verbose_name = '$3'",
+			"",
+			"    def get(self):",
+			"        return super().get()",
+			"$0"
+		],
+		"description": "Create AdminEndpoint"
+	},
+	"AddEndpoint": {
+		"scope": "python",
+		"prefix": "AddEndpoint",
+		"body": [
+			"",
+			"class Cadastrar$1(AddEndpoint[$2]):",
+			"    class Meta:",
+			"        verbose_name = 'Cadastrar $3'",
+			"",
+			"    def get(self):",
+			"        return (",
+			"            super().get()",
+			"            .fieldset('Dados Gerais', ('$0'))",
+			"        )",
+			""
+		],
+		"description": "Create AddEndpoint"
+	},
+	"EditEndpoint": {
+		"scope": "python",
+		"prefix": "EditEndpoint",
+		"body": [
+			"",
+			"class Editar$1(EditEndpoint[$2]):",
+			"    class Meta:",
+			"        verbose_name = 'Editar $3'",
+			"",
+			"    def get(self):",
+			"        return (",
+			"            super().get()",
+			"            .fieldset('Dados Gerais', ('$0'))",
+			"        )",
+			""
+		],
+		"description": "Create EditEndpoint"
+	},
+	"ViewEndpoint": {
+		"scope": "python",
+		"prefix": "ViewEndpoint",
+		"body": [
+			"",
+			"class Visualizar$1(ViewEndpoint[$2]):",
+			"    class Meta:",
+			"        verbose_name = 'Visualizar $3'",
+			"",
+			"    def get(self):",
+			"        return (",
+			"            super().get()",
+			"            .fieldset('Dados Gerais', ('$0'))",
+			"        )",
+			""
+		],
+		"description": "Create ViewEndpoint"
+	},
+	"DeleteEndpoint": {
+		"scope": "python",
+		"prefix": "DeleteEndpoint",
+		"body": [
+			"",
+			"class Excluir$1(DeleteEndpoint[$2]):",
+			"    class Meta:",
+			"        verbose_name = 'Excluir $3'",
+			"",
+			"    def get(self):",
+			"        return (",
+			"            super().get()",
+			"        )",
+			""
+		],
+		"description": "Create DeleteEndpoint"
+	},
+	"save": {
+		"scope": "python",
+		"prefix": "save",
+		"body": [
+			"",
+			"def save(self, *args, **kwargs):",
+			"    pk = self.pk",
+			"    super().save(*args, **kwargs)",
+			"    if pk is None:",
+			"        pass",
+			""
+		],
+		"description": "Create Save"
+	},
+	"__init__": {
+		"scope": "python",
+		"prefix": "__init__",
+		"body": [
+			"",
+			"def __init__(self, *args, **kwargs):",
+			"    super().__init__(*args, **kwargs)",
+			""
+		],
+		"description": "Create Init"
+	},
+	"Xxx": {
+		"scope": "python",
+		"prefix": "xxx",
+		"body": [
+			"123",
+		],
+		"description": "Create Xxx"
+	}
+}

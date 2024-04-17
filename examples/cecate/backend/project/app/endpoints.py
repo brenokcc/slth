@@ -1,62 +1,52 @@
-from slth.endpoints import Endpoint, ViewEndpoint, AdminEndpoint, AddEndpoint, InstanceFormEndpoint
+from slth.endpoints import Endpoint, ViewEndpoint, AdminEndpoint, AddEndpoint, InstanceFormEndpoint, ListEndpoint
+from slth.queryset import QuerySet
 from .forms import ResponderQuestionarioForm
 from django.contrib.auth.models import User, Group
 from .models import *
 
+class TiposRedeSocial(AdminEndpoint[TipoRedeSocial]):
+    pass
+
+class NiveisEnsino(AdminEndpoint[NivelEnsino]):
+    pass
+
+class SituacoesEscolaridade(AdminEndpoint[SituacaoEscolaridade]):
+    pass
+
+class Poderes(AdminEndpoint[Poder]):
+    pass
+
+class Esferas(AdminEndpoint[Esfera]):
+    pass
+
+class TiposOrgao(AdminEndpoint[TipoOrgao]):
+    pass
+
+class Orgaos(AdminEndpoint[Orgao]):
+    pass
 
 class Estados(AdminEndpoint[Estado]):
-    def get(self):
-        return super().get().actions(view='visualizarestado')
-
-class VisualizarEstado(ViewEndpoint[Estado]):
-    def get(self):
-        return (
-            super().get()
-            .fieldset('Dados Gerais', [('sigla', 'nome')])
-            .queryset('Municípios', 'municipio_set', actions=('edit', 'delete', 'add'), related_field='estado')
-        )
+    pass
 
 class Municipios(AdminEndpoint[Municipio]):
     pass
 
 class PessoasFisicas(AdminEndpoint[PessoaFisica]):
-    class Meta:
-        verbose_name = 'Pessoas Físicas'
+    pass
 
-    def get(self):
-        return super().get().actions(add='cadastrarpessoafisica')
-
-class CadastrarPessoaFisica(AddEndpoint[PessoaFisica]):
-    class Meta:
-        verbose_name = 'Cadastrar Pessoa Física'
-
-    def get(self):
-        return (
-            super().get()
-            .fieldset('Dados Gerais', ('foto', ('cpf', 'nome')))
-            .fieldset('Dados para Contato', (('telefone', 'email'),))
-        )
 
 class InstrumentosAvaliativos(AdminEndpoint[InstrumentoAvaliativo]):
-    def get(self):
-        return super().get().actions(view='visualizarinstrumentoavaliativo')
-
-class VisualizarInstrumentoAvaliativo(ViewEndpoint[InstrumentoAvaliativo]):
-    def get(self):
-        return (
-            super().get()
-            .fieldset('Dados Gerais', ['responsavel', ('data_inicio', 'data_termino'), 'instrucoes'])
-            .queryset('Perguntas', 'pergunta_set', actions=('edit', 'delete', 'add', 'visualizarpergunta'), related_field='instrumento_avaliativo')
-            .queryset('Questionários', 'questionario_set', actions=('add', 'responderquestionario', 'visualizarquestionario'), related_field='instrumento_avaliativo')
-        )
+    pass
 
 class ResponderQuestionario(InstanceFormEndpoint[ResponderQuestionarioForm]):
     class Meta:
+        icon = 'pen-to-square'
         verbose_name = 'Responder Questionário'
 
 
-class VisualizarQuestionario(ViewEndpoint[Questionario]):
+class VisualizarRespostasQuestionario(ViewEndpoint[Questionario]):
     class Meta:
+        icon = 'eye'
         modal = True
         verbose_name = 'Visualizar Questionário'
 
@@ -68,6 +58,7 @@ class VisualizarQuestionario(ViewEndpoint[Questionario]):
 
 class VisualizarPergunta(ViewEndpoint[Pergunta]):
     class Meta:
+        icon = 'eye'
         modal = True
         verbose_name = 'Visualizar Pergunta'
 

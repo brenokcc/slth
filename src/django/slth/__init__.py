@@ -14,6 +14,7 @@ from functools import reduce
 from django.utils.translation import gettext_lazy as _
 from django.utils.autoreload import autoreload_started
 from .serializer import Serializer
+from .factory import FormFactory
 
 warnings.filterwarnings('ignore', module='urllib3')
 
@@ -65,7 +66,9 @@ class ModelMixin(object):
     
     def serializer(self) -> Serializer:
         return Serializer(self)
-
+    
+    def formfactory(self) -> FormFactory:
+        return FormFactory(self)
 
 class BaseManager(manager.BaseManager):
     def get_queryset(self):

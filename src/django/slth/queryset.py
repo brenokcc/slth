@@ -292,7 +292,7 @@ class QuerySet(models.QuerySet):
             for cls in instance_actions:
                 if cls.instantiate(self.request, obj).check_permission():
                     action = cls.get_api_metadata(self.request, base_url, obj.pk)
-                    action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
+                    action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
                     if relation:
                         action['url'] = append_url(action['url'], '{}={}'.format(relation[0], relation[1]))
                     serialized['actions'].append(action)

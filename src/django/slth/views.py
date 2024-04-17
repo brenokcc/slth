@@ -15,7 +15,7 @@ def dispatcher(request, **kwargs):
     if request.method == 'OPTIONS':
         return ApiResponse({})
     else:
-        if(1 and 'application' not in request.path and 'test' not in sys.argv): import time; time.sleep(0.5)
+        if(1 and 'application' not in request.path and 'test' not in sys.argv): import time; time.sleep(0)
         if 'HTTP_AUTHORIZATION' in request.META:
             token = Token.objects.filter(key=request.META['HTTP_AUTHORIZATION'].split()[1]).first()
             if token:
@@ -28,7 +28,10 @@ def dispatcher(request, **kwargs):
             cls = slth.ENDPOINTS.get(request.path.split('/')[2])
             if cls:
                 try:
-                    return cls(*kwargs.values()).contextualize(request).to_response()
+                    endpoint = cls(*kwargs.values()).contextualize(request)
+                    if True or endpoint.check_permission():
+                        return endpoint.to_response()
+                    return ApiResponse({}, status=403)
                 except JsonResponseException as e:
                     return ApiResponse(e.data, safe=False)
                 except Exception as e:

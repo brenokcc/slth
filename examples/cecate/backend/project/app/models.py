@@ -1,24 +1,105 @@
 from slth.db import models, role, meta
-from slth.components import Image
+from slth.components import Image, Map, Progress
 
 
-class PessoaFisicaQuerySet(models.QuerySet):
+class NivelEnsino(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Nível de Ensino'
+        verbose_name_plural = 'Níveis de Ensino'
+
+    def __str__(self):
+        return self.nome
+    
+class SituacaoEscolaridade(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Situação de Escolaridade'
+        verbose_name_plural = 'Situações de Escolaridade'
+
+    def __str__(self):
+        return self.nome
+
+class Poder(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Poder'
+        verbose_name_plural = 'Poderes'
+
+    def __str__(self):
+        return self.nome
+
+
+class Esfera(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Esfera'
+        verbose_name_plural = 'Esferas'
+
+    def __str__(self):
+        return self.nome
+    
+class TipoOrgao(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Tipo de Orgão'
+        verbose_name_plural = 'Tipos de Orgãos'
+
+    def __str__(self):
+        return self.nome
+
+
+class Orgao(models.Model):
+    sigla = models.CharField(verbose_name='Sigla')
+    nome = models.CharField(verbose_name='Nome')
+    cnpj = models.CharField(verbose_name='CNPJ')
+    tipo = models.ForeignKey(TipoOrgao, verbose_name='Tipo', on_delete=models.CASCADE)
+    esfera = models.ForeignKey(Esfera, verbose_name='Esfera', on_delete=models.CASCADE)
+    poder = models.ForeignKey(Poder, verbose_name='Poder', on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'Orgão'
+        verbose_name_plural = 'Orgãos'
+
+    def __str__(self):
+        return f'Orgão {self.id}'
+    
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', (('sigla', 'nome'),))
+            .fieldset('Classificação', (('tipo', 'esfera', 'poder'),))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', (('sigla', 'nome'),))
+            .fieldset('Classificação', (('tipo', 'esfera', 'poder'),))
+        )
+
+class PessoaFisicaQueryset(models.QuerySet):
     def all(self):
-        return self
+        return self.search('nome', 'cpf')
 
 @role('pf', 'cpf')
 class PessoaFisica(models.Model):
     foto = models.ImageField(verbose_name='Foto', null=True, blank=True, upload_to='pessoas_fisicas')
     cpf = models.CharField(verbose_name='CPF')
     nome = models.CharField(verbose_name='Nome')
+    nome_social = models.CharField(verbose_name='Nome Social', null=True, blank=True)
     telefone = models.CharField(verbose_name='Telefone')
     email = models.CharField(verbose_name='E-mail')
-
     class Meta:
         verbose_name = 'Pessoa Física'
         verbose_name_plural = 'Pessoas Físicas'
 
-    objects = PessoaFisicaQuerySet()
+    objects = PessoaFisicaQueryset()
 
     def __str__(self):
         return f'{self.nome}'
@@ -26,12 +107,66 @@ class PessoaFisica(models.Model):
     @meta('Foto')
     def get_foto(self):
         return Image(self.foto, width=75, round=True)
+    
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', ('foto', ('cpf', 'nome')))
+            .fieldset('Dados de Contato', (('telefone', 'email'),))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', ('foto', ('cpf', 'nome')))
+            .fieldset('Dados para Contato', (('telefone', 'email'),))
+            .queryset('Redes Sociais', 'redesocial_set', actions=('edit', 'delete', 'add'), related_field='pessoa_fisica')
+            .queryset('Escolaridades', 'escolaridade_set', actions=('edit', 'delete', 'add'), related_field='pessoa_fisica')
+        )
+
+class Escolaridade(models.Model):
+    pessoa_fisica = models.ForeignKey(PessoaFisica, verbose_name='Pessoa Física', on_delete=models.CASCADE)
+    nivel_ensino = models.ForeignKey(NivelEnsino, verbose_name='Nível de Ensino', on_delete=models.CASCADE)
+    situacao = models.ForeignKey(SituacaoEscolaridade, verbose_name='Situação', on_delete=models.CASCADE)
+    instituicao = models.CharField(verbose_name='Instituição', null=True, blank=True)
+    curso = models.CharField(verbose_name='Curso', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Escolaridade'
+        verbose_name_plural = 'Escolaridades'
 
 
-class EstadoQuerySet(models.QuerySet):
-    def all(self):
-        return self
+    def __str__(self):
+        return f'{self.nivel_ensino} ({self.situacao})'
 
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', ('pessoa_fisica', ('nivel_ensino', 'situacao')))
+            .fieldset('Detalhamento', ('instituicao', 'curso'))
+        )
+
+class TipoRedeSocial(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Tipo de Rede Social'
+        verbose_name_plural = 'Tipos de Rede Social'
+
+    def __str__(self):
+        return self.nome
+
+class RedeSocial(models.Model):
+    pessoa_fisica = models.ForeignKey(PessoaFisica, verbose_name='Pessoa Física', on_delete=models.CASCADE)
+    tipo = models.ForeignKey(TipoRedeSocial, verbose_name='Tipo', on_delete=models.CASCADE)
+    informacao = models.CharField(verbose_name='Informação')
+
+    class Meta:
+        verbose_name = 'Rede Social'
+        verbose_name_plural = 'Redes Sociais'
+
+    def __str__(self):
+        return f'{self.tipo}: {self.informacao}'
 
 class Estado(models.Model):
     sigla = models.CharField(verbose_name='Sigla')
@@ -40,37 +175,43 @@ class Estado(models.Model):
         verbose_name = 'Estado'
         verbose_name_plural = 'Estados'
 
-    objects = EstadoQuerySet()
-
     def __str__(self):
         return f'{self.sigla}'
     
     def get_cidades(self):
         return self.cidade_set.all()
-
-
-class MunicipioQuerySet(models.QuerySet):
-    def all(self):
-        return self
-
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', [('sigla', 'nome')])
+            .queryset('Municípios', 'municipio_set', actions=('edit', 'delete', 'add'), related_field='estado')
+        )
 
 class Municipio(models.Model):
     nome = models.CharField(verbose_name='Nome')
     estado = models.ForeignKey(Estado, verbose_name='Estado', on_delete=models.CASCADE)
+    latitude = models.CharField(verbose_name='Latitude', null=True, blank=True)
+    longitude = models.CharField(verbose_name='Longitude', null=True, blank=True)
+
+    view_fieldsets = {
+        'Dados Gerais': ('nome', 'estado'),
+        'Localização': (('latitude', 'longitude'), 'get_mapa')
+    }
     class Meta:
         verbose_name = 'Município'
         verbose_name_plural = 'Municípios'
 
-    objects = MunicipioQuerySet()
-
     def __str__(self):
         return f'{self.nome} / {self.estado}'
     
-
-class InstrumentoAvaliativoQuerySet(models.QuerySet):
-    def all(self):
-        return self
-
+    @meta('Mapa')
+    def get_mapa(self):
+        return dict(type='xxx', a=1, b=2)
+        if self.latitude and self.longitude:
+            return Map(self.latitude, self.longitude)
+        return 'Defina a latitude e longitude'
+    
 
 class InstrumentoAvaliativo(models.Model):
     nome = models.CharField(verbose_name='Nome')
@@ -83,10 +224,28 @@ class InstrumentoAvaliativo(models.Model):
         verbose_name = 'Instrumento Avaliativo'
         verbose_name_plural = 'Instrumentos Avaliativos'
 
-    objects = InstrumentoAvaliativoQuerySet()
-
     def __str__(self):
         return f'Instrumento Avaliativo {self.id}'
+    
+    @meta('Questionários')
+    def get_questionarios(self):
+        return self.questionario_set.fields('respondente', 'get_progresso')
+    
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', ('nome', 'responsavel'))
+            .fieldset('Período de Realização', ((('data_inicio', 'data_termino')),))
+            .fieldset('Outras Informações', ('instrucoes',))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', ['responsavel', ('data_inicio', 'data_termino'), 'instrucoes'])
+            .queryset('Perguntas', 'pergunta_set', actions=('edit', 'delete', 'add', 'visualizarpergunta'), related_field='instrumento_avaliativo')
+            .queryset('Questionários', 'get_questionarios', actions=('add', 'responderquestionario', 'visualizarrespostasquestionario'), related_field='instrumento_avaliativo')
+        )
 
 class OpcaoResposta(models.Model):
     descricao = models.CharField(verbose_name='Descrição')
@@ -97,11 +256,6 @@ class OpcaoResposta(models.Model):
 
     def __str__(self):
         return self.descricao
-
-class PerguntaQuerySet(models.QuerySet):
-    def all(self):
-        return self
-
 
 class Pergunta(models.Model):
     TEXTO_CURTO = 1
@@ -130,8 +284,6 @@ class Pergunta(models.Model):
         verbose_name = 'Pergunta'
         verbose_name_plural = 'Perguntas'
 
-    objects = PerguntaQuerySet()
-
     def __str__(self):
         return self.enunciado
     
@@ -148,12 +300,6 @@ class Pergunta(models.Model):
     @meta('Estatística')
     def get_estatistica(self):
         return self.perguntaquestionario_set.counter('resposta', chart='donut')
-    
-
-
-class QuestionarioQuerySet(models.QuerySet):
-    def all(self):
-        return self
 
 
 class Questionario(models.Model):
@@ -163,10 +309,8 @@ class Questionario(models.Model):
         verbose_name = 'Questionário'
         verbose_name_plural = 'Questionários'
 
-    objects = QuestionarioQuerySet()
-
     def __str__(self):
-        return f'Questionário {self.id}'
+        return f'Questionário - {self.respondente}'
     
     def gerar_perguntas(self):
         for pergunta in self.instrumento_avaliativo.pergunta_set.all():
@@ -182,6 +326,11 @@ class Questionario(models.Model):
 
     def get_perguntas(self):
         return self.perguntaquestionario_set.fields('pergunta', 'resposta')
+    
+    @meta('Progresso')
+    def get_progresso(self):
+        respondido = self.perguntaquestionario_set.filter(resposta__isnull=False).exists()
+        return Progress(100 if respondido else 0)
 
 class PerguntaQuestionarioQuerySet(models.QuerySet):
     def all(self):
@@ -199,10 +348,8 @@ class PerguntaQuestionario(models.Model):
     objects = PerguntaQuestionarioQuerySet()
 
     def __str__(self):
-        return f'Pergunta de Questionário {self.pk}'
+        return f'{self.pergunta} \nR: {self.resposta or "-"}'
     
     @meta('Respondente')
     def get_responente(self):
         return self.questionario.respondente
-
-

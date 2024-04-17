@@ -141,8 +141,8 @@ function Progress(props) {
     };
     const value = {
       display: "block",
-      paddingTop: 5,
-      paddingBottom: 5,
+      paddingTop: 2,
+      paddingBottom: 2,
       color: "white",
       borderRadius: 5,
       width: props.data.value + "%",

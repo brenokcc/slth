@@ -309,9 +309,10 @@ function QuerySet(props) {
     const style = {
       textAlign: "left",
       verticalAlign: "top",
-      backgroundColor: "#f0f0f0",
-      lineHeight: "3rem",
+      //backgroundColor: "#f0f0f0",
+      //lineHeight: "3rem",
       //borderBottom: "solid 1px #1351b4",
+      padding: 5,
     };
     if (window.innerWidth < 800) {
     } else {
@@ -319,7 +320,7 @@ function QuerySet(props) {
         <tr>
           {data.map(function (item) {
             return (
-              <th key={Math.random()} style={style}>
+              <th key={Math.random()} style={style} className="bold">
                 {item.label}
               </th>
             );
@@ -331,7 +332,7 @@ function QuerySet(props) {
   }
 
   function renderRow(row) {
-    const td = { borderBottom: "solid 1px #DDD" };
+    const td = { borderBottom: "solid 1px #DDD", padding: 5 };
     const actions = { borderBottom: "solid 1px #DDD", lineHeight: "3rem" };
     if (window.innerWidth < 800) {
       return (

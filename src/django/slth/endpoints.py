@@ -1,5 +1,6 @@
 
 import json
+import types
 import inspect
 from django.apps import apps
 from typing import TypeVar, Generic
@@ -9,7 +10,8 @@ from django.utils.text import slugify
 from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .forms import LoginForm, ModelForm, Form, FormFactory, SendPushNotificationForm
+from .factory import FormFactory
+from .forms import LoginForm, ModelForm, Form, SendPushNotificationForm
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
@@ -37,8 +39,35 @@ class ApiResponse(JsonResponse):
 class EnpointMetaclass(type):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
-        if name not in ('Endpoint', 'ChildEndpoint') and '_ChildEndpoint' not in [cls.__name__ for cls in bases]:
+        bases_names = [cls.__name__ for cls in bases]
+        if name not in ('Endpoint', 'ChildEndpoint') and '_ChildEndpoint' not in bases_names:
             ENDPOINTS[cls.__name__.lower()] = cls
+        if 'AdminEndpoint' in bases_names[0:1]:
+            model = cls.__orig_bases__[0].__args__[0]
+            items = (
+                ('Adicionar', AddEndpoint[model], 'plus'),
+                ('Editar', EditEndpoint[model], 'pen'),
+                ('Visualizar', ViewEndpoint[model], 'eye'),
+                ('Excluir', DeleteEndpoint[model], 'trash')
+            )
+            for prefix, base, icon in items:
+                endpoint = types.new_class(f'{prefix}{model.__name__}', (base,), {})
+                endpoint.check_permission = lambda self: (
+                    cls().instantiate(self.request, self).check_permission()
+                )
+                endpoint.Meta = type(
+                    'Meta', (), dict(
+                        icon=icon, modal=prefix != 'Visualizar',
+                        verbose_name=f'{prefix} {model._meta.verbose_name}'
+                    )
+                )
+            if 'Meta' not in attrs:
+                cls.Meta = type(
+                    'Meta', (), dict(
+                        icon=None, modal=False,
+                        verbose_name=f'{model._meta.verbose_name_plural}'
+                    )
+                )
         return cls
 
 
@@ -199,8 +228,9 @@ class ModelEndpoint(Endpoint):
         super().__init__()
 
 class AdminEndpoint(Generic[T], ModelEndpoint):
+
     def get(self) -> QuerySet:
-        actions = ['add', 'view', 'edit', 'delete']
+        actions = [f'{prefix}{self.model.__name__.lower()}' for prefix in ('adicionar', 'visualizar', 'editar', 'excluir')]
         return self.model.objects.all().actions(*actions)
     
 class ListEndpoint(Generic[T], ModelEndpoint):
@@ -209,7 +239,7 @@ class ListEndpoint(Generic[T], ModelEndpoint):
 
 class AddEndpoint(Generic[T], ModelEndpoint):
     def get(self) -> FormFactory:
-        return self.formfactory(self.model())
+        return self.model().formfactory()
 
 class ModelInstanceEndpoint(ModelEndpoint):
     def __init__(self, pk):
@@ -229,11 +259,11 @@ class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
         verbose_name = 'Visualizar'
 
     def get(self) -> Serializer:
-        return self.serializer(self.get_instance())
+        return self.get_instance().serializer()
         
 class EditEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self) -> FormFactory:
-        return self.formfactory(self.get_instance())
+        return self.get_instance().formfactory()
     
 class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self) -> FormFactory:
@@ -274,7 +304,7 @@ class Add(ChildEndpoint):
         verbose_name = 'Adicionar'
 
     def get(self) -> FormFactory:
-        return self.formfactory(self.source.model())
+        return self.source.model().formfactory()
     
 class ChildInstanceEndpoint(ChildEndpoint):
     def __init__(self, instance):
@@ -308,17 +338,18 @@ class ChildInstanceFormEndpoint(Generic[T], ChildEndpoint):
 class View(ChildInstanceEndpoint):
     class Meta:
         icon = 'eye'
+        modal = False
         verbose_name = 'Visualizar'
     
     def get(self) -> Serializer:
-        return self.serializer(self.get_instance())
+        return self.get_instance().serializer()
 
 class Edit(ChildInstanceEndpoint):
     class Meta:
         icon = 'pen'
         verbose_name = 'Editar'
     def get(self) -> FormFactory:
-        return self.formfactory(self.get_instance())
+        return self.get_instance().formfactory()
    
 class Delete(ChildInstanceEndpoint):
     class Meta:
@@ -435,13 +466,17 @@ class Application(PublicEndpoint):
                         subitem = get_item(k1, v1)
                         if subitem:
                             subitems.append(subitem)
-                    return dict(dict(icon=icon, label=label, items=subitems))
+                    if subitems:
+                        return dict(dict(icon=icon, label=label, items=subitems))
                 else:
-                    cls = ENDPOINTS[v]
-                    if cls().instantiate(self.request, self).check_permission():
-                        icon, label = k.split(':') if ':' in k else (None, k)
-                        url = build_url(self.request, cls.get_api_url())
-                        return dict(dict(label=label, url=url, icon=icon))
+                    cls = ENDPOINTS.get(v)
+                    if cls:
+                        if cls().instantiate(self.request, self).check_permission():
+                            icon, label = k.split(':') if ':' in k else (None, k)
+                            url = build_url(self.request, cls.get_api_url())
+                            return dict(dict(label=label, url=url, icon=icon))
+                    else:
+                        print(v)
             for k, v in APPLICATON['menu'].items():
                 item = get_item(k, v)
                 if item:
@@ -461,8 +496,8 @@ class Manifest(PublicEndpoint):
                 "name": APPLICATON['title'],
                 "short_name": APPLICATON['title'],
                 "lang": 'pt-BR',
-                "start_url": "/app/login/",
-                "scope": "/",
+                "start_url": "http://localhost:5173/app/login/",
+                "scope": "http://localhost:5173/app/login/",
                 "display": "standalone",
                 "icons": [{
                     "src": build_url(self.request, APPLICATON['logo']),
@@ -499,6 +534,7 @@ class PushSubscriptions(ListEndpoint[PushSubscription]):
 
 class SendPushNotification(ChildInstanceFormEndpoint[SendPushNotificationForm]):
     class Meta:
+        icon = 'mail-bulk'
         verbose_name = 'Enviar Notificação'
 
 
