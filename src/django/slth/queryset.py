@@ -90,8 +90,10 @@ class QuerySet(models.QuerySet):
         self.metadata['calendar'] = name
         return self
     
-    def relation(self, name, value):
-        self.metadata['relation'] = (name, value)
+    def related_values(self, **kwargs):
+        self.metadata['relations'] = {
+            k: v if isinstance(v, int) else v.pk for k, v in kwargs.items()
+        }
         return self
     
     def limit(self, limit, *limits):
@@ -198,7 +200,7 @@ class QuerySet(models.QuerySet):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
         title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
-        relation = self.metadata.get('relation')
+        relations = self.metadata.get('relations')
         subset = None
         actions = []
         filters = []
@@ -211,7 +213,7 @@ class QuerySet(models.QuerySet):
         instance_actions = []
         queryset_actions = []
 
-        base_url = absolute_url(self.request, 'only={}'.format(attrname) if attrname else '')
+        base_url = append_url(build_url(self.request), 'only={}'.format(attrname) if attrname else '')
 
         for qualified_name in self.metadata.get('actions', ()):
             cls = slth.ENDPOINTS[qualified_name]
@@ -224,8 +226,9 @@ class QuerySet(models.QuerySet):
             if cls.instantiate(self.request, self).check_permission():
                 action = cls.get_api_metadata(self.request, base_url)
                 action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
-                if relation:
-                        action['url'] = '{}&{}={}'.format(action['url'], relation[0], relation[1])
+                if relations:
+                        params = '&'.join(f'{k}={v}' for k, v in relations.items())
+                        action['url'] = append_url(action['url'], params)
                 actions.append(action)
 
         subset = self.parameter('subset')
@@ -244,7 +247,7 @@ class QuerySet(models.QuerySet):
             if lookup.endswith('userrole'):
                 field = self.role_filter_field()
             else:
-                field = self.filter_field(lookup)
+                field = self.filter_field(lookup, base_url)
             if field:
                 filters.append(field)
 
@@ -275,8 +278,9 @@ class QuerySet(models.QuerySet):
         serializer:Serializer = qs.metadata.get('serializer')
         if serializer is None:
             fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
-            if relation:
-                fields = [field_name for field_name in fields if field_name != relation[0]]
+            if relations:
+                names = set(relations.keys())
+                fields = [field_name for field_name in fields if field_name not in names]
             list_fields = [
                 f'get_{field_name}' if hasattr(qs.model, f'get_{field_name}') else
                 (f'get_{field_name}_display' if hasattr(qs.model, f'get_{field_name}_display')
@@ -293,8 +297,9 @@ class QuerySet(models.QuerySet):
                 if cls.instantiate(self.request, obj).check_permission():
                     action = cls.get_api_metadata(self.request, base_url, obj.pk)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
-                    if relation:
-                        action['url'] = append_url(action['url'], '{}={}'.format(relation[0], relation[1]))
+                    if relations:
+                        params = '&'.join(f'{k}={v}' for k, v in relations.items())
+                        action['url'] = append_url(action['url'], params)
                     serialized['actions'].append(action)
             objs.append(serialized)
 
@@ -331,7 +336,7 @@ class QuerySet(models.QuerySet):
         choices.extend({'id': k, 'text': v} for k, v in ['adm', 'Administrador'])
         return dict(name='userrole', type='choice', value=value, label='Papel', required=False, mask=None, choices=choices)
 
-    def filter_field(self, lookups):
+    def filter_field(self, lookups, base_url):
         name = lookups.strip()
         suffix = None
         choices = None
@@ -363,10 +368,10 @@ class QuerySet(models.QuerySet):
                 value = self.parameter(name)
                 if value:
                     value = dict(id=value, label=self.parameter(f'{name}__autocomplete'))
-                choices = absolute_url(self.request, f'choices={name}')
+                choices = append_url(base_url, f'choices={name}')
             elif isinstance(field, models.ManyToManyField):
                 field_type = 'choice'
-                choices = absolute_url(self.request, f'choices={name}')
+                choices = append_url(base_url, f'choices={name}')
             if getattr(field, 'choices'):
                 field_type = 'choice'
                 choices = [{'id': '', 'value':''}]

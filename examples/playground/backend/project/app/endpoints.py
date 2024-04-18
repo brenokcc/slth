@@ -216,7 +216,7 @@ class VisualizarEstado(ViewEndpoint[Estado]):
         return (
             super().get()
             .fieldset('Dados Gerais', [('sigla', 'nome')])
-            .queryset('Municípios', 'municipio_set', actions=('edit', 'delete', 'add'), related_field='estado')
+            .queryset('Municípios', 'municipio_set')
         )
 
 class Municipios(AdminEndpoint[Municipio]):

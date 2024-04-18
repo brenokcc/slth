@@ -112,8 +112,8 @@ class Serializer:
         self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=fields, attr=attr, actions=actions)))
         return self
         
-    def queryset(self, title, name, actions=(), related_field=None):
-        self.metadata['content'].append(('queryset', name, dict(title=title, actions=actions, related_field=related_field)))
+    def queryset(self, title, name):
+        self.metadata['content'].append(('queryset', name, dict(title=title)))
         return self
     
     def endpoint(self, title, cls, wrap=True):
@@ -195,7 +195,7 @@ class Serializer:
                         actions=[]
                         fields=[]
                         title = title.title() if title and title.islower() else title
-                        url = absolute_url(self.request, '?only={}'.format('__'.join(self.path + [key])))
+                        url = absolute_url(self.request, 'only={}'.format('__'.join(self.path + [key])))
                         if lazy:
                             data = dict(type='fieldset', title=title, key=key, url=url)
                         else:
@@ -219,18 +219,13 @@ class Serializer:
                             value = attr().filter()
                         else:
                             value = attr.filter()
-                        
-                        if item['actions']:
-                            value = value.actions(*item['actions'])
-                        if item['related_field']:
-                            value = value.relation(item['related_field'], self.obj.id)
-                        
+                    
                         if lazy:
                             data = dict(type='queryset', title=title, key=key)
                         else:
                             data = value.title(title).attrname(key).contextualize(self.request).serialize(debug=False)
                         path = self.path + [key]
-                        data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
+                        data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'endpoint':
                     data = {}
@@ -250,7 +245,7 @@ class Serializer:
                                 data = serialize(returned)
                                 data['title'] = title
                             if isinstance(data, dict):
-                                data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
+                                data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                             if leaf: raise JsonResponseException(data)
                 elif datatype == 'component':
                     title = item['title']
@@ -259,7 +254,7 @@ class Serializer:
                     if not only or key in only:
                         data = serialize(component)
                     path = self.path + [key]
-                    data['url'] = absolute_url(self.request, '?only={}'.format('__'.join(path)))
+                    data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                     if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':
                     serializer = item['serializer']
@@ -283,7 +278,7 @@ class Serializer:
             datatype = to_snake_case(self.title)
             output.update(key=datatype)
         if self.path:
-            url = absolute_url(self.request, '?only={}'.format('__'.join(self.path)))
+            url = absolute_url(self.request, 'only={}'.format('__'.join(self.path)))
         else:
             url = absolute_url(self.request)
         output.update(url=url)

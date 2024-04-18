@@ -537,7 +537,11 @@ function QuerySet(props) {
       return (
         <>
           <GridLayout width={250}>
-            <div style={style}>{searching && <Field data={field} />}</div>
+            {searching && (
+              <div style={style}>
+                <Field data={field} />
+              </div>
+            )}
             {filtering &&
               data.filters.map(function (field) {
                 return (
@@ -585,6 +589,7 @@ function QuerySet(props) {
   function render() {
     window[props.data.id] = () => reload();
     const sytle = { backgroundColor: "white", padding: 20 };
+    console.log(props.data.url);
     return (
       <div className="reloadable" id={props.data.id} sytle={sytle}>
         <form id={"form-" + props.data.id}>

@@ -120,9 +120,15 @@ class PessoaFisica(models.Model):
             super().serializer()
             .fieldset('Dados Gerais', ('foto', ('cpf', 'nome')))
             .fieldset('Dados para Contato', (('telefone', 'email'),))
-            .queryset('Redes Sociais', 'redesocial_set', actions=('edit', 'delete', 'add'), related_field='pessoa_fisica')
-            .queryset('Escolaridades', 'escolaridade_set', actions=('edit', 'delete', 'add'), related_field='pessoa_fisica')
+            .queryset('Redes Sociais', 'get_redes_sociais')
+            .queryset('Escolaridades', 'get_escolaridades')
         )
+    
+    def get_redes_sociais(self):
+        return self.redesocial_set.actions('edit', 'delete', 'add').related_values(pessoa_fisica=self)
+    
+    def get_escolaridades(self):
+        return self.escolaridade_set.actions('edit', 'delete', 'add').filters('situacao').search('curso').related_values(pessoa_fisica=self)
 
 class Escolaridade(models.Model):
     pessoa_fisica = models.ForeignKey(PessoaFisica, verbose_name='Pessoa Física', on_delete=models.CASCADE)
@@ -185,8 +191,11 @@ class Estado(models.Model):
         return (
             super().serializer()
             .fieldset('Dados Gerais', [('sigla', 'nome')])
-            .queryset('Municípios', 'municipio_set', actions=('edit', 'delete', 'add'), related_field='estado')
+            .queryset('Municípios', 'get_municipios')
         )
+    
+    def get_municipios(self):
+        return self.municipio_set.actions('edit', 'delete', 'add').related_values(estado=self)
 
 class Municipio(models.Model):
     nome = models.CharField(verbose_name='Nome')
@@ -227,9 +236,6 @@ class InstrumentoAvaliativo(models.Model):
     def __str__(self):
         return f'Instrumento Avaliativo {self.id}'
     
-    @meta('Questionários')
-    def get_questionarios(self):
-        return self.questionario_set.fields('respondente', 'get_progresso')
     
     def formfactory(self):
         return (
@@ -243,10 +249,16 @@ class InstrumentoAvaliativo(models.Model):
         return (
             super().serializer()
             .fieldset('Dados Gerais', ['responsavel', ('data_inicio', 'data_termino'), 'instrucoes'])
-            .queryset('Perguntas', 'pergunta_set', actions=('edit', 'delete', 'add', 'visualizarpergunta'), related_field='instrumento_avaliativo')
-            .queryset('Questionários', 'get_questionarios', actions=('add', 'responderquestionario', 'visualizarrespostasquestionario'), related_field='instrumento_avaliativo')
+            .queryset('Perguntas', 'get_perguntas')
+            .queryset('Questionários', 'get_questionarios')
         )
-
+    
+    def get_perguntas(self):
+        return self.pergunta_set.actions('edit', 'delete', 'add', 'visualizarpergunta').related_values(instrumento_avaliativo=self)
+    
+    def get_questionarios(self):
+        return self.questionario_set.fields('respondente', 'get_progresso').actions('add', 'responderquestionario', 'visualizarrespostasquestionario').related_values(instrumento_avaliativo=self)
+    
 class OpcaoResposta(models.Model):
     descricao = models.CharField(verbose_name='Descrição')
 

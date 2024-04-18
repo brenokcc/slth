@@ -373,8 +373,11 @@ function Selector(props) {
   } else if (props.data.value != null) {
     initial.push({ id: props.data.value.id, value: props.data.value.label });
   }
-  const id = props.data.name;
-  const id2 = props.data.name + "__autocomplete";
+  if (props.data.id == null) props.data.id = Math.random();
+  if (props.data.id2 == null) props.data.id2 = props.data.id + "__autocomplete";
+  const id = props.data.id;
+  const id2 = props.data.id2;
+
   const multiple = Array.isArray(props.data.value);
   const [seaching, setSearching] = useState(false);
   const [options, setOptions] = useState(null);
@@ -484,7 +487,7 @@ function Selector(props) {
       <>
         <input
           id={id2}
-          name={id2}
+          name={props.data.name + "__autocomplete"}
           type="text"
           className="form-control"
           onFocus={(e) => {
@@ -1162,7 +1165,7 @@ function Form(props) {
             if (k == "__all__") {
               message = data.errors[k];
             } else {
-              const div = document.getElementById(k + "_error");
+              const div = form.querySelector("#" + k + "_error");
               div.querySelector("span").innerHTML = data.errors[k];
               div.style.display = "block";
             }
