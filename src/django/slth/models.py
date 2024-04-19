@@ -129,14 +129,14 @@ class Email(models.Model):
         super().save(*args, **kwargs)
 
 
-class Photo(models.Model):
+class Profile(models.Model):
     
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     photo = models.ImageField(verbose_name=_("Photo"))
 
     class Meta:
-        verbose_name = _("Photo")
-        verbose_name_plural = _("Photos")
+        verbose_name = _("Profile")
+        verbose_name_plural = _("Profile")
 
 
 class Token(models.Model):

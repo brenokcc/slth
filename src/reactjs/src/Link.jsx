@@ -13,6 +13,7 @@ function Link({
   style,
 }) {
   const url = href && href.indexOf("/media/") < 0 ? appurl(href) : href;
+  console.log(href);
 
   function onClickDefault(e) {
     e.preventDefault();

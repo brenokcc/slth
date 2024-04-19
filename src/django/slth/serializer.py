@@ -83,6 +83,9 @@ class LinkField:
         self.endpoint = endpoint
 
 class Serializer:
+    pass
+
+class Serializer:
     def __init__(self, obj=None, request=None, serializer=None, type='object', title=None):
         self.path = serializer.path.copy() if serializer else []
         self.obj = obj
@@ -98,44 +101,44 @@ class Serializer:
         else:
             self.title = str(obj) if obj else None
 
-    def actions(self, *actions):
+    def actions(self, *actions) -> Serializer:
         self.metadata['actions'].extend(actions)
         self.metadata['allow'].extend(actions)
         return self
         
-    def fields(self, *names):
+    def fields(self, *names) -> Serializer:
         self.metadata['content'].append(('fields', None, dict(names=names)))
         return self
     
-    def fieldset(self, title, fields=(), actions=(), attr=None):
+    def fieldset(self, title, fields=(), actions=(), attr=None) -> Serializer:
         self.metadata['allow'].extend(actions)
         self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=fields, attr=attr, actions=actions)))
         return self
         
-    def queryset(self, title, name):
+    def queryset(self, title, name) -> Serializer:
         self.metadata['content'].append(('queryset', name, dict(title=title)))
         return self
     
-    def endpoint(self, title, cls, wrap=True):
+    def endpoint(self, title, cls, wrap=True) -> Serializer:
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
         self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap)))
         return self
     
-    def append(self, title, component):
+    def append(self, title, component) -> Serializer:
         self.metadata['content'].append(('component', to_snake_case(title), dict(title=title, component=component)))
     
-    def section(self, title):
+    def section(self, title) -> Serializer:
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title)
     
-    def group(self, title):
+    def group(self, title) -> Serializer:
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title)
 
-    def parent(self):
+    def parent(self) -> Serializer:
         self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self)))
         return self.serializer
     
-    def contextualize(self, request):
+    def contextualize(self, request) -> Serializer:
         self.request = request
         return self
     
@@ -155,6 +158,8 @@ class Serializer:
 
     def to_dict(self, debug=False):
         base_url = absolute_url(self.request)
+        if self.request is None and self.serializer:
+            self.request = self.serializer.request
         if self.ignore_only:
             only = []
         else:
@@ -220,11 +225,12 @@ class Serializer:
                         else:
                             value = attr.filter()
                     
+                        path = self.path + [key]
                         if lazy:
                             data = dict(type='queryset', title=title, key=key)
                         else:
-                            data = value.title(title).attrname(key).contextualize(self.request).serialize(debug=False)
-                        path = self.path + [key]
+                            data = value.title(title).attrname('__'.join(path)).contextualize(self.request).serialize(debug=False)
+                        
                         data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'endpoint':
@@ -260,6 +266,7 @@ class Serializer:
                     serializer = item['serializer']
                     serializer.lazy = lazy
                     if not only or key in only:
+                        serializer.lazy = False
                         serializer.ignore_only = self.ignore_only or leaf
                         data = serializer.to_dict()
                         if leaf: raise JsonResponseException(data)

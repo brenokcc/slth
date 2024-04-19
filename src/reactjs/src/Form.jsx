@@ -284,6 +284,7 @@ function InputField(props) {
         var reader = new FileReader();
         reader.onload = function (event) {
           const MAX_WIDTH = 400;
+          const DISPLAY_ID = "display" + id;
           var img = document.createElement("img");
           img.id = e.target.id + "img";
           img.style.width = "200px";
@@ -314,7 +315,13 @@ function InputField(props) {
             oc.toBlob(function (blob) {
               e.target.blob = blob;
             });
-            const div = document.createElement("div");
+            var div = document.getElementById(DISPLAY_ID);
+            if (div == null) {
+              div = document.createElement("div");
+              div.id = DISPLAY_ID;
+            } else {
+              div.removeChild(div.childNodes[0]);
+            }
             div.appendChild(img);
             e.target.parentNode.appendChild(div);
           };
@@ -330,18 +337,51 @@ function InputField(props) {
     if (type == "datetime") type = "datetime-regional";
     if (type == "decimal") type = "text";
     if (type == "file") {
+      const style = { alignContent: "center", height: 75, padding: 30 };
       return (
-        <input
-          className={"form-control " + className}
-          type={type}
-          name={props.data.name}
-          id={id}
-          data-label={toLabelCase(props.data.label)}
-          readOnly={props.data.read_only}
-          onBlur={props.data.onchange ? onBlur : null}
-          onChange={onChange}
-          style={INPUT_STYLE}
-        />
+        <>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              backgroundColor: "rgba(15, 145, 210, 0.05)",
+              border: "1px dashed rgba(15, 145, 210, 0.4)",
+              borderRadius: 10,
+            }}
+          >
+            <div style={style}>
+              <Icon
+                icon="cloud-upload"
+                style={{ fontSize: "2.5rem", color: "#1351b4" }}
+              />
+            </div>
+            <div style={style}>
+              {props.data.value && (
+                <div style={{ textAlign: "center" }}>
+                  <img src={props.data.value} height={50} />
+                </div>
+              )}
+              Select a file or drag and drop here. Replace current image.
+            </div>
+            <div style={style}>
+              <Button
+                label="Selecionar Arquivo"
+                onClick={() => document.getElementById(id).click()}
+              ></Button>
+            </div>
+          </div>
+          <input
+            className={"form-control " + className}
+            type={type}
+            name={props.data.name}
+            id={id}
+            data-label={toLabelCase(props.data.label)}
+            readOnly={props.data.read_only}
+            onBlur={props.data.onchange ? onBlur : null}
+            onChange={onChange}
+            style={{ display: "none" }}
+          />
+        </>
       );
     } else {
       return (

@@ -54,7 +54,16 @@ ComponentFactory.register = function (type, func) {
 };
 ComponentFactory.render = function (root) {
   ROOT = root;
-  window.reload(document.location.href);
+  if (
+    document.location.pathname == "/app/login/" &&
+    (localStorage.getItem("token") || localStorage.getItem("application"))
+  ) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("application");
+    document.location.reload();
+  } else {
+    window.reload(document.location.href);
+  }
 };
 
 ComponentFactory.register("form", (data) => <Form data={data} />);

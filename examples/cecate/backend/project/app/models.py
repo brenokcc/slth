@@ -119,9 +119,15 @@ class PessoaFisica(models.Model):
         return (
             super().serializer()
             .fieldset('Dados Gerais', ('foto', ('cpf', 'nome')))
-            .fieldset('Dados para Contato', (('telefone', 'email'),))
-            .queryset('Redes Sociais', 'get_redes_sociais')
-            .queryset('Escolaridades', 'get_escolaridades')
+            .group('Detalhamento')
+                .section('Section 01')
+                    .queryset('Redes Sociais', 'get_redes_sociais')
+                    .parent()
+                .section('Section 02')
+                    .fieldset('Dados para Contato', (('telefone', 'email'),))
+                    .parent()
+                .queryset('Escolaridades', 'get_escolaridades')
+            .parent()
         )
     
     def get_redes_sociais(self):

@@ -141,7 +141,7 @@ function Section(props) {
   }
 
   function renderContent() {
-    const style = { backgroundColor: white };
+    const style = { backgroundColor: "white" };
     return props.data.data.map(function (item, i) {
       return (
         <div style={style}>

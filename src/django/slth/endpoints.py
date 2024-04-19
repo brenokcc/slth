@@ -16,7 +16,7 @@ from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
 from .utils import build_url, append_url
-from .models import PushSubscription
+from .models import PushSubscription, Profile
 from slth.queryset import QuerySet
 from slth import APPLICATON, ENDPOINTS
 from django.contrib.auth.models import User
@@ -259,7 +259,7 @@ class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
         verbose_name = 'Visualizar'
 
     def get(self) -> Serializer:
-        return self.get_instance().serializer()
+        return self.get_instance().serializer().contextualize(self.request)
         
 class EditEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self) -> FormFactory:
@@ -481,7 +481,9 @@ class Application(PublicEndpoint):
                 item = get_item(k, v)
                 if item:
                     items.append(item)
-            menu = Menu(items, user=self.request.user.username, image=build_url(self.request, '/api/static/images/user.png'))
+            profile = Profile.objects.filter(user=self.request.user).first()
+            photo_url = profile.photo.url if profile.photo else '/api/static/images/user.png'
+            menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
         footer = Footer(APPLICATON['version'])
         return Application_(navbar=navbar, menu=menu, footer=footer)
     
@@ -537,5 +539,12 @@ class SendPushNotification(ChildInstanceFormEndpoint[SendPushNotificationForm]):
         icon = 'mail-bulk'
         verbose_name = 'Enviar Notificação'
 
+class EditProfile(Endpoint):
+    def get(self):
+        profile = Profile.objects.filter(user=self.request.user).first() or Profile(user=self.request.user)
+        return FormFactory(instance=profile).fieldset('Dados Gerais', ['photo'])
+
+    def check_permission(self):
+        return self.request.user.is_authenticated
 
 

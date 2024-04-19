@@ -18,7 +18,11 @@ function Menu() {
               <img src={window.application.menu.image} style={img} />
             </div>
           )}
-          <div>{window.application.menu.user}</div>
+          <div>
+            <Link dataLabel="Editar Perfil" href="/api/editprofile/">
+              {window.application.menu.user}
+            </Link>
+          </div>
         </div>
       )
     );

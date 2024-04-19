@@ -12,7 +12,7 @@ from .models import Token
 from django.db import transaction
 from django.db.models import Manager
 from .exceptions import JsonResponseException
-from .utils import absolute_url
+from .utils import absolute_url, build_url
 from .serializer import Serializer
 from .components import Response
 from .notifications import send_push_web_notification
@@ -166,7 +166,7 @@ class FormMixin:
                 obj = field.queryset.get(pk=value)
                 value = dict(id=obj.id, label=str(obj))
             elif isinstance(value, ImageFieldFile):
-                value = str(value)
+                value = build_url(self.request, value.url) if value else None
             
             fname = name if prefix is None else f'{prefix}__{name}'
             data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, help_text=field.help_text, mask=None)
