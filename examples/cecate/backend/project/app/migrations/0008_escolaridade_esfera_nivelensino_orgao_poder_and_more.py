@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Escolaridade',
                 'verbose_name_plural': 'Escolaridades',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Esfera',
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Esfera',
                 'verbose_name_plural': 'Esferas',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='NivelEnsino',
@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Nível de Ensino',
                 'verbose_name_plural': 'Níveis de Ensino',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Orgao',
@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Orgão',
                 'verbose_name_plural': 'Orgãos',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Poder',
@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Poder',
                 'verbose_name_plural': 'Poderes',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='RedeSocial',
@@ -87,7 +87,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Rede Social',
                 'verbose_name_plural': 'Redes Sociais',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='SituacaoEscolaridade',
@@ -99,7 +99,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Situação de Escolaridade',
                 'verbose_name_plural': 'Situações de Escolaridade',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='TipoOrgao',
@@ -111,7 +111,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Tipo de Orgão',
                 'verbose_name_plural': 'Tipos de Orgãos',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='TipoRedeSocial',
@@ -123,7 +123,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Tipo de Rede Social',
                 'verbose_name_plural': 'Tipos de Rede Social',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.RemoveField(
             model_name='loja',

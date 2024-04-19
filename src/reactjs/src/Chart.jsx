@@ -15,7 +15,7 @@ function Echarts(props) {
 
   setTimeout(init, 1000);
 
-  return <div id={id} style={{ width: "100%", height: 400 }}></div>;
+  return <div id={id} style={{ width: "100%", height: 300 }}></div>;
 }
 
 function Pie(props) {
@@ -351,7 +351,7 @@ function ChartFactory(props) {
   }
   function render() {
     return (
-      <div style={{ width: 400, margin: "auto" }}>
+      <div style={{ width: 300, margin: "auto" }}>
         {props.title && <h2 className="title">{props.title}</h2>}
         {chart()}
       </div>

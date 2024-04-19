@@ -70,9 +70,9 @@ function Menu() {
     const style = {
       display: level == 0 ? "block" : "none",
       cursor: "pointer",
-      paddingLeft: 15,
-      paddingTop: 5,
-      paddingBottom: 5,
+      paddingLeft: 5,
+      paddingTop: 10,
+      paddingBottom: 10,
       lineHeight: "2rem",
     };
     const iconStyle = { padding: 5, fontSize: "1.2rem" };

@@ -72,7 +72,12 @@ function Application(props) {
             style={{ fontSize: "1.5rem", marginRight: 10, cursor: "pointer" }}
             onClick={toggleMenu}
           />
-          <a href="/">{props.data.navbar.title}</a>
+          <a href="/" style={{ fontSize: "1.5rem" }}>
+            {props.data.navbar.logo && (
+              <img src={props.data.navbar.logo} height={20} />
+            )}
+            {props.data.navbar.title}
+          </a>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
           {props.data.navbar.adder.length > 0 && (

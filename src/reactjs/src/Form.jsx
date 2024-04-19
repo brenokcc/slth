@@ -1111,7 +1111,7 @@ function Form(props) {
   const id = Math.random();
 
   function getTitle() {
-    const style = { margin: 0, textAlign: "center" };
+    const style = { margin: 0, textAlign: "left" };
     return <h1 style={style}>{props.data.title}</h1>;
   }
 

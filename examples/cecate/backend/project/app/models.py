@@ -122,12 +122,13 @@ class PessoaFisica(models.Model):
             .group('Detalhamento')
                 .section('Section 01')
                     .queryset('Redes Sociais', 'get_redes_sociais')
-                    .parent()
+                .parent()
                 .section('Section 02')
-                    .fieldset('Dados para Contato', (('telefone', 'email'),))
-                    .parent()
+                    .fieldset('Dados para Contato', (('telefone', 'email', 'id'),))
+                .parent()
                 .queryset('Escolaridades', 'get_escolaridades')
             .parent()
+            .fieldset('Estatísticas', (('get_escolaridades_por_situacao', 'get_escolaridades_por_nivel_ensino'),))
         )
     
     def get_redes_sociais(self):
@@ -135,6 +136,14 @@ class PessoaFisica(models.Model):
     
     def get_escolaridades(self):
         return self.escolaridade_set.actions('edit', 'delete', 'add').filters('situacao').search('curso').related_values(pessoa_fisica=self)
+    
+    @meta('Escolidade por Tipo')
+    def get_escolaridades_por_situacao(self):
+        return self.escolaridade_set.counter('situacao', chart='donut')
+    
+    @meta('Escolidade por Nível de Ensino')
+    def get_escolaridades_por_nivel_ensino(self):
+        return self.escolaridade_set.counter('nivel_ensino', chart='column')
 
 class Escolaridade(models.Model):
     pessoa_fisica = models.ForeignKey(PessoaFisica, verbose_name='Pessoa Física', on_delete=models.CASCADE)
@@ -184,6 +193,7 @@ class Estado(models.Model):
     sigla = models.CharField(verbose_name='Sigla')
     nome = models.CharField(verbose_name='Nome')
     class Meta:
+        icon = 'map'
         verbose_name = 'Estado'
         verbose_name_plural = 'Estados'
 

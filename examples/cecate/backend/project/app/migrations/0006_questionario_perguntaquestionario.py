@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Questionário',
                 'verbose_name_plural': 'Questionários',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='PerguntaQuestionario',
@@ -38,6 +38,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Pergunta de Questionário',
                 'verbose_name_plural': 'Perguntas de Questionário',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
     ]

@@ -1,4 +1,7 @@
+from django.db.models import Model as DjangoModel
 from django.db.models import *
+from django.utils.translation import gettext_lazy as _
+from .. import ModelMixin
 
 class CharField(CharField):
     def __init__(self, *args, **kwargs):
@@ -30,7 +33,6 @@ class ForeignKey(ForeignKey):
     def formfield(self, *args, **kwargs):
         field = super().formfield(*args, **kwargs)
         return field
-
 
 class ManyToManyField(ManyToManyField):
     def __init__(self, *args, **kwargs):
@@ -92,3 +94,8 @@ class TextField(TextField):
     def __init__(self, *args, **kwargs):
         self.formatted= kwargs.pop('formatted', False)
         super().__init__(*args, **kwargs)
+
+
+class Model(DjangoModel, ModelMixin):
+    class Meta:
+        abstract = True

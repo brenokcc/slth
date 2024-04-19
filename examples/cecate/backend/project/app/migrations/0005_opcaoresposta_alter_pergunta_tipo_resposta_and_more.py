@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Opção de Resposta',
                 'verbose_name_plural': 'Opções de Resposta',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.AlterField(
             model_name='pergunta',

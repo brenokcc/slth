@@ -4,11 +4,16 @@ import { request } from "./Request.jsx";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action.jsx";
 import { Link } from "./Link.jsx";
+import { GridLayout } from "./Layout";
 import toLabelCase from "./Utils";
 
 function Field(props) {
   function render() {
-    const style = { width: props.width + "%", marginTop: 5, marginBottom: 5 };
+    const style = {
+      minWidth: props.width + "%",
+      marginTop: 5,
+      marginBottom: 5,
+    };
     return (
       <>
         <div style={style}>
@@ -38,7 +43,7 @@ function Fieldset(props) {
       return content.data.map(function (item) {
         if (Array.isArray(item)) {
           return (
-            <div key={Math.random()} style={{ display: "flex" }}>
+            <GridLayout width={300}>
               {item.map((field) => (
                 <Field
                   key={Math.random()}
@@ -46,7 +51,7 @@ function Fieldset(props) {
                   width={100 / item.length}
                 />
               ))}
-            </div>
+            </GridLayout>
           );
         } else {
           return (
@@ -172,6 +177,7 @@ function Tabs(props) {
           textAlign: "center",
           width: "100%",
           margin: "auto",
+          marginBottom: 20,
         }}
       >
         {props.data.map(function (item, i) {
@@ -183,9 +189,10 @@ function Tabs(props) {
                 padding: 5,
                 fontWeight: active == i ? "bold" : "normal",
                 borderBottom:
-                  active == i ? "solid 3px #2670e8" : "solid 3px #DDD",
+                  active == i ? "solid 3px #2670e8" : "solid 3px inherite",
                 textDecoration: "none",
                 color: "#0c326f",
+                margin: 15,
               }}
               onClick={function (e) {
                 e.preventDefault();

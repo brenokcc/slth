@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'E-mail',
                 'verbose_name_plural': 'E-mails',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Role',
@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Papel',
                 'verbose_name_plural': 'Papéis',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='PushSubscription',
@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Inscrição de Notificação',
                 'verbose_name_plural': 'Inscrições de Notificação',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Error',
@@ -73,6 +73,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Erro',
                 'verbose_name_plural': 'Erros',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
     ]

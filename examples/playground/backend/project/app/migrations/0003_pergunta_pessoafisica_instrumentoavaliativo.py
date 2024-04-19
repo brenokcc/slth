@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Pergunta',
                 'verbose_name_plural': 'Perguntas',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='PessoaFisica',
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Pessoa Física',
                 'verbose_name_plural': 'Pessoas Físicas',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='InstrumentoAvaliativo',
@@ -55,6 +55,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Instrumento Avaliativo',
                 'verbose_name_plural': 'Instrumentos Avaliativos',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
     ]

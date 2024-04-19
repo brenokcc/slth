@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Funcionário',
                 'verbose_name_plural': 'Funcionários',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Loja',
@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ('nome', slth.db.models.CharField(max_length=255, verbose_name='Nome')),
                 ('gerente', slth.db.models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.funcionario')),
             ],
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Telefone',
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 ('ddd', slth.db.models.IntegerField(verbose_name='DDD')),
                 ('numero', slth.db.models.CharField(max_length=25, verbose_name='Número')),
             ],
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Rede',
@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                 ('nome', slth.db.models.CharField(max_length=255, verbose_name='Nome')),
                 ('supervisor', slth.db.models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.funcionario')),
             ],
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Produto',
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('nome', slth.db.models.CharField(max_length=255, verbose_name='Nome')),
                 ('loja', slth.db.models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.loja')),
             ],
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Pessoa',
@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
                 ('telefone_pessoal', slth.db.models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='p1', to='app.telefone', verbose_name='Telefone Pessoal')),
                 ('telefones_profissionais', slth.db.models.OneToManyField(to='app.telefone', verbose_name='Telefones Profissionais')),
             ],
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.AddField(
             model_name='loja',
@@ -97,6 +97,6 @@ class Migration(migrations.Migration):
                 ('prefeito', slth.db.models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.pessoa', verbose_name='Prefeito')),
                 ('vereadores', slth.db.models.ManyToManyField(blank=True, related_name='r1', to='app.pessoa', verbose_name='Vereadores')),
             ],
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
     ]

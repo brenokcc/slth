@@ -45,7 +45,7 @@ class EnpointMetaclass(type):
         if 'AdminEndpoint' in bases_names[0:1]:
             model = cls.__orig_bases__[0].__args__[0]
             items = (
-                ('Adicionar', AddEndpoint[model], 'plus'),
+                ('Cadastrar', AddEndpoint[model], 'plus'),
                 ('Editar', EditEndpoint[model], 'pen'),
                 ('Visualizar', ViewEndpoint[model], 'eye'),
                 ('Excluir', DeleteEndpoint[model], 'trash')
@@ -64,7 +64,7 @@ class EnpointMetaclass(type):
             if 'Meta' not in attrs:
                 cls.Meta = type(
                     'Meta', (), dict(
-                        icon=None, modal=False,
+                        icon=getattr(model._meta, 'icon', None), modal=False,
                         verbose_name=f'{model._meta.verbose_name_plural}'
                     )
                 )
@@ -230,7 +230,7 @@ class ModelEndpoint(Endpoint):
 class AdminEndpoint(Generic[T], ModelEndpoint):
 
     def get(self) -> QuerySet:
-        actions = [f'{prefix}{self.model.__name__.lower()}' for prefix in ('adicionar', 'visualizar', 'editar', 'excluir')]
+        actions = [f'{prefix}{self.model.__name__.lower()}' for prefix in ('cadastrar', 'visualizar', 'editar', 'excluir')]
         return self.model.objects.all().actions(*actions)
     
 class ListEndpoint(Generic[T], ModelEndpoint):
@@ -301,7 +301,7 @@ class ChildEndpoint(Endpoint):
 class Add(ChildEndpoint):
     class Meta:
         icon = 'plus'
-        verbose_name = 'Adicionar'
+        verbose_name = 'Cadastrar'
 
     def get(self) -> FormFactory:
         return self.source.model().formfactory()
@@ -444,9 +444,10 @@ class Application(PublicEndpoint):
         navbar = None
         menu = None
         if self.request.user.is_authenticated:
+            logo = build_url(self.request, APPLICATON['logo'])
             navbar = Navbar(
                 title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
-                logo=APPLICATON['logo'], user=self.request.user.username
+                logo=logo, user=self.request.user.username
             )
             for entrypoint in ['usermenu', 'adder', 'settings', 'tools']:
                 if APPLICATON['dashboard'][entrypoint]:
@@ -482,7 +483,7 @@ class Application(PublicEndpoint):
                 if item:
                     items.append(item)
             profile = Profile.objects.filter(user=self.request.user).first()
-            photo_url = profile.photo.url if profile.photo else '/api/static/images/user.png'
+            photo_url = profile.photo.url if profile and profile.photo else '/api/static/images/user.png'
             menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
         footer = Footer(APPLICATON['version'])
         return Application_(navbar=navbar, menu=menu, footer=footer)

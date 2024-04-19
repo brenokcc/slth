@@ -82,8 +82,6 @@ class LinkField:
         self.name = name
         self.endpoint = endpoint
 
-class Serializer:
-    pass
 
 class Serializer:
     def __init__(self, obj=None, request=None, serializer=None, type='object', title=None):
@@ -101,44 +99,44 @@ class Serializer:
         else:
             self.title = str(obj) if obj else None
 
-    def actions(self, *actions) -> Serializer:
+    def actions(self, *actions) -> 'Serializer':
         self.metadata['actions'].extend(actions)
         self.metadata['allow'].extend(actions)
         return self
         
-    def fields(self, *names) -> Serializer:
+    def fields(self, *names) -> 'Serializer':
         self.metadata['content'].append(('fields', None, dict(names=names)))
         return self
     
-    def fieldset(self, title, fields=(), actions=(), attr=None) -> Serializer:
+    def fieldset(self, title, fields=(), actions=(), attr=None) -> 'Serializer':
         self.metadata['allow'].extend(actions)
         self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=fields, attr=attr, actions=actions)))
         return self
         
-    def queryset(self, title, name) -> Serializer:
+    def queryset(self, title, name) -> 'Serializer':
         self.metadata['content'].append(('queryset', name, dict(title=title)))
         return self
     
-    def endpoint(self, title, cls, wrap=True) -> Serializer:
+    def endpoint(self, title, cls, wrap=True) -> 'Serializer':
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
         self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap)))
         return self
     
-    def append(self, title, component) -> Serializer:
+    def append(self, title, component) -> 'Serializer':
         self.metadata['content'].append(('component', to_snake_case(title), dict(title=title, component=component)))
     
-    def section(self, title) -> Serializer:
+    def section(self, title) -> 'Serializer':
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title)
     
-    def group(self, title) -> Serializer:
+    def group(self, title) -> 'Serializer':
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title)
 
-    def parent(self) -> Serializer:
+    def parent(self) -> 'Serializer':
         self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self)))
         return self.serializer
     
-    def contextualize(self, request) -> Serializer:
+    def contextualize(self, request) -> 'Serializer':
         self.request = request
         return self
     

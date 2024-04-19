@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Estado',
                 'verbose_name_plural': 'Estados',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='Municipio',
@@ -37,6 +37,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Município',
                 'verbose_name_plural': 'Municípios',
             },
-            bases=(models.Model, slth.ModelMixin),
+            bases=(models.Model,),
         ),
     ]

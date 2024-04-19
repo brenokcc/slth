@@ -2,19 +2,17 @@ import re
 import os
 import yaml
 import warnings
-from django.apps import apps
 from pathlib import Path
+from django.apps import apps
 from django.db import models
-from django.core.exceptions import FieldDoesNotExist
-from django.db.models import manager, Q, CharField, ForeignKey, DecimalField, OneToOneField, ManyToManyField, TextField, CASCADE
-from django.db.models.aggregates import Sum, Avg
-from django.db.models.base import ModelBase
 from .queryset import QuerySet
-from functools import reduce
-from django.utils.translation import gettext_lazy as _
-from django.utils.autoreload import autoreload_started
+from django.db.models import manager
 from .serializer import Serializer
 from .factory import FormFactory
+import django.db.models.options as options
+from django.db.models.base import ModelBase
+from django.core.exceptions import FieldDoesNotExist
+from django.utils.autoreload import autoreload_started
 
 warnings.filterwarnings('ignore', module='urllib3')
 
@@ -29,6 +27,28 @@ if APPLICATON is None and os.path.exists(FILENAME):
         for variable in re.findall(r'\$[a-zA-z0-9_]+', content):
             content = content.replace(variable, os.environ.get(variable[1:], ''))
     APPLICATON = yaml.safe_load(content).get('application')
+
+
+class BaseManager(manager.BaseManager):
+    def get_queryset(self):
+        return super().get_queryset()
+
+    def all(self):
+        return self.get_queryset().all()
+
+    def __call__(self, model):
+        return apps.get_model(model)
+
+
+class Manager(BaseManager.from_queryset(QuerySet)):
+    pass
+
+
+models.QuerySet = QuerySet
+models.Manager = Manager
+setattr(options, 'DEFAULT_NAMES', options.DEFAULT_NAMES + ('icon',))
+
+
 
 class ModelMixin(object):
 
@@ -70,20 +90,6 @@ class ModelMixin(object):
     def formfactory(self) -> FormFactory:
         return FormFactory(self)
 
-class BaseManager(manager.BaseManager):
-    def get_queryset(self):
-        return super().get_queryset()
-
-    def all(self):
-        return self.get_queryset().all()
-
-    def __call__(self, model):
-        return apps.get_model(model)
-
-
-class Manager(BaseManager.from_queryset(QuerySet)):
-    pass
-
 
 ___new___ = ModelBase.__new__
 
@@ -107,8 +113,7 @@ def __new__(mcs, name, bases, attrs, **kwargs):
 
 
 ModelBase.__new__ = __new__
-models.QuerySet = QuerySet
-models.Manager = Manager
+
 
 def api_watchdog(sender, **kwargs):
     sender.extra_files.add(Path('application.yml'))
