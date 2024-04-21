@@ -9,21 +9,52 @@ import toLabelCase from "./Utils";
 
 function Field(props) {
   function render() {
+    if (props.data.url) {
+      return <WrappedField data={props.data} />;
+    } else {
+      return <StaticField data={props.data} />;
+    }
+  }
+  return render();
+}
+
+function StaticField(props) {
+  function render() {
     const style = {
       minWidth: props.width + "%",
       marginTop: 5,
       marginBottom: 5,
     };
     return (
-      <>
-        <div style={style}>
-          <strong>{props.data.label}</strong>
-          <br></br>
-          {format(props.data.value)}
-        </div>
-      </>
+      <div style={style}>
+        <strong>{props.data.label}</strong>
+        <br></br>
+        {format(props.data.value)}
+      </div>
     );
   }
+  return render();
+}
+
+function WrappedField(props) {
+  const id = Math.random();
+  const [data, setData] = useState(props.data);
+
+  function loadData(url) {
+    request("GET", url, function (data) {
+      setData(data);
+    });
+  }
+
+  function render() {
+    window[id] = () => loadData(props.data.url);
+    return (
+      <div className={props.data.url && "reloadable"} id={id}>
+        <StaticField data={data} width={100} />
+      </div>
+    );
+  }
+
   return render();
 }
 
@@ -32,7 +63,7 @@ function Fieldset(props) {
   const [content, setContent] = useState(props.data);
 
   function renderTitle() {
-    return <Title data={props.data} auxiliary={true} />;
+    return <Subtitle data={content} />;
   }
 
   function renderContent() {
@@ -43,7 +74,7 @@ function Fieldset(props) {
       return content.data.map(function (item) {
         if (Array.isArray(item)) {
           return (
-            <GridLayout width={300}>
+            <GridLayout width={300} key={Math.random()}>
               {item.map((field) => (
                 <Field
                   key={Math.random()}
@@ -73,14 +104,52 @@ function Fieldset(props) {
   }
 
   function render() {
-    window[id] = () => loadContent(props.data.url);
+    if (props.data.url) {
+      window[id] = () => loadContent(props.data.url);
+      return (
+        <div className={props.data.url && "reloadable"} id={id}>
+          {renderTitle()}
+          {renderContent()}
+        </div>
+      );
+    } else {
+      return (
+        <div>
+          {renderTitle()}
+          {renderContent()}
+        </div>
+      );
+    }
+  }
+  return render();
+}
+
+function ObjectActions(props) {
+  const id = Math.random();
+  const [data, setData] = useState(props.data.actions);
+
+  function getUrl() {
+    const sep = props.data.url.indexOf("?") < 0 ? "?" : "&";
+    return props.data.url + sep + "only=actions";
+  }
+
+  function loadData() {
+    request("GET", getUrl(), function (data) {
+      setData(data);
+    });
+  }
+
+  function render() {
+    window[id] = () => loadData();
     return (
-      <div className={props.data.url && "reloadable"} id={id}>
-        {renderTitle()}
-        {renderContent()}
+      <div className="reloadable" id={id}>
+        {data.map(function (action) {
+          return <Action key={Math.random()} data={action} default />;
+        })}
       </div>
     );
   }
+
   return render();
 }
 
@@ -92,25 +161,42 @@ function Title(props) {
       alignItems: "baseline",
     };
     const h1 = { margin: 0 };
-    const h2 = { marginBottom: 0, marginTop: 15 };
     return (
       <div style={div}>
-        {props.data.title && !props.auxiliary && (
+        {props.data.title && (
           <h1 style={h1} data-label={toLabelCase(props.data.title)}>
             {props.data.title}
           </h1>
         )}
-        {props.data.title && props.auxiliary && (
+        <ObjectActions data={props.data} />
+      </div>
+    );
+  }
+  return render();
+}
+
+function Subtitle(props) {
+  function render() {
+    const div = {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    };
+    const h2 = { marginBottom: 0, marginTop: 15 };
+    return (
+      <div style={div}>
+        {props.data.title && (
           <h2 style={h2} data-label={toLabelCase(props.data.title)}>
             {props.data.title}
           </h2>
         )}
-        <div>
-          {props.data.actions &&
-            props.data.actions.map(function (action) {
+        {props.data.actions.length > 0 && (
+          <div>
+            {props.data.actions.map(function (action) {
               return <Action key={Math.random()} data={action} default />;
             })}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -142,7 +228,7 @@ function Object(props) {
 
 function Section(props) {
   function renderTitle() {
-    return <Title data={props.data} auxiliary={true} />;
+    return <Subtitle data={props.data} />;
   }
 
   function renderContent() {

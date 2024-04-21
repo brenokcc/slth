@@ -119,3 +119,10 @@ def api_watchdog(sender, **kwargs):
     sender.extra_files.add(Path('application.yml'))
 
 autoreload_started.connect(api_watchdog)
+
+
+def meta(verbose_name):
+    def decorate(function):
+        function.verbose_name = verbose_name
+        return function
+    return decorate

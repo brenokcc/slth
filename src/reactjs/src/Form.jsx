@@ -17,7 +17,7 @@ const INPUT_TYPES = [
   "email",
   "number",
   "date",
-  "datetime-regional",
+  "datetime-local",
   "file",
   "image",
   "range",
@@ -175,6 +175,8 @@ function Field(props) {
     );
   }
   function renderInput() {
+    if (props.data.type == "datetime") props.data.type = "datetime-local";
+
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
       return <InputField data={props.data} />;
     else if (props.data.type == "choice" && Array.isArray(props.data.choices))

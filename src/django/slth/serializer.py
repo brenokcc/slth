@@ -96,21 +96,28 @@ class Serializer:
         if title:
             self.title = title
             self.path.append(to_snake_case(title))
+        elif isinstance(obj, Model):
+            self.title = str(obj)
         else:
-            self.title = str(obj) if obj else None
+            self.title = None
 
     def actions(self, *actions) -> 'Serializer':
         self.metadata['actions'].extend(actions)
         self.metadata['allow'].extend(actions)
+        return self
+    
+    def field(self, name, reload=True) -> 'Serializer':
+        self.metadata['content'].append(('field', name, dict(name=name, reload=reload)))
         return self
         
     def fields(self, *names) -> 'Serializer':
         self.metadata['content'].append(('fields', None, dict(names=names)))
         return self
     
-    def fieldset(self, title, fields=(), actions=(), attr=None) -> 'Serializer':
+    def fieldset(self, title, fields=(), actions=(), attr=None, reload=True) -> 'Serializer':
         self.metadata['allow'].extend(actions)
-        self.metadata['content'].append(('fieldset', to_snake_case(title), dict(title=title, names=fields, attr=attr, actions=actions)))
+        item = dict(title=title, names=fields, attr=attr, actions=actions, reload=reload)
+        self.metadata['content'].append(('fieldset', to_snake_case(title), item))
         return self
         
     def queryset(self, title, name) -> 'Serializer':
@@ -171,6 +178,16 @@ class Serializer:
                 endpoint = cls.instantiate(self.request, self.obj)
                 if endpoint.check_permission():
                     raise JsonResponseException(endpoint.serialize())
+                
+        actions = []
+        if (not only or 'actions' in only) and not self.lazy:
+            leaf = only and only[-1] == 'actions'
+            for qualified_name in self.metadata['actions']:
+                cls = slth.ENDPOINTS[qualified_name]
+                if cls.instantiate(self.request, self.obj).check_permission():
+                    actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
+            if leaf:
+                raise JsonResponseException(actions)
 
         if not self.metadata['content'] and self.obj:
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
@@ -183,7 +200,13 @@ class Serializer:
                 leaf = only and only[-1] == key
                 lazy = i and self.type == 'group' and not leaf
                 data = None
-                if datatype == 'fields':
+                if datatype == 'field':
+                    path = self.path + [item['name']]
+                    data = getfield(self.obj, item['name'], self.request)
+                    if item['reload']:
+                        data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
+                    if leaf: raise JsonResponseException(data)
+                elif datatype == 'fields':
                     data = []
                     if not lazy:
                         for name in item['names']:
@@ -194,9 +217,10 @@ class Serializer:
                     title = item['title']
                     names = item['names']
                     attr = item['attr']
+                    reload = item['reload']
                     if not only or key in only:
-                        actions=[]
-                        fields=[]
+                        fieldset_actions=[]
+                        fieldset_fields=[]
                         title = title.title() if title and title.islower() else title
                         url = absolute_url(self.request, 'only={}'.format('__'.join(self.path + [key])))
                         if lazy:
@@ -205,14 +229,12 @@ class Serializer:
                             obj = getattr(self.obj, attr) if attr else self.obj
                             if obj:
                                 for name in names:
-                                    fields.append(getfield(obj, name, self.request))
-                            if not only:
-                                for qualified_name in item['actions']:
-                                    cls = slth.ENDPOINTS[qualified_name]
-                                    if cls.instantiate(self.request, self.obj).check_permission():
-                                        actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
-                            
-                            data = dict(type='fieldset', title=title, key=key, url=url, actions=actions, data=fields)
+                                    fieldset_fields.append(getfield(obj, name, self.request))
+                            for qualified_name in item['actions']:
+                                cls = slth.ENDPOINTS[qualified_name]
+                                if cls.instantiate(self.request, self.obj).check_permission():
+                                    fieldset_actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
+                            data = dict(type='fieldset', title=title, key=key, url=url if reload else None, actions=fieldset_actions, data=fieldset_fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':
                     title = item['title']
@@ -271,13 +293,6 @@ class Serializer:
                 if data:
                     items.extend(data) if datatype == 'fields' else items.append(data)
 
-        actions = []
-        if not only and not self.lazy:
-            for qualified_name in self.metadata['actions']:
-                cls = slth.ENDPOINTS[qualified_name]
-                if cls.instantiate(self.request, self.obj).check_permission():
-                    actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
-        
         output = dict(type=self.type, title=self.title)
         if self.serializer:
             datatype = to_snake_case(self.title)

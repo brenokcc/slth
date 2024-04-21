@@ -144,8 +144,8 @@ class Endpoint(metaclass=EnpointMetaclass):
     def formfactory(self, instance, delete=False) -> FormFactory:
         return FormFactory(instance, delete=delete)
     
-    def serializer(self, instance) -> Serializer:
-        return instance.serializer().contextualize(self.request)
+    def serializer(self, instance=None) -> Serializer:
+        return Serializer(instance or self).contextualize(self.request)
     
     @classmethod
     def is_child(cls):
