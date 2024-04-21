@@ -109,6 +109,11 @@ class Endpoint(metaclass=EnpointMetaclass):
     def check_permission(self):
         return self.request.user.is_superuser
     
+    def check_role(self, name):
+        return self.objects('slth.role').filter(
+            username=self.request.user.username, name=name
+        ).exists()
+    
     def redirect(self, url):
         raise JsonResponseException(dict(type='redirect', url=url))
     
@@ -235,7 +240,7 @@ class AdminEndpoint(Generic[T], ModelEndpoint):
     
 class ListEndpoint(Generic[T], ModelEndpoint):
     def get(self) -> QuerySet:
-        return self.model.objects.all()
+        return self.model.objects
 
 class AddEndpoint(Generic[T], ModelEndpoint):
     def get(self) -> FormFactory:
@@ -250,11 +255,18 @@ class ModelInstanceEndpoint(ModelEndpoint):
         return self.model.objects.get(pk=self.pk)
 
 class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
-    pass
+
+    def formfactory(self, delete=False) -> FormFactory:
+        return FormFactory(self.get_instance(), delete=delete)
+
+    def serializer(self) -> Serializer:
+        return Serializer(self.get_instance()).contextualize(self.request)
+    
 
 class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
 
     class Meta:
+        icon = 'eye'
         modal = False
         verbose_name = 'Visualizar'
 
@@ -313,6 +325,12 @@ class ChildInstanceEndpoint(ChildEndpoint):
 
     def get_instance(self):
         return self.instance
+    
+    def formfactory(self, delete=False) -> FormFactory:
+        return FormFactory(self.get_instance(), delete=delete)
+    
+    def serializer(self) -> Serializer:
+        return Serializer(self.get_instance()).contextualize(self.request)
     
 class ChildFormEndpoint(Generic[T], Endpoint):
 
@@ -447,7 +465,7 @@ class Application(PublicEndpoint):
             logo = build_url(self.request, APPLICATON['logo'])
             navbar = Navbar(
                 title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
-                logo=logo, user=self.request.user.username
+                logo=logo, user=self.request.user.username.split()[0].split('@')[0]
             )
             for entrypoint in ['usermenu', 'adder', 'settings', 'tools']:
                 if APPLICATON['dashboard'][entrypoint]:
@@ -541,6 +559,9 @@ class SendPushNotification(ChildInstanceFormEndpoint[SendPushNotificationForm]):
         verbose_name = 'Enviar Notificação'
 
 class EditProfile(Endpoint):
+    class Meta:
+        verbose_name = 'Editar Perfil'
+
     def get(self):
         profile = Profile.objects.filter(user=self.request.user).first() or Profile(user=self.request.user)
         return FormFactory(instance=profile).fieldset('Dados Gerais', ['photo'])

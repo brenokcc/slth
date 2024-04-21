@@ -67,9 +67,9 @@ function Steps(props) {
 
   function circleStyle(step) {
     return {
-      border: "2px solid " + (step.done ? "green" : "#EEE"),
+      border: "2px solid " + (step.done ? "#1351b4" : "#EEE"),
       borderRadius: "50%",
-      background: step.done ? "green" : "white",
+      background: step.done ? "#1351b4" : "white",
       color: step.done ? "white" : "black",
       textAlign: "center",
       width: 50,

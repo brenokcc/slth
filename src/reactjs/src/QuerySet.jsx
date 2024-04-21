@@ -55,6 +55,8 @@ function QuerySet(props) {
             textAlign: "center",
             width: "100%",
             margin: "auto",
+            paddingBottom: 20,
+            lineHeight: "2.5rem",
           }}
         >
           {data.subsets.map(function (subset, i) {
@@ -320,9 +322,11 @@ function QuerySet(props) {
         <tr>
           {data.map(function (item) {
             return (
-              <th key={Math.random()} style={style} className="bold">
-                {item.label}
-              </th>
+              item.label != "ID" && (
+                <th key={Math.random()} style={style} className="bold">
+                  {item.label}
+                </th>
+              )
             );
           })}
           <th style={style}></th>
@@ -356,9 +360,11 @@ function QuerySet(props) {
         <tr key={Math.random()}>
           {row.data.map(function (field) {
             return (
-              <td key={Math.random()} style={td}>
-                {format(field.value)}
-              </td>
+              field.label != "ID" && (
+                <td key={Math.random()} style={td}>
+                  {format(field.value)}
+                </td>
+              )
             );
           })}
           <td style={actions}>
@@ -596,8 +602,8 @@ function QuerySet(props) {
           <div>{false && JSON.stringify(data)}</div>
           <input type="hidden" name="subset" id={"subset-" + props.data.id} />
           {renderTitle()}
-          {renderTabs()}
           {renderActions()}
+          {renderTabs()}
           {renderSearchFilterPanel()}
           {renderCalendar()}
           {renderRows()}

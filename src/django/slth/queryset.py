@@ -45,8 +45,7 @@ class QuerySet(models.QuerySet):
         return qs
 
     def fields(self, *names):
-        if 'fields' not in self.metadata:
-            self.metadata['fields'] = ('id',) + names if 'id' not in names else names
+        self.metadata['fields'] = ('id',) + names if 'id' not in names else names
         return self
     
     def serializer(self, serializer):
@@ -74,8 +73,7 @@ class QuerySet(models.QuerySet):
         return self
 
     def subsets(self, *names):
-        if 'subsets' not in self.metadata:
-            self.metadata['subsets'] = names
+        self.metadata['subsets'] = names
         return self
 
     def title(self, name=None):
@@ -105,6 +103,16 @@ class QuerySet(models.QuerySet):
         if 'lookups' not in self.metadata:
             self.metadata['lookups'] = {}
         self.metadata['lookups'][role_name] = lookups
+        return self
+    
+    def only(self, **kwargs):
+        if 'only' not in self.metadata:
+            self.metadata['only'] = {}
+        for field_name, group_name in kwargs.items():
+            if field_name not in self.metadata['only']:
+                self.metadata['only'][field_name] = []
+            group_names = (group_name,) if isinstance(group_name, str) else group_name
+            self.metadata['only'][field_name].extend(group_names)
         return self
 
     def apply_lookups(self, user):
@@ -201,6 +209,7 @@ class QuerySet(models.QuerySet):
         title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
         relations = self.metadata.get('relations')
+        ignore = self.metadata.get('ignore', {})
         subset = None
         actions = []
         filters = []
@@ -226,7 +235,7 @@ class QuerySet(models.QuerySet):
             if cls.instantiate(self.request, self).check_permission():
                 action = cls.get_api_metadata(self.request, base_url)
                 action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
-                if relations:
+                if relations and cls.get_metadata('modal'):
                         params = '&'.join(f'{k}={v}' for k, v in relations.items())
                         action['url'] = append_url(action['url'], params)
                 actions.append(action)
@@ -253,7 +262,9 @@ class QuerySet(models.QuerySet):
 
         total = self.count()
         for name in self.metadata.get('subsets', ()):
-            subsets.append(dict(name=name, label=name.title(), count=getattr(self, name)().count()))
+            attr = getattr(self, name)
+            label = getattr(attr, 'verbose_name', name.title())
+            subsets.append(dict(name=name, label=label, count=attr().count()))
         if subsets:
             subsets.insert(0, dict(name=None, label='Tudo', count=total))
 
@@ -297,7 +308,7 @@ class QuerySet(models.QuerySet):
                 if cls.instantiate(self.request, obj).check_permission():
                     action = cls.get_api_metadata(self.request, base_url, obj.pk)
                     action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
-                    if relations:
+                    if relations and cls.get_metadata('modal'):
                         params = '&'.join(f'{k}={v}' for k, v in relations.items())
                         action['url'] = append_url(action['url'], params)
                     serialized['actions'].append(action)

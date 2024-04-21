@@ -31,6 +31,15 @@ const INPUT_TYPES = [
 ];
 const INPUT_STYLE = { padding: 15, border: "solid 1px #CCC", borderRadius: 5 };
 
+function isImage(url) {
+  if (url) {
+    const extensions = [".png", ".jpeg", ".jpeg", ".gif"];
+    for (var i = 0; i < extensions.length; i++) {
+      if (url.toLowerCase().indexOf(extensions[i]) > 0) return true;
+    }
+  }
+}
+
 function formChange(form, url) {
   var data = new FormData(form);
   request("POST", url, formControl, data);
@@ -156,7 +165,9 @@ function Field(props) {
     if (props.data.action) props.data.action.modal = true;
     return (
       <div style={style}>
-        <label className="bold">{props.data.label}</label>
+        <label className={props.data.required ? "bold" : ""}>
+          {props.data.label}
+        </label>
         {props.data.action && (
           <Action data={props.data.action} style={{ padding: 0 }} />
         )}
@@ -275,57 +286,58 @@ function InputField(props) {
     if (props.data.type == "file") {
       if (e.target.files) {
         let file = e.target.files[0];
-        if (
-          ["png", "jpeg", "jpg", "gif"].indexOf(
-            file.name.toLowerCase().split(".").slice(-1)[0]
-          ) < 0
-        )
-          return;
         var reader = new FileReader();
         reader.onload = function (event) {
-          const MAX_WIDTH = 400;
-          const DISPLAY_ID = "display" + id;
-          var img = document.createElement("img");
-          img.id = e.target.id + "img";
-          img.style.width = "200px";
-          img.style.display = "block";
-          img.style.margin = "auto";
-          img.style.marginTop = "20px";
-          img.onload = function (event2) {
-            const ratio = MAX_WIDTH / img.width;
-            var canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            canvas.height = canvas.width * (img.height / img.width);
-            const oc = document.createElement("canvas");
-            const octx = oc.getContext("2d");
-            oc.width = img.width * ratio;
-            oc.height = img.height * ratio;
-            octx.drawImage(img, 0, 0, oc.width, oc.height);
-            ctx.drawImage(
-              oc,
-              0,
-              0,
-              oc.width * ratio,
-              oc.height * ratio,
-              0,
-              0,
-              canvas.width,
-              canvas.height
-            );
-            oc.toBlob(function (blob) {
-              e.target.blob = blob;
-            });
-            var div = document.getElementById(DISPLAY_ID);
-            if (div == null) {
-              div = document.createElement("div");
-              div.id = DISPLAY_ID;
-            } else {
-              div.removeChild(div.childNodes[0]);
-            }
-            div.appendChild(img);
-            e.target.parentNode.appendChild(div);
-          };
-          img.src = event.target.result;
+          if (isImage(file.name)) {
+            const MAX_WIDTH = 400;
+            const DISPLAY_ID = "display" + id;
+            var img = document.createElement("img");
+            img.id = e.target.id + "img";
+            img.style.width = "200px";
+            img.style.display = "block";
+            img.style.margin = "auto";
+            img.style.marginTop = "20px";
+            img.onload = function (event2) {
+              const ratio = MAX_WIDTH / img.width;
+              var canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              canvas.height = canvas.width * (img.height / img.width);
+              const oc = document.createElement("canvas");
+              const octx = oc.getContext("2d");
+              oc.width = img.width * ratio;
+              oc.height = img.height * ratio;
+              octx.drawImage(img, 0, 0, oc.width, oc.height);
+              ctx.drawImage(
+                oc,
+                0,
+                0,
+                oc.width * ratio,
+                oc.height * ratio,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+              );
+              oc.toBlob(function (blob) {
+                e.target.blob = blob;
+              });
+              var div = document.getElementById(DISPLAY_ID);
+              if (div == null) {
+                div = document.createElement("div");
+                div.id = DISPLAY_ID;
+              } else {
+                div.removeChild(div.childNodes[0]);
+              }
+              div.appendChild(img);
+              e.target.parentNode.appendChild(div);
+            };
+            img.src = event.target.result;
+          }
+          const info = document.getElementById("fileinfo" + id);
+          var size = file.size / 1024;
+          if (size < 1024) size = parseInt(size) + " Kb";
+          else size = parseInt(size / 1024) + " Mb";
+          info.innerHTML = file.name + " / " + size;
         };
         reader.readAsDataURL(file);
       }
@@ -337,7 +349,12 @@ function InputField(props) {
     if (type == "datetime") type = "datetime-regional";
     if (type == "decimal") type = "text";
     if (type == "file") {
-      const style = { alignContent: "center", height: 75, padding: 30 };
+      const style = {
+        alignContent: "center",
+        height: 75,
+        padding: 30,
+        maxWidth: "100%",
+      };
       return (
         <>
           <div
@@ -356,12 +373,18 @@ function InputField(props) {
               />
             </div>
             <div style={style}>
-              {props.data.value && (
-                <div style={{ textAlign: "center" }}>
-                  <img src={props.data.value} height={50} />
-                </div>
-              )}
-              Select a file or drag and drop here. Replace current image.
+              {props.data.value &&
+                isImage()(
+                  <div style={{ textAlign: "center" }}>
+                    <img src={props.data.value} height={50} />
+                  </div>
+                )}
+              {props.data.value &&
+                !isImage()(
+                  <div style={{ textAlign: "center" }}>{props.data.value}</div>
+                )}
+              Selecione um arquivo clicando no botão ao lado.
+              <div className="bold" id={"fileinfo" + id}></div>
             </div>
             <div style={style}>
               <Button
@@ -384,6 +407,13 @@ function InputField(props) {
         </>
       );
     } else {
+      var style = INPUT_STYLE;
+      if (type == "color") {
+        style = { ...INPUT_STYLE };
+        style.width = "100%";
+        style.backgroundColor = "white";
+        style.height = 47.5;
+      }
       return (
         <input
           className={"form-control " + className}
@@ -395,7 +425,7 @@ function InputField(props) {
           readOnly={props.data.read_only}
           onBlur={props.data.onchange ? onBlur : null}
           onChange={onChange}
-          style={INPUT_STYLE}
+          style={style}
         />
       );
     }
@@ -1010,7 +1040,7 @@ function OneToMany(props) {
       <div id={"info-" + id}>
         <Info
           data={{
-            text: "Clique no botão abaixo para adicionar um registro.",
+            text: 'Clique no botão com o ícone de "+" para adicionar e com o ícone da "lixeira" para remover.',
           }}
         >
           <Button

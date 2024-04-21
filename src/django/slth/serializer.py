@@ -43,7 +43,7 @@ def serialize(obj, primitive=False, request=None):
         return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
         return [str(obj) for obj in obj.filter()] if primitive else obj.serialize()
-    elif isinstance(obj, ImageFieldFile):
+    elif isinstance(obj, ImageFieldFile) or isinstance(obj, FieldFile):
         return str(obj)
     elif hasattr(obj, 'serialize'):
         return obj.serialize()
@@ -54,7 +54,7 @@ def getfield(obj, name_or_names, request=None):
         attr = getattr(obj, name_or_names)
         if type(attr) == types.MethodType:
             value = attr()
-            label = getattr(attr, 'verbose_name', name_or_names)
+            label = getattr(attr, 'verbose_name', name_or_names.replace('get_', ''))
         elif name_or_names.startswith('get_') and name_or_names.endswith('_display'):
             value = attr()
             label = getattr(type(obj), name_or_names[4:-8]).field.verbose_name

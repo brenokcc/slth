@@ -5,7 +5,7 @@ import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
-from django.db.models.fields.files import ImageFieldFile
+from django.db.models.fields.files import FieldFile
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.db.models import Model, QuerySet, Manager
 from .models import Token
@@ -155,6 +155,7 @@ class FormMixin:
             data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
         else:
             ftype = FIELD_TYPES.get(type(field).__name__, 'text')
+            
             value = field.initial or self.initial.get(name)
             if callable(value):
                 value = value()
@@ -165,9 +166,13 @@ class FormMixin:
             elif value and (isinstance(field, ModelChoiceField) or isinstance(field, DjangoModelChoiceField)):
                 obj = field.queryset.get(pk=value)
                 value = dict(id=obj.id, label=str(obj))
-            elif isinstance(value, ImageFieldFile):
+            elif isinstance(value, FieldFile):
                 value = build_url(self.request, value.url) if value else None
             
+            if isinstance(field.widget, HiddenInput):
+                ftype = 'hidden'
+                value = value['id'] if isinstance(value, dict) else value
+
             fname = name if prefix is None else f'{prefix}__{name}'
             data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, help_text=field.help_text, mask=None)
             for word in MASKS:
@@ -243,6 +248,10 @@ class FormMixin:
                         for name in inline_field.form.base_fields:
                             inline_form_field_name = f'{prefix}__{name}'
                             inline_form_data[name] = self.data.get(inline_form_field_name)
+                            if self.request.FILES and inline_form_field_name in self.request.FILES:
+                                self.request.FILES._mutable = True
+                                self.request.FILES[name] = self.request.FILES[inline_form_field_name]
+                                self.request.FILES._mutable = False
                         instance = inline_field.form._meta.model.objects.get(pk=abs(pk)) if pk else None
                         if pk < 0:
                             setattr(instance, 'deleting', True)
