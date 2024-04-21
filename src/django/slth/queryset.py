@@ -75,8 +75,14 @@ class QuerySet(models.QuerySet):
     def subsets(self, *names):
         self.metadata['subsets'] = names
         return self
+    
+    def bi(self, *names):
+        self.metadata['bi'] = []
+        for name in names:
+            self.metadata['bi'].append((name,) if isinstance(name, str) else name)
+        return self
 
-    def title(self, name=None):
+    def settitle(self, name=None):
         self.metadata['title'] = name or str(self.model._meta.verbose_name_plural)
         return self
     
@@ -209,7 +215,7 @@ class QuerySet(models.QuerySet):
         title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
         relations = self.metadata.get('relations')
-        ignore = self.metadata.get('ignore', {})
+        bi = self.metadata.get('bi', [])
         subset = None
         actions = []
         filters = []
@@ -275,68 +281,84 @@ class QuerySet(models.QuerySet):
                 aggregation['value'] = str(aggregation['value']).replace('.', ',')
             aggregations.append(aggregation)
 
-        objs = []
-        page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
-        page_sizes = self.metadata.get('page_sizes', [page_size])
-        pages = (total // page_size) + (1 if total % page_size else 0)
-        page = min(int(self.parameter('page', 1)), pages) or 1
-        start = page_size * (page - 1)
-        end = start + page_size
-        previous = None if page ==1 else page -1
-        next = None if page == pages else page + 1
-        count = qs[start:end].count()
+        data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=total, icon=None, actions=actions, filters=filters, search=search)
+        if bi:
+            bi_data = []
+            for names in bi:
+                items = []
+                for name in names:
+                    attr = getattr(qs, name)
+                    title = getattr(attr, 'verbose_name', name.title())
+                    value = attr()
+                    if isinstance(value, dict):
+                        item = value
+                        item['title'] = title
+                    else:
+                        item = dict(type='counter', title=title, value=value)
+                    items.append(item)
+                bi_data.append(items)
+            data.update(bi=bi_data)
+        else:
+            objs = []
+            page_size = min(int(self.parameter('page_size', self.metadata.get('limit', 20))), 1000)
+            page_sizes = self.metadata.get('page_sizes', [page_size])
+            pages = (total // page_size) + (1 if total % page_size else 0)
+            page = min(int(self.parameter('page', 1)), pages) or 1
+            start = page_size * (page - 1)
+            end = start + page_size
+            previous = None if page ==1 else page -1
+            next = None if page == pages else page + 1
+            count = qs[start:end].count()
+            serializer:Serializer = qs.metadata.get('serializer')
+            if serializer is None:
+                fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
+                if relations:
+                    names = set(relations.keys())
+                    fields = [field_name for field_name in fields if field_name not in names]
+                list_fields = [
+                    f'get_{field_name}' if hasattr(qs.model, f'get_{field_name}') else
+                    (f'get_{field_name}_display' if hasattr(qs.model, f'get_{field_name}_display')
+                    else field_name) for field_name in fields
+                ]
+                serializer = Serializer(None, self.request).fields(*list_fields)
+            serializer.request = self.request
+            
+            for obj in qs[start:end]:
+                serializer.title = str(obj)
+                serializer.obj = obj
+                serialized = serializer.serialize(forward_exception=True)
+                for cls in instance_actions:
+                    if cls.instantiate(self.request, obj).check_permission():
+                        action = cls.get_api_metadata(self.request, base_url, obj.pk)
+                        action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
+                        if relations and cls.get_metadata('modal'):
+                            params = '&'.join(f'{k}={v}' for k, v in relations.items())
+                            action['url'] = append_url(action['url'], params)
+                        serialized['actions'].append(action)
+                objs.append(serialized)
 
-        serializer:Serializer = qs.metadata.get('serializer')
-        if serializer is None:
-            fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
-            if relations:
-                names = set(relations.keys())
-                fields = [field_name for field_name in fields if field_name not in names]
-            list_fields = [
-                f'get_{field_name}' if hasattr(qs.model, f'get_{field_name}') else
-                (f'get_{field_name}_display' if hasattr(qs.model, f'get_{field_name}_display')
-                else field_name) for field_name in fields
-            ]
-            serializer = Serializer(None, self.request).fields(*list_fields)
-        serializer.request = self.request
-        
-        for obj in qs[start:end]:
-            serializer.title = str(obj)
-            serializer.obj = obj
-            serialized = serializer.serialize(forward_exception=True)
-            for cls in instance_actions:
-                if cls.instantiate(self.request, obj).check_permission():
-                    action = cls.get_api_metadata(self.request, base_url, obj.pk)
-                    action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
-                    if relations and cls.get_metadata('modal'):
-                        params = '&'.join(f'{k}={v}' for k, v in relations.items())
-                        action['url'] = append_url(action['url'], params)
-                    serialized['actions'].append(action)
-            objs.append(serialized)
-
-        data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=count, icon=None, actions=actions, filters=filters, search=search)
-        if attrname:
-            data.update(attrname=attrname)
-        if calendar:
-            data.update(calendar=calendar)
-            data['filters'].extend([
-                {'name': '{}__day'.format(calendar['field']), 'type': 'hidden', 'value': calendar['day']},
-                {'name': '{}__month'.format(calendar['field']), 'type': 'hidden', 'value': calendar['month']},
-                {'name': '{}__year'.format(calendar['field']), 'type': 'hidden', 'value': calendar['year']}
-            ])
-        if subsets:
-            data.update(subsets=subsets, subset=subset)
-        if aggregations:
-            data.update(aggregations=aggregations)
-        if template:
-            data.update(html=render_to_string(template, data))
-        pagination = dict(
-            start=start+1, end=min(end, total), page=dict(
-                total=pages, previous=previous, current=page, next=next,
-                size=page_size, sizes=page_sizes
+            if attrname:
+                data.update(attrname=attrname)
+            if calendar:
+                data.update(calendar=calendar)
+                data['filters'].extend([
+                    {'name': '{}__day'.format(calendar['field']), 'type': 'hidden', 'value': calendar['day']},
+                    {'name': '{}__month'.format(calendar['field']), 'type': 'hidden', 'value': calendar['month']},
+                    {'name': '{}__year'.format(calendar['field']), 'type': 'hidden', 'value': calendar['year']}
+                ])
+            if subsets:
+                data.update(subsets=subsets, subset=subset)
+            if aggregations:
+                data.update(aggregations=aggregations)
+            if template:
+                data.update(html=render_to_string(template, data))
+            pagination = dict(
+                start=start+1, end=min(end, total), page=dict(
+                    total=pages, previous=previous, current=page, next=next,
+                    size=page_size, sizes=page_sizes
+                )
             )
-        )
-        data.update(data=objs, pagination=pagination)
+            data.update(count=count, data=objs, pagination=pagination)
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data

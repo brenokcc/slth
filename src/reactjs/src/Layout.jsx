@@ -7,7 +7,7 @@ function GridLayout(props) {
       display: "grid",
       gridGap: 0,
       gridTemplateColumns: "repeat(auto-fit, minmax(" + width + "px, 1fr))",
-      alignItems: "end",
+      alignItems: props.alignItems || "end",
     };
     return <div style={style}>{props.children}</div>;
   }

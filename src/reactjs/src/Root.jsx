@@ -22,6 +22,7 @@ import {
   FileLink,
   Grid,
   FilePreview,
+  Counter,
 } from "./Library";
 
 import "./vendors/css/fonts/Eina02-Bold.f8011405.ttf";
@@ -66,6 +67,7 @@ ComponentFactory.render = function (root) {
   }
 };
 
+ComponentFactory.register("counter", (data) => <Counter data={data} />);
 ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
 ComponentFactory.register("fieldset", (data) => <Fieldset data={data} />);

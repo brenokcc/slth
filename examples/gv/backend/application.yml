@@ -15,6 +15,7 @@ application:
     top:
     center:
       - minhasconsultas
+      - consultasaguardandoespecialista
     boxes:
     search:
     usermenu:
@@ -24,13 +25,15 @@ application:
     tools:
     settings:
   menu:
-    Cadastros Gerais:
+    house:Início: dashboard
+    user:Administradores: administradores
+    list:Cadastros Gerais:
       Estados: estados
       Prioridades: prioridades
-    Base de Conhecimento:
+    book-reader:Base de Conhecimento:
       Assuntos: assuntos
       Especialistas: especialistas
       Perguntas Frequêntes: perguntasfrequentes
-    Clientes: clientes
-    Consultas: consultas
-    Sair: logout
+    people-line:Clientes: clientes
+    file-signature:Consultas: consultas
+    door-closed:Sair: logout

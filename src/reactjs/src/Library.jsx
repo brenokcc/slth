@@ -364,6 +364,22 @@ function Grid(props) {
   return render();
 }
 
+function Counter(props) {
+  function render() {
+    return (
+      <div>
+        <h2>{props.data.title}</h2>
+        <div
+          style={{ fontSize: "12rem", textAlign: "center", color: "#5470c6" }}
+        >
+          {props.data.value}
+        </div>
+      </div>
+    );
+  }
+  return render();
+}
+
 export {
   Banner,
   Image,
@@ -380,5 +396,6 @@ export {
   FileLink,
   FilePreview,
   Grid,
+  Counter,
 };
 export default Html;

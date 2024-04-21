@@ -9,6 +9,7 @@ import { Button } from "./Button";
 import { Link } from "./Link";
 import { Icon, IconButton } from "./Icon";
 import toLabelCase from "./Utils";
+import ComponentFactory from "./Root";
 
 function QuerySet(props) {
   if (props.data.id == null) props.data.id = Math.random();
@@ -592,6 +593,40 @@ function QuerySet(props) {
     });
   }
 
+  function renderContent() {
+    if (data.bi) {
+      return (
+        <>
+          {renderSearchFilterPanel()}
+          {data.bi.map(function (items) {
+            return (
+              <GridLayout width={300} key={Math.random()} alignItems="start">
+                {items.map(function (item) {
+                  return (
+                    <div key={Math.random()}>
+                      <ComponentFactory data={item} />
+                    </div>
+                  );
+                })}
+              </GridLayout>
+            );
+          })}
+        </>
+      );
+    } else {
+      return (
+        <>
+          {renderActions()}
+          {renderTabs()}
+          {renderSearchFilterPanel()}
+          {renderCalendar()}
+          {renderRows()}
+          {renderPaginator()}
+        </>
+      );
+    }
+  }
+
   function render() {
     window[props.data.id] = () => reload();
     const sytle = { backgroundColor: "white", padding: 20 };
@@ -601,12 +636,7 @@ function QuerySet(props) {
           <div>{false && JSON.stringify(data)}</div>
           <input type="hidden" name="subset" id={"subset-" + props.data.id} />
           {renderTitle()}
-          {renderActions()}
-          {renderTabs()}
-          {renderSearchFilterPanel()}
-          {renderCalendar()}
-          {renderRows()}
-          {renderPaginator()}
+          {renderContent()}
         </form>
       </div>
     );

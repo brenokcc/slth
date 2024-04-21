@@ -109,10 +109,13 @@ class Endpoint(metaclass=EnpointMetaclass):
     def check_permission(self):
         return self.request.user.is_superuser
     
-    def check_role(self, name):
-        return self.objects('slth.role').filter(
-            username=self.request.user.username, name=name
-        ).exists()
+    def check_role(self, *names):
+        if self.request.user.is_superuser:
+            return True
+        for name in names:
+            if self.objects('slth.role').filter(username=self.request.user.username, name=name).exists():
+                return True
+        return False
     
     def redirect(self, url):
         raise JsonResponseException(dict(type='redirect', url=url))
@@ -126,11 +129,11 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = {}
         title = self.get_metadata('verbose_name')
         if isinstance(data, models.QuerySet):
-            data = data.contextualize(self.request).title(title)
+            data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, Serializer):
-            data = data.contextualize(self.request)
+            data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):
-            data = data.form(self.request)
+            data = data.settitle(title).form(self.request)
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
         return {} if data is None else data
@@ -308,6 +311,9 @@ class ChildEndpoint(Endpoint):
 
     @classmethod
     def is_child(cls):
+        return True
+    
+    def check_permission(self):
         return True
 
 class Add(ChildEndpoint):

@@ -1,10 +1,23 @@
 import os
 import time
+import datetime
 from openai import OpenAI
 from slth.db import models, meta, role
 from slth.components import Badge, Steps, FileLink
 from slth.models import PushSubscription
 
+
+@role('administrador', 'cpf')
+class Administrador(models.Model):
+    cpf = models.CharField('CPF')
+    nome = models.CharField('Nome')
+
+    class Meta:
+        verbose_name = 'Administrador'
+        verbose_name_plural = 'Administrador'
+
+    def __str__(self):
+     return '{}'.format(self.nome)
 
 class Estado(models.Model):
     sigla = models.CharField('Sigla')
@@ -55,7 +68,7 @@ class Assunto(models.Model):
     
     @meta('Tópicos')
     def get_topicos(self):
-        return self.topico_set.actions('edit', 'delete', 'add', 'visualizartopico').related_values(assunto=self)
+        return self.topico_set.fields('descricao', 'codigo_openai', 'get_qtd_arquivos').actions('edit', 'delete', 'add', 'visualizartopico').related_values(assunto=self)
     
 
     def get_qtd_topicos(self):
@@ -76,7 +89,7 @@ class Topico(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if self.codigo_openai is None:
+        if os.getenv('OPENAI_KEY') and self.codigo_openai is None:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             assistant = client.beta.assistants.create(
                 name='AnalisaRN {} - {}'.format(self.assunto, self.descricao),
@@ -87,20 +100,22 @@ class Topico(models.Model):
             Topico.objects.filter(pk=self.pk).update(codigo_openai=assistant.id)
 
     def perguntar_inteligencia_artificial(self, pergunta):
-        return '*****'
-        client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
-        attachments = []
-        for arquivo in self.arquivo_set.filter(codigo_openai__isnull=False):
-            attachments.append({ "file_id": arquivo.codigo_openai, "tools": [{"type": "file_search"}] })
-        thread = client.beta.threads.create(messages=[{"role": "user", "content": pergunta, "attachments": attachments,}])
-        run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.codigo_openai)
-        for i in range(1, 5):
-            print('Waiting for the response...')
-            time.sleep(2)
-            if client.beta.threads.runs.retrieve(run.id, thread_id=thread.id).status == 'completed':
-                break
-        messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
-        message_content = messages[0].content[0].text.value
+        if os.getenv('OPENAI_KEY'):
+            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
+            attachments = []
+            for arquivo in self.arquivo_set.filter(codigo_openai__isnull=False):
+                attachments.append({ "file_id": arquivo.codigo_openai, "tools": [{"type": "file_search"}] })
+            thread = client.beta.threads.create(messages=[{"role": "user", "content": pergunta, "attachments": attachments,}])
+            run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.codigo_openai)
+            for i in range(1, 5):
+                print('Waiting for the response...')
+                time.sleep(2)
+                if client.beta.threads.runs.retrieve(run.id, thread_id=thread.id).status == 'completed':
+                    break
+            messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+            message_content = messages[0].content[0].text.value
+        else:
+            message_content = 'Resposta teste.'
         return message_content
     
     def formfactory(self):
@@ -114,8 +129,11 @@ class Topico(models.Model):
         )
     
     def get_arquivos(self):
-        return self.arquivo_set.actions('edit', 'delete', 'add').related_values(topico=self)
+        return self.arquivo_set.fields('nome', 'get_arquivo', 'codigo_openai').actions('edit', 'delete', 'add').related_values(topico=self)
 
+    @meta('Quantidade de Arquivos')
+    def get_qtd_arquivos(self):
+        return self.arquivo_set.count()
 
 class Arquivo(models.Model):
     topico = models.ForeignKey(Topico, verbose_name='Tópico', null=True)
@@ -129,7 +147,7 @@ class Arquivo(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if self.codigo_openai is None:
+        if os.getenv('OPENAI_KEY') and self.codigo_openai is None:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             with open(self.arquivo.path, 'rb') as file:
                 vector_store = client.beta.vector_stores.create(name="{} - {}".format(self.topico, self.nome))
@@ -144,15 +162,18 @@ class Arquivo(models.Model):
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
-        if self.codigo_openai:
+        if os.getenv('OPENAI_KEY') and self.codigo_openai:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             client.beta.assistants.files.delete(
                 file_id=self.codigo_openai, assistant_id=self.topico.codigo_openai
             )
             client.files.delete(self.codigo_openai)
 
+    def get_arquivo(self):
+        return FileLink(self.arquivo, icon='file', modal=True)
+
     def formfactory(self):
-        return super().formfactory().fields('topico', 'nome', 'arquivo', 'codigo_openai')
+        return super().formfactory().fields('topico', 'nome', 'arquivo')
 
 
 class PerguntaFrequente(models.Model):
@@ -281,7 +302,7 @@ class Cliente(models.Model):
                     .parent()
                 .queryset('Consultantes', 'get_consultantes')
                 .queryset('Consultas', 'get_consultas')
-                .fieldset('Estatística', (('get_consultas_por_prioridade', 'get_consultas_por_topico'),))
+                .fieldset('Estatística', (('get_consultas_por_prioridade', 'get_consultas_por_topico', 'get_consultas_por_consultante'),))
                 .parent()
         )
     
@@ -297,7 +318,11 @@ class Cliente(models.Model):
     
     @meta('Consultas por Tópico')
     def get_consultas_por_topico(self):
-        return self.get_consultas().counter('topico', chart='donut')
+        return self.get_consultas().counter('topico', chart='pizza')
+    
+    @meta('Consultas por Consultante')
+    def get_consultas_por_consultante(self):
+        return self.get_consultas().counter('consultante', chart='bar')
 
 
 @role('consultante', 'cpf', cliente='cliente')
@@ -311,8 +336,20 @@ class Consultante(models.Model):
         verbose_name_plural = 'Consultantes'
 
     def __str__(self):
-     return '{} ({})'.format(self.nome, self.cpf)
+     return '{}'.format(self.nome)
 
+
+class Anexo(models.Model):
+    nome = models.CharField('Nome')
+    data_hora = models.DateTimeField(auto_now_add=True)
+    arquivo = models.FileField('Arquivo', upload_to='anexos', null=True)
+
+    class Meta:
+        verbose_name = 'Anexo'
+        verbose_name_plural = 'Anexos'
+
+    def get_arquivo(self):
+        return FileLink(self.arquivo, modal=True, icon='file')
 
 class ConsultaQuerySet(models.QuerySet):
 
@@ -335,23 +372,34 @@ class ConsultaQuerySet(models.QuerySet):
     def aguardando_envio(self):
         return self.filter(resposta__isnull=False, data_resposta__isnull=True)
 
+    @meta('Não-Respondidas')
+    def nao_respondidas(self):
+        return self.filter(data_resposta__isnull=True)
+
     @meta('Respondidas')
     def respondidas(self):
         return self.filter(data_resposta__isnull=False)
 
-
-class Anexo(models.Model):
-    nome = models.CharField('Nome')
-    data_hora = models.DateTimeField(auto_now_add=True)
-    arquivo = models.FileField('Arquivo', upload_to='anexos', null=True)
-
-    class Meta:
-        verbose_name = 'Anexo'
-        verbose_name_plural = 'Anexos'
-
-    def get_arquivo(self):
-        return FileLink(self.arquivo, modal=True, icon='file')
-
+    @meta('Total por Prioridade')
+    def total_por_prioridade(self):
+        return self.counter('prioridade', chart='donut')
+    
+    @meta('Total por Tópico')
+    def total_por_topico(self):
+        return self.counter('topico')
+    
+    @meta('Total por Cliente')
+    def total_por_cliente(self):
+        return self.counter('consultante__cliente', chart='bar')
+    
+    @meta('Total por Mês')
+    def total_por_mes(self):
+        return self.counter('data_pergunta__month', chart='line')
+    
+    @meta('Total de Consultas')
+    def quantidade_geral(self):
+        return self.count()
+    
 
 class Consulta(models.Model):
     consultante = models.ForeignKey(Consultante, verbose_name='Consultante')
@@ -431,6 +479,15 @@ class Consulta(models.Model):
             for subscription in PushSubscription.objects.filter(user__username__in=cpfs):
                 subscription.notify(texto)
 
+    @meta('Limite para Resposta')
+    def get_limite_resposta(self):
+        limite = self.data_pergunta + datetime.timedelta(seconds=60*self.prioridade.prazo_resposta)
+        minutos = (limite - datetime.datetime.now()).total_seconds() / 60
+        if abs(minutos) > 60:
+            if abs(minutos/60) > 24:
+                return '{} dias e {} horas'.format(int(minutos/60/24), int(minutos/60%24)) 
+            return '{} horas e {} minutos'.format(int(minutos/60), int(minutos%60))
+        return '{} minutos'.format(minutos)
 
 class Interacao(models.Model):
     consulta = models.ForeignKey(Consulta, verbose_name='Consulta')

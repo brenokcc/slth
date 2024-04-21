@@ -29,10 +29,10 @@ def serialize(obj, primitive=False, request=None):
                 if isinstance(obj['url'], FieldFile):
                     obj['url'] = build_url(request, obj['url'].url) if obj['url'] else None
         return obj
-    elif isinstance(obj, date):
-        return obj.strftime('%d/%m/%Y')
     elif isinstance(obj, datetime):
         return obj.strftime('%d/%m/%Y %H:%M:%S')
+    elif isinstance(obj, date):
+        return obj.strftime('%d/%m/%Y')
     elif isinstance(obj, bool):
         return obj
     if isinstance(obj, Decimal) or isinstance(obj, float):
@@ -147,6 +147,10 @@ class Serializer:
         self.request = request
         return self
     
+    def settitle(self, title) -> 'Serializer':
+        self.title = title
+        return self
+    
     def serialize(self, debug=False, forward_exception=False):
         try:
             return self.to_dict(debug=debug)
@@ -249,7 +253,7 @@ class Serializer:
                         if lazy:
                             data = dict(type='queryset', title=title, key=key)
                         else:
-                            data = value.title(title).attrname('__'.join(path)).contextualize(self.request).serialize(debug=False)
+                            data = value.settitle(title).attrname('__'.join(path)).contextualize(self.request).serialize(debug=False)
                         
                         data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                         if leaf: raise JsonResponseException(data)

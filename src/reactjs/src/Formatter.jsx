@@ -20,12 +20,10 @@ function format(obj) {
     if (obj.length == 7 && obj[0] == "#") {
       return <ComponentFactory data={{ type: "color", value: obj }} />;
     } else if (obj.length == 19 && obj[13] == ":" && obj[16] == ":") {
-      var tokens = obj.split("T");
-      var data = tokens[0].split("-");
+      var tokens = obj.split(" ");
+      var data = tokens[0];
       var hora = tokens[1];
-      var date = new Date(data[0], data[1] - 1, data[2]).toLocaleDateString();
-      if (hora == "00:00:00") return date;
-      else return date + " " + hora.substr(0, 5);
+      return hora == "00:00:00" ? data : data + " " + hora;
     }
     return obj;
   }

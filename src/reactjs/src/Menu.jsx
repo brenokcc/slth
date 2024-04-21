@@ -19,7 +19,11 @@ function Menu() {
             </div>
           )}
           <div>
-            <Link dataLabel="Editar Perfil" href="/api/editprofile/">
+            <Link
+              dataLabel="Editar Perfil"
+              href="/api/editprofile/"
+              style={{ textDecoration: "none" }}
+            >
               {window.application.menu.user}
             </Link>
           </div>
