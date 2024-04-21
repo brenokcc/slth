@@ -1,0 +1,36 @@
+application:
+  lang: pt-br
+  title: AnsalisaRN
+  subtitle: Consultoria Jurídica
+  icon: /api/static/images/analisa.png
+  logo: /api/static/images/analisa.png
+  version: 1.0.0
+  groups:
+    administrador: Administrador
+    especialista: Especialista
+    cliente: Cliente
+    consultante: Consultante
+  index: dashboard
+  dashboard:
+    top:
+    center:
+      - minhasconsultas
+    boxes:
+    search:
+    usermenu:
+      - icons
+      - logout
+    adder:
+    tools:
+    settings:
+  menu:
+    Cadastros Gerais:
+      Estados: estados
+      Prioridades: prioridades
+    Base de Conhecimento:
+      Assuntos: assuntos
+      Especialistas: especialistas
+      Perguntas Frequêntes: perguntasfrequentes
+    Clientes: clientes
+    Consultas: consultas
+    Sair: logout

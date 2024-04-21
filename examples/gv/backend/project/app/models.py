@@ -1,0 +1,461 @@
+import os
+import time
+from openai import OpenAI
+from slth.db import models, meta, role
+from slth.components import Badge, Steps, FileLink
+from slth.models import PushSubscription
+
+
+class Estado(models.Model):
+    sigla = models.CharField('Sigla')
+    nome = models.CharField('Nome')
+
+    class Meta:
+        verbose_name = 'Estado'
+        verbose_name_plural = 'Estados'
+
+    def __str__(self):
+        return self.sigla
+
+
+class Prioridade(models.Model):
+    descricao = models.CharField('Descrição')
+    cor = models.ColorField('Cor')
+    prazo_resposta = models.IntegerField('Prazo para Resposta', help_text='Em horas')
+
+    class Meta:
+        verbose_name = 'Prioridade'
+        verbose_name_plural = 'Prioridades'
+
+    def __str__(self):
+        return self.descricao
+
+    def get_prazo_resposta(self):
+        if self.prazo_resposta > 1:
+            return '{} horas'.format(self.prazo_resposta)
+        return '{} hora'.format(self.prazo_resposta)
+
+
+class Assunto(models.Model):
+    descricao = models.CharField('Descrição')
+
+    class Meta:
+        verbose_name = 'Assunto'
+        verbose_name_plural = 'Assuntos'
+
+    def __str__(self):
+        return self.descricao
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', ['descricao'])
+            .queryset('Tópicos', 'get_topicos')
+        )
+    
+    @meta('Tópicos')
+    def get_topicos(self):
+        return self.topico_set.actions('edit', 'delete', 'add', 'visualizartopico').related_values(assunto=self)
+    
+
+    def get_qtd_topicos(self):
+        return self.topicos.count()
+    
+
+class Topico(models.Model):
+    assunto = models.ForeignKey(Assunto, verbose_name='Assunto')
+    descricao = models.CharField('Descrição')
+    codigo_openai = models.CharField('Código', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Tópico'
+        verbose_name_plural = 'Tópicos'
+
+    def __str__(self):
+        return '{} - {}'.format(self.assunto, self.descricao)
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.codigo_openai is None:
+            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
+            assistant = client.beta.assistants.create(
+                name='AnalisaRN {} - {}'.format(self.assunto, self.descricao),
+                instructions="",
+                tools=[{'type': 'file_search'}],
+                model="gpt-3.5-turbo-1106"
+            )
+            Topico.objects.filter(pk=self.pk).update(codigo_openai=assistant.id)
+
+    def perguntar_inteligencia_artificial(self, pergunta):
+        return '*****'
+        client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
+        attachments = []
+        for arquivo in self.arquivo_set.filter(codigo_openai__isnull=False):
+            attachments.append({ "file_id": arquivo.codigo_openai, "tools": [{"type": "file_search"}] })
+        thread = client.beta.threads.create(messages=[{"role": "user", "content": pergunta, "attachments": attachments,}])
+        run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.codigo_openai)
+        for i in range(1, 5):
+            print('Waiting for the response...')
+            time.sleep(2)
+            if client.beta.threads.runs.retrieve(run.id, thread_id=thread.id).status == 'completed':
+                break
+        messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+        message_content = messages[0].content[0].text.value
+        return message_content
+    
+    def formfactory(self):
+        return super().formfactory().fields('assunto', 'descricao')
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', [('assunto', 'descricao'), 'codigo_openai'])
+            .queryset('Arquivos', 'get_arquivos')
+        )
+    
+    def get_arquivos(self):
+        return self.arquivo_set.actions('edit', 'delete', 'add').related_values(topico=self)
+
+
+class Arquivo(models.Model):
+    topico = models.ForeignKey(Topico, verbose_name='Tópico', null=True)
+    nome = models.CharField('Nome')
+    arquivo = models.FileField('Arquivo', upload_to='arquivos', null=True)
+    codigo_openai = models.CharField('Código', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Arquivo'
+        verbose_name_plural = 'Arquivos'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.codigo_openai is None:
+            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
+            with open(self.arquivo.path, 'rb') as file:
+                vector_store = client.beta.vector_stores.create(name="{} - {}".format(self.topico, self.nome))
+                file_paths = [self.arquivo.path]
+                file_streams = [open(path, "rb") for path in file_paths]
+                file_batch = client.beta.vector_stores.file_batches.upload_and_poll(vector_store_id=vector_store.id, files=file_streams)
+                print(file_batch.status)
+                print(file_batch.file_counts)
+                time.sleep(5)
+                client.beta.assistants.update(self.topico.codigo_openai, tools=[{'type': 'file_search'}], tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}})
+                Arquivo.objects.filter(pk=self.pk).update(codigo_openai=vector_store.id)
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        if self.codigo_openai:
+            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
+            client.beta.assistants.files.delete(
+                file_id=self.codigo_openai, assistant_id=self.topico.codigo_openai
+            )
+            client.files.delete(self.codigo_openai)
+
+    def formfactory(self):
+        return super().formfactory().fields('topico', 'nome', 'arquivo', 'codigo_openai')
+
+
+class PerguntaFrequente(models.Model):
+    topico = models.ForeignKey(Topico, verbose_name='Tópico', related_name='perguntas_frequentes')
+    pergunta = models.CharField('Pergunta')
+    resposta = models.TextField('Resposta', blank=True)
+
+    class Meta:
+        verbose_name = 'Pergunta Frequente'
+        verbose_name_plural = 'Perguntas Frequentes'
+
+    def __str__(self):
+        return self.pergunta
+    
+    def save(self, *args, **kwargs):
+        if not self.resposta and self.topico.arquivo_set.exists():
+            self.resposta = self.topico.perguntar_inteligencia_artificial(self.pergunta)
+        super().save(*args, **kwargs)
+
+    def formfactory(self):
+        return super().formfactory().fields('topico', 'pergunta', 'resposta')
+
+
+class EspecialistaQuerySet(models.QuerySet):
+
+    def all(self):
+        return self.fields('cpf', 'nome', 'estados', 'assuntos')
+
+@role('especialista', 'cpf')
+class Especialista(models.Model):
+    cpf = models.CharField('CPF')
+    nome = models.CharField('Nome')
+    registro = models.CharField('Nº do Registro Profissional', null=True, blank=True)
+    minicurriculo = models.TextField('Minicurrículo', null=True, blank=True) 
+    endereco = models.CharField('Endereço', null=True, blank=True)
+    telefone = models.CharField('Telefone', null=True, blank=True)
+    email = models.CharField('E-mail', null=True, blank=True)
+    estados = models.ManyToManyField(Estado, verbose_name='Estados', pick=True)
+    assuntos = models.ManyToManyField(Assunto, verbose_name='Assuntos', pick=True)
+    
+
+    class Meta:
+        verbose_name = 'Especialista'
+        verbose_name_plural = 'Especialistas'
+
+    objects = EspecialistaQuerySet()
+
+    def __str__(self):
+     return '{} ({})'.format(self.nome, self.cpf)
+    
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', ('nome', ('cpf', 'registro'), 'minicurriculo'))
+            .fieldset('Dados de Contato', ('endereco', ('telefone', 'email')))
+            .fieldset('Atuação', ('estados', 'assuntos'))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', ('nome', ('cpf', 'registro'), 'minicurriculo'))
+            .fieldset('Dados de Contato', ('endereco', ('telefone', 'email')))
+            .fieldset('Atuação', ('estados', 'assuntos'))
+        )
+    
+    
+    
+class ClienteQuerySet(models.QuerySet):
+    def all(self):
+        return self.fields('cpf_cnpj', 'nome', 'estado', 'assuntos').filters('estado', 'assunto').search('nome', 'cpf_cnpj')
+
+@role('cliente', 'cpf_cnpj')
+class Cliente(models.Model):
+    cpf_cnpj = models.CharField('CPF/CNPJ')
+    nome = models.CharField('Nome')
+    endereco = models.CharField('Endereço', null=True, blank=True)
+    telefone = models.CharField('Telefone')
+
+    cpf_responsavel = models.CharField('CPF do Responsável')
+    nome_responsavel = models.CharField('Nome do Responsável')
+    cargo_responsavel = models.CharField('Cargo do Responsável')
+    email_responsavel = models.EmailField('E-mail', null=True)
+
+    estado = models.ForeignKey(Estado, verbose_name='Estado', null=True)
+    assuntos = models.ManyToManyField(Assunto, verbose_name='Assuntos', blank=True)
+    ativo = models.BooleanField('Ativo', default=True)
+
+    class Meta:
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
+
+    objects = ClienteQuerySet()
+
+    def __str__(self):
+        return '{} ({})'.format(self.nome, self.cpf_cnpj)
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        consultante = Consultante.objects.filter(cpf=self.cpf_responsavel).first()
+        if consultante is None:
+            consultante = Consultante()
+            consultante.cliente = self
+            consultante.cpf = self.cpf_responsavel
+            consultante.nome = self.nome_responsavel
+            consultante.save()
+
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', ('nome', ('cpf_cnpj', 'telefone'), 'endereco'))
+            .fieldset('Responsável', ('nome_responsavel', ('cpf_responsavel', 'cargo_responsavel'), 'email_responsavel'))
+            .fieldset('Atuação', ('estado', 'assuntos'))
+            .fieldset('Controle', ('ativo',))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', ('nome', ('cpf_cnpj', 'telefone'), 'endereco'))
+            .group('Detalhamento')
+                .section('Dados Cadastrais')
+                    .fieldset('Responsável', ('nome_responsavel', ('cpf_responsavel', 'cargo_responsavel'), 'email_responsavel'))
+                    .fieldset('Atuação', ('estado', 'assuntos'))
+                    .fieldset('Controle', ('ativo',))
+                    .parent()
+                .queryset('Consultantes', 'get_consultantes')
+                .queryset('Consultas', 'get_consultas')
+                .fieldset('Estatística', (('get_consultas_por_prioridade', 'get_consultas_por_topico'),))
+                .parent()
+        )
+    
+    def get_consultantes(self):
+        return self.consultante_set.actions('edit', 'delete', 'add').related_values(cliente=self)
+    
+    def get_consultas(self):
+        return Consulta.objects.filter(consultante__cliente=self).fields('get_prioridade', 'topico', 'pergunta')
+    
+    @meta('Consultas por Prioridade')
+    def get_consultas_por_prioridade(self):
+        return self.get_consultas().counter('prioridade', chart='donut')
+    
+    @meta('Consultas por Tópico')
+    def get_consultas_por_topico(self):
+        return self.get_consultas().counter('topico', chart='donut')
+
+
+@role('consultante', 'cpf', cliente='cliente')
+class Consultante(models.Model):
+    cliente = models.ForeignKey(Cliente, verbose_name='Cliente')
+    cpf = models.CharField('CPF')
+    nome = models.CharField('Nome')
+
+    class Meta:
+        verbose_name = 'Consultante'
+        verbose_name_plural = 'Consultantes'
+
+    def __str__(self):
+     return '{} ({})'.format(self.nome, self.cpf)
+
+
+class ConsultaQuerySet(models.QuerySet):
+
+    def all(self):
+        return self.fields(
+            'consultante', 'get_prioridade', 'topico', 'pergunta'
+        ).filters('topico', 'data_pergunta').subsets(
+            'aguardando_especialista', 'aguardando_resposta', 'aguardando_envio', 'respondidas'
+        )
+
+    @meta('Aguardando Especialista')
+    def aguardando_especialista(self):
+        return self.filter(especialista__isnull=True)
+
+    @meta('Aguardando Resposta')
+    def aguardando_resposta(self):
+        return self.filter(especialista__isnull=False, resposta__isnull=True)
+
+    @meta('Aguardando Envio')
+    def aguardando_envio(self):
+        return self.filter(resposta__isnull=False, data_resposta__isnull=True)
+
+    @meta('Respondidas')
+    def respondidas(self):
+        return self.filter(data_resposta__isnull=False)
+
+
+class Anexo(models.Model):
+    nome = models.CharField('Nome')
+    data_hora = models.DateTimeField(auto_now_add=True)
+    arquivo = models.FileField('Arquivo', upload_to='anexos', null=True)
+
+    class Meta:
+        verbose_name = 'Anexo'
+        verbose_name_plural = 'Anexos'
+
+    def get_arquivo(self):
+        return FileLink(self.arquivo, modal=True, icon='file')
+
+
+class Consulta(models.Model):
+    consultante = models.ForeignKey(Consultante, verbose_name='Consultante')
+    prioridade = models.ForeignKey(Prioridade, verbose_name='Prioridade')
+    topico = models.ForeignKey(Topico, verbose_name='Tópico')
+    pergunta = models.TextField(verbose_name='Pergunta')
+    observacao = models.TextField(verbose_name='Observação', null=True, blank=True)
+    data_pergunta = models.DateTimeField('Data da Pergunta', auto_now_add=True)
+
+    especialista = models.ForeignKey(Especialista, verbose_name='Especialista', null=True, blank=True)
+
+    data_consulta = models.DateTimeField('Data da Consulta', null=True, blank=True)
+    pergunta_ia = models.TextField(verbose_name='Pergunta I.A.', null=True, blank=True)
+    resposta_ia = models.TextField(verbose_name='Resposta I.A.', null=True, blank=True)
+
+    resposta = models.TextField(verbose_name='Resposta Final', null=True, blank=True)
+    data_resposta = models.DateTimeField('Data da Resposta', null=True, blank=True)
+
+    anexos = models.OneToManyField(Anexo, verbose_name='Anexos')
+
+    objects = ConsultaQuerySet()
+
+    class Meta:
+        verbose_name = 'Consulta'
+        verbose_name_plural = 'Consultas'
+
+    def __str__(self):
+        return 'Consulta {} ({})'.format(self.pk, self.topico.assunto)
+    
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', ('consultante', ('prioridade', 'topico'), 'pergunta', 'observacao'))
+            .fieldset('Anexos', ('anexos',))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            # .actions('x', 'y')
+            .field('get_passos')
+            .fieldset('Dados Gerais', ('consultante', ('get_prioridade', 'topico'), 'pergunta', 'observacao'))
+            .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta')), reload=False)
+            .queryset('Anexos', 'get_anexos')
+            .queryset('Interações', 'get_interacoes')
+            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta'), actions=('consultaria','enviarresposta'))
+        )
+    
+    @meta('Anexos')
+    def get_anexos(self):
+        return self.anexos.fields('nome', 'get_arquivo').actions('add').related_values(consulta=self)
+
+    @meta('Prioridade')
+    def get_prioridade(self):
+        return Badge(self.prioridade.cor, self.prioridade.descricao)
+    
+    @meta('Interações')
+    def get_interacoes(self):
+        return self.interacao_set.fields('mensagem', 'data_hora', 'arquivo').actions('add').related_values(consulta=self)
+
+    @meta(None)
+    def get_passos(self):
+        steps = Steps()
+        steps.append('Pergunta', self.data_pergunta)
+        steps.append('Consulta', self.data_consulta)
+        steps.append('Resposta', self.data_resposta)
+        return steps
+
+    def save(self, *args, **kwargs):
+        pk = self.pk
+        if self.pergunta_ia is None:
+            self.pergunta_ia = self.pergunta
+        super().save(*args, **kwargs)
+        if pk is None:
+            cpfs = Especialista.objects.filter(assuntos=self.topico.assunto).values_list('cpf', flat=True)
+            texto = 'Nova pergunta sobre "{}" cadastrada pelo cliente "{}".'.format(self.topico, self.consultante.cliente)
+            for subscription in PushSubscription.objects.filter(user__username__in=cpfs):
+                subscription.notify(texto)
+
+
+class Interacao(models.Model):
+    consulta = models.ForeignKey(Consulta, verbose_name='Consulta')
+    mensagem = models.TextField('Mensagem')
+    data_hora = models.DateTimeField(auto_now_add=True)
+    arquivo = models.FileField('Arquivo', upload_to='interacoes', null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Interação'
+        verbose_name_plural = 'Interações'
+
+    def get_arquivo(self):
+        return FileLink(self.arquivo, modal=True, icon='file')
+
+
+class Mensalidade(models.Model):
+    cliente = models.ForeignKey(Cliente, verbose_name='Cliente', related_name='mensalidades')
+    valor = models.DecimalField(verbose_name='Valor')
+    data_vencimento = models.DateField(verbose_name='Data do Vencimento')
+    data_pagamento = models.DateField(verbose_name='Data do Pagamento', null=True, blank=True)
+
+
+    class Meta:
+        verbose_name = 'Mensalidade'
+        verbose_name_plural = 'Mensalidades'
+
+    def __str__(self):
+     return '{} ({}/{})'.format(self.cliente, self.data_vencimento.month, self.data_vencimento.year)
