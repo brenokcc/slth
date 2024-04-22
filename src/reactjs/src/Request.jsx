@@ -14,6 +14,7 @@ function Response(props) {
 }
 
 function apiurl(url) {
+  if (url.startsWith("/")) url = API_URL + url;
   return url.replace("/app/", "/api/");
 }
 
@@ -97,5 +98,5 @@ function response(data) {
   }
 }
 
-export { Response, apiurl, appurl, request, response };
+export { Response, apiurl, appurl, request, response, API_URL };
 export default request;

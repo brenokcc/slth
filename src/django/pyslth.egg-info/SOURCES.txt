@@ -11,6 +11,7 @@ slth/components.py
 slth/conf.py
 slth/endpoints.py
 slth/exceptions.py
+slth/factory.py
 slth/forms.py
 slth/models.py
 slth/notifications.py
@@ -31,8 +32,10 @@ slth/management/commands/integration_test.py
 slth/management/commands/sync.py
 slth/migrations/0001_initial.py
 slth/migrations/0002_email_role_pushsubscription_error.py
+slth/migrations/0003_rename_photo_profile_alter_profile_options.py
 slth/migrations/__init__.py
 slth/selenium/__init__.py
 slth/selenium/browser.py
 slth/static/images/logo.png
 slth/static/images/logo.svg
+slth/static/images/user.png

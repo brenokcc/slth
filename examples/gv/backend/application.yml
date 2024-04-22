@@ -38,4 +38,5 @@ application:
       Perguntas Frequêntes: perguntasfrequentes
     people-line:Clientes: clientes
     file-signature:Consultas: consultas
+    chart-area:Monitoramento: bi
     door-closed:Sair: logout

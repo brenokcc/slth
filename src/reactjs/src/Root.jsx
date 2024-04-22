@@ -2,7 +2,7 @@ import { React } from "react";
 import ReactDOM from "react-dom/client";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
-import { Object, Fieldset, Field, Section, Group } from "./Viewer";
+import { Object as Object2, Fieldset, Field, Section, Group } from "./Viewer";
 import { Statistics } from "./Statistics";
 import { Color } from "./Theme";
 import { Application } from "./Application";
@@ -65,6 +65,29 @@ ComponentFactory.render = function (root) {
   } else {
     window.reload(document.location.href);
   }
+
+  [
+    { rel: "manifest", href: apiurl("/api/manifest/") },
+    {
+      rel: "icon",
+      type: "image/png",
+      href: apiurl("/api/static/images/logo.png"),
+    },
+    {
+      rel: "apple-touch-icon",
+      sizes: "128x128",
+      href: apiurl("/api/static/images/logo.png"),
+    },
+    {
+      rel: "icon",
+      sizes: "192x192",
+      href: apiurl("/api/static/images/logo.png"),
+    },
+  ].forEach(function (link) {
+    const element = document.createElement("link");
+    Object.keys(link).forEach((k) => element.setAttribute(k, link[k]));
+    document.querySelector("head").appendChild(element);
+  });
 };
 
 ComponentFactory.register("counter", (data) => <Counter data={data} />);
@@ -72,7 +95,7 @@ ComponentFactory.register("form", (data) => <Form data={data} />);
 ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
 ComponentFactory.register("fieldset", (data) => <Fieldset data={data} />);
 ComponentFactory.register("field", (data) => <Field data={data} />);
-ComponentFactory.register("object", (data) => <Object data={data} />);
+ComponentFactory.register("object", (data) => <Object2 data={data} />);
 ComponentFactory.register("section", (data) => <Section data={data} />);
 ComponentFactory.register("group", (data) => <Group data={data} />);
 ComponentFactory.register("statistics", (data) => <Statistics data={data} />);
