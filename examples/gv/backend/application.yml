@@ -16,6 +16,8 @@ application:
     center:
       - minhasconsultas
       - consultasaguardandoespecialista
+      - consultasematendimento
+      - consultasatendidas
     boxes:
     search:
     usermenu:

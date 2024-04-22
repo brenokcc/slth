@@ -155,19 +155,24 @@ class FormMixin:
             data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
         else:
             ftype = FIELD_TYPES.get(type(field).__name__, 'text')
-            
-            value = field.initial or self.initial.get(name)
-            if callable(value):
-                value = value()
-            if isinstance(field, ModelMultipleChoiceField) or isinstance(field, DjangoModelMultipleChoiceField):
-                value = [dict(id=obj.id, label=str(obj)) for obj in value] if value else []
-            if isinstance(field, MultipleChoiceField) or isinstance(field,DjangoMultipleChoiceField):
-                value = value if value else []
-            elif value and (isinstance(field, ModelChoiceField) or isinstance(field, DjangoModelChoiceField)):
-                obj = field.queryset.get(pk=value)
-                value = dict(id=obj.id, label=str(obj))
-            elif isinstance(value, FieldFile):
-                value = build_url(self.request, value.url) if value else None
+            if name in self._values:
+                ftype = 'hidden'
+                value = self._values[name]
+                value = value.pk if isinstance(value, Model) else value
+            else:
+                value = field.initial or self.initial.get(name)
+                if callable(value):
+                    value = value()
+                
+                if isinstance(field, ModelMultipleChoiceField) or isinstance(field, DjangoModelMultipleChoiceField):
+                    value = [dict(id=obj.id, label=str(obj)) for obj in value] if value else []
+                elif isinstance(field, MultipleChoiceField) or isinstance(field,DjangoMultipleChoiceField):
+                    value = value if value else []
+                elif value and (isinstance(field, ModelChoiceField) or isinstance(field, DjangoModelChoiceField)):
+                    obj = field.queryset.get(pk=value)
+                    value = dict(id=obj.id, label=str(obj))
+                elif isinstance(value, FieldFile):
+                    value = build_url(self.request, value.url) if value else None
             
             if isinstance(field.widget, HiddenInput):
                 ftype = 'hidden'
@@ -325,6 +330,9 @@ class FormMixin:
         self._title = title 
         return self
     
+    def setvalue(self, **kwargs):
+        self._values.update(**kwargs)
+    
 
 class Form(DjangoForm, FormMixin):
     
@@ -336,6 +344,7 @@ class Form(DjangoForm, FormMixin):
         self.endpoint = endpoint
         self.request = request
         self._info = None
+        self._values = {}
         self._title = type(self).__name__
         self._actions = {}
         self.parse_json()
@@ -377,6 +386,7 @@ class ModelForm(DjangoModelForm, FormMixin):
         self.endpoint = kwargs.pop('endpoint', None)
         self.delete = delete
         self._info = None
+        self._values = {}
         self._title = type(self).__name__
         self._actions = {}
         self.parse_json()

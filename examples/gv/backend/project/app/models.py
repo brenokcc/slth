@@ -49,12 +49,19 @@ class Prioridade(models.Model):
         return '{} hora'.format(self.prazo_resposta)
 
 
+class AssuntoQuerySet(models.QuerySet):
+
+    def all(self):
+        return self.search('descricao')
+
 class Assunto(models.Model):
     descricao = models.CharField('Descrição')
 
     class Meta:
         verbose_name = 'Assunto'
         verbose_name_plural = 'Assuntos'
+
+    objects = AssuntoQuerySet()
 
     def __str__(self):
         return self.descricao
@@ -175,6 +182,10 @@ class Arquivo(models.Model):
     def formfactory(self):
         return super().formfactory().fields('topico', 'nome', 'arquivo')
 
+class PerguntaFrequenteQuerySet(models.QuerySet):
+
+    def all(self):
+        return self.search('pergunta').filters('topico__assunto', 'topico')
 
 class PerguntaFrequente(models.Model):
     topico = models.ForeignKey(Topico, verbose_name='Tópico', related_name='perguntas_frequentes')
@@ -184,6 +195,8 @@ class PerguntaFrequente(models.Model):
     class Meta:
         verbose_name = 'Pergunta Frequente'
         verbose_name_plural = 'Perguntas Frequentes'
+
+    objects = PerguntaFrequenteQuerySet()
 
     def __str__(self):
         return self.pergunta
@@ -200,7 +213,7 @@ class PerguntaFrequente(models.Model):
 class EspecialistaQuerySet(models.QuerySet):
 
     def all(self):
-        return self.fields('cpf', 'nome', 'estados', 'assuntos')
+        return self.fields('cpf', 'nome', 'estados', 'assuntos').search('nome').filters('estados', 'assuntos')
 
 @role('especialista', 'cpf')
 class Especialista(models.Model):
@@ -355,7 +368,7 @@ class ConsultaQuerySet(models.QuerySet):
 
     def all(self):
         return self.fields(
-            'consultante', 'get_prioridade', 'topico', 'pergunta'
+            'consultante', 'get_prioridade', 'topico', 'pergunta', 'get_situacao'
         ).filters('topico', 'data_pergunta').subsets(
             'aguardando_especialista', 'aguardando_resposta', 'aguardando_envio', 'respondidas'
         )
@@ -402,6 +415,7 @@ class ConsultaQuerySet(models.QuerySet):
     
 
 class Consulta(models.Model):
+
     consultante = models.ForeignKey(Consultante, verbose_name='Consultante')
     prioridade = models.ForeignKey(Prioridade, verbose_name='Prioridade')
     topico = models.ForeignKey(Topico, verbose_name='Tópico')
@@ -442,10 +456,10 @@ class Consulta(models.Model):
             # .actions('x', 'y')
             .field('get_passos')
             .fieldset('Dados Gerais', ('consultante', ('get_prioridade', 'topico'), 'pergunta', 'observacao'))
-            .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta')), reload=False)
+            .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta'),), reload=False)
             .queryset('Anexos', 'get_anexos')
             .queryset('Interações', 'get_interacoes')
-            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta'), actions=('consultaria','enviarresposta'))
+            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta'), actions=('assumirconsulta', 'deixarconsulta', 'consultaria','enviarresposta'))
         )
     
     @meta('Anexos')
@@ -467,22 +481,35 @@ class Consulta(models.Model):
         steps.append('Consulta', self.data_consulta)
         steps.append('Resposta', self.data_resposta)
         return steps
+    
+    @meta('Situação')
+    def get_situacao(self):
+        if self.especialista_id is None:
+            return 'Aguardando Especialista'
+        elif self.data_resposta:
+            return 'Finalizada'
+        elif self.get_minutos_resposta() >= 0:
+            return 'Em Atendimento'
+        elif self.get_minutos_resposta() < 0:
+            return 'Em Atraso'
 
     def save(self, *args, **kwargs):
         pk = self.pk
-        if self.pergunta_ia is None:
-            self.pergunta_ia = self.pergunta
         super().save(*args, **kwargs)
-        if pk is None:
+        if pk is None and pk:
             cpfs = Especialista.objects.filter(assuntos=self.topico.assunto).values_list('cpf', flat=True)
             texto = 'Nova pergunta sobre "{}" cadastrada pelo cliente "{}".'.format(self.topico, self.consultante.cliente)
             for subscription in PushSubscription.objects.filter(user__username__in=cpfs):
                 subscription.notify(texto)
 
+    def get_minutos_resposta(self):
+        limite = self.data_pergunta + datetime.timedelta(seconds=3600 * self.prioridade.prazo_resposta)
+        print(self.data_pergunta, str(self.prioridade.prazo_resposta)+'h', limite)
+        return int((limite - datetime.datetime.now()).total_seconds() / 60)
+
     @meta('Limite para Resposta')
     def get_limite_resposta(self):
-        limite = self.data_pergunta + datetime.timedelta(seconds=60*self.prioridade.prazo_resposta)
-        minutos = (limite - datetime.datetime.now()).total_seconds() / 60
+        minutos = self.get_minutos_resposta()
         if abs(minutos) > 60:
             if abs(minutos/60) > 24:
                 return '{} dias e {} horas'.format(int(minutos/60/24), int(minutos/60%24)) 

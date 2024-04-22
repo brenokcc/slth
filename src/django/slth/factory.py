@@ -62,8 +62,6 @@ class FormFactory:
             form.info(self._info)
         if self._actions:
             form.actions(**self._actions)
-        for name, value in self._values.items():
-            field = form.fields[name]
-            field.initial = value.id if hasattr(value, 'id') else value
-            field.widget = HiddenInput()
+        if self._values:
+            form.setvalue(**self._values)
         return form

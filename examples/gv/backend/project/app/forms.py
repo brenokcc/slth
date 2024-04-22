@@ -7,6 +7,10 @@ class ConsultarIAForm(forms.ModelForm):
     class Meta:
         model = Consulta
         fields = 'pergunta_ia',
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['pergunta_ia'].initial = self.instance.pergunta
 
     def submit(self):
         self.instance.data_consulta = datetime.datetime.now()

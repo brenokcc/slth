@@ -45,13 +45,13 @@ class MinhasConsultas(endpoints.ListEndpoint[Consulta]):
             super().get().fields('get_prioridade', 'topico', 'pergunta')
             .search('pergunta')
             .filters('prioridade', 'topico')
-            .actions('consultar', 'visualizarresposta')
+            .actions('consultar', 'visualizarminhaconsulta')
             .subsets('nao_respondidas', 'respondidas')
             .filter(consultante__cpf=self.request.user.username)
         )
     
     def check_permission(self):
-        return self.check_role('consultante')
+        return self.check_role('consultante', superuser=False)
 
 class Consultar(endpoints.AddEndpoint[Consulta]):
     def get(self):
@@ -62,10 +62,10 @@ class Consultar(endpoints.AddEndpoint[Consulta]):
     def check_permission(self):
         return self.check_role('consultante')
 
-class VisualizarResposta(endpoints.InstanceEndpoint[Consulta]):
+class VisualizarMinhaConsulta(endpoints.InstanceEndpoint[Consulta]):
     class Meta:
         modal = False
-        verbose_name = 'Visualizar Resposta'
+        verbose_name = 'Visualizar'
 
     def get(self):
         return (
@@ -79,22 +79,7 @@ class VisualizarResposta(endpoints.InstanceEndpoint[Consulta]):
         )
     
     def check_permission(self):
-        return self.get_instance().data_resposta
-
-class ConsultarIA(endpoints.InstanceFormEndpoint[ConsultarIAForm]):
-    class Meta:
-        icon = 'robot'
-        modal = True
-        verbose_name = 'Consultar I.A.'
-
-class EnviarResposta(endpoints.InstanceFormEndpoint[EnviarRespostaForm]):
-    class Meta:
-        icon = 'location-arrow'
-        modal = True
-        verbose_name = 'Enviar Resposta'
-
-    def check_permission(self):
-        return self.get_instance().data_consulta
+        return self.get_instance()
     
 class Estatisticas(endpoints.Endpoint):
     def get(self):
@@ -123,32 +108,77 @@ class Bi(endpoints.Endpoint):
         )
 
 class VisualizarConsulta(endpoints.ViewEndpoint[Consulta]):
-    def get(self):
-        return super().get().actions('assumirconsulta', 'deixarconsulta')
     
     def check_permission(self):
         return self.check_role('administrador', 'especialista')
 
 class ConsultasAguardandoEspecialista(endpoints.ListEndpoint[Consulta]):
     def get(self):
-        return super().get().aguardando_especialista().fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'get_limite_resposta').actions('visualizarconsulta')
+        especialista=Especialista.objects.get(cpf=self.request.user.username)
+        return (
+            super().get().aguardando_especialista()
+            .filter(topico__assunto__in=especialista.assuntos.values_list('pk', flat=True))
+            .filter(consultante__cliente__estado__in=especialista.estados.values_list('pk', flat=True))
+            .fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'get_limite_resposta')
+            .actions('visualizarconsulta'))
+    
     def check_permission(self):
-        return self.check_role('especialista')
+        return self.check_role('especialista', superuser=False)
+    
+class ConsultasEmAtendimento(endpoints.ListEndpoint[Consulta]):
+    def get(self):
+        especialista=Especialista.objects.get(cpf=self.request.user.username)
+        return super().get().filter(especialista=especialista, data_resposta__isnull=True).fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'get_limite_resposta').actions('visualizarconsulta')
+    
+    def check_permission(self):
+        return self.check_role('especialista', superuser=False)
+    
+class ConsultasAtendidas(endpoints.ListEndpoint[Consulta]):
+    def get(self):
+        especialista=Especialista.objects.get(cpf=self.request.user.username)
+        return super().get().filter(especialista=especialista, data_resposta__isnull=False).fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'data_resposta').actions('visualizarconsulta')
+    
+    def check_permission(self):
+        return self.check_role('especialista', superuser=False)
 
 class AssumirConsulta(endpoints.ChildInstanceEndpoint):
     class Meta:
+        icon = 'file-circle-check'
         verbose_name = 'Assumir Consulta'
+    
     def get(self):
-        return super().formfactory().fields('especialista').setvalue(
-            especialista=Especialista.objects.get(cpf=self.request.user.username)
-        )
+        especialista=Especialista.objects.get(cpf=self.request.user.username)
+        return super().formfactory().fields('especialista').setvalue(especialista=especialista)
+    
     def check_permission(self):
         return self.check_role('especialista') and not self.get_instance().especialista_id
-    
-class DeixarConsulta(endpoints.ChildInstanceEndpoint):
+
+class ConsultarIA(endpoints.ChildInstanceFormEndpoint[ConsultarIAForm]):
     class Meta:
-        verbose_name = 'Deixar Consulta'
-    def get(self):
-        return super().formfactory().fields('especialista')
+        icon = 'robot'
+        modal = True
+        verbose_name = 'Consultar I.A.'
+
     def check_permission(self):
         return self.check_role('especialista') and self.get_instance().especialista_id
+
+class EnviarResposta(endpoints.InstanceFormEndpoint[EnviarRespostaForm]):
+    class Meta:
+        icon = 'location-arrow'
+        modal = True
+        verbose_name = 'Enviar Resposta'
+
+    def check_permission(self):
+        return self.get_instance().data_consulta    
+
+class DeixarConsulta(endpoints.ChildInstanceEndpoint):
+    class Meta:
+        icon = 'file-circle-xmark'
+        verbose_name = 'Deixar Consulta'
+    
+    def get(self):
+        return super().formfactory().fields('especialista').setvalue(especialista=None)
+    
+    def check_permission(self):
+        return self.check_role('especialista') and self.get_instance().especialista_id
+

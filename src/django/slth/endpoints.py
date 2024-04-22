@@ -109,8 +109,8 @@ class Endpoint(metaclass=EnpointMetaclass):
     def check_permission(self):
         return self.request.user.is_superuser
     
-    def check_role(self, *names):
-        if self.request.user.is_superuser:
+    def check_role(self, *names, superuser=True):
+        if self.request.user.is_superuser and superuser:
             return True
         for name in names:
             if self.objects('slth.role').filter(username=self.request.user.username, name=name).exists():
@@ -355,9 +355,12 @@ class ChildInstanceFormEndpoint(Generic[T], ChildEndpoint):
 
     def get_form_cls(self):
         return self.__orig_bases__[0].__args__[0]
+    
+    def get_instance(self):
+        return self.source
 
     def get(self):
-        return self.get_form_cls()(request=self.request, endpoint=self)
+        return self.get_form_cls()(instance=self.get_instance(), request=self.request, endpoint=self)
 
 class View(ChildInstanceEndpoint):
     class Meta:
@@ -435,6 +438,9 @@ class Users(ListEndpoint[User]):
         return super().get().fields('username', 'email', 'is_superuser').actions('sendpushnotification')
 
 class Dashboard(Endpoint):
+    class Meta:
+        verbose_name = ''
+        
     def get(self):
         if self.request.user.is_authenticated:
             serializer = Serializer(request=self.request)
@@ -462,6 +468,9 @@ class Dashboard(Endpoint):
             return serializer
         else:
             self.redirect('/api/login/')
+
+    def check_permission(self):
+        return self.request.user.is_authenticated
     
 class Application(PublicEndpoint):
     def get(self):

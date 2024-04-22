@@ -83,7 +83,11 @@ function Menu() {
     if (item.url) {
       return (
         <li key={Math.random()} style={style}>
-          <Link href={item.url} dataLabel={toLabelCase(item.label)}>
+          <Link
+            href={item.url}
+            dataLabel={toLabelCase(item.label)}
+            style={{ textDecoration: "none" }}
+          >
             {level == 0 && (
               <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
             )}
