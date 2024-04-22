@@ -1,4 +1,5 @@
 #!/bin/sh
+npm install slth
 npm run build
 #npm run preview -- --host --port 5173
 
