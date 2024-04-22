@@ -383,7 +383,7 @@ class Delete(ChildInstanceEndpoint):
         icon = 'trash'
         verbose_name = 'Excluir'
     def get(self):
-        return self.formfactory(self.get_instance(), delete=True)
+        return self.formfactory(delete=True)
 
 class Login(Endpoint):
     def get(self):

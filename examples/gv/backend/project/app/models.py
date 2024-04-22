@@ -101,8 +101,8 @@ class Topico(models.Model):
             assistant = client.beta.assistants.create(
                 name='AnalisaRN {} - {}'.format(self.assunto, self.descricao),
                 instructions="",
-                tools=[{'type': 'file_search'}],
-                model="gpt-3.5-turbo-1106"
+                #tools=[{'type': 'file_search'}],
+                model="gpt-4-1106-preview"
             )
             Topico.objects.filter(pk=self.pk).update(codigo_openai=assistant.id)
 
@@ -165,7 +165,7 @@ class Arquivo(models.Model):
                 print(file_batch.file_counts)
                 time.sleep(5)
                 client.beta.assistants.update(self.topico.codigo_openai, tools=[{'type': 'file_search'}], tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}})
-                Arquivo.objects.filter(pk=self.pk).update(codigo_openai=vector_store.id)
+                Arquivo.objects.filter(pk=self.pk).update(codigo_openai=client.beta.vector_stores.files.list(vector_store.id).data[0].id)
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
@@ -207,7 +207,10 @@ class PerguntaFrequente(models.Model):
         super().save(*args, **kwargs)
 
     def formfactory(self):
-        return super().formfactory().fields('topico', 'pergunta', 'resposta')
+        if self.pk:
+            return super().formfactory().fields('resposta',)
+        else:
+            return super().formfactory().fields('topico', 'pergunta')
 
 
 class EspecialistaQuerySet(models.QuerySet):
