@@ -1,6 +1,6 @@
 from .models import *
 from slth import endpoints, meta
-from .forms import ConsultarIAForm, EnviarRespostaForm
+from .forms import ConsultarIAForm, EnviarRespostaForm, AdicionarABaseConhecimentoForm
 
 
 class Administradores(endpoints.AdminEndpoint[Administrador]):
@@ -141,6 +141,16 @@ class ConsultasAtendidas(endpoints.ListEndpoint[Consulta]):
     def check_permission(self):
         return self.check_role('especialista', superuser=False)
 
+
+class AdicionarABaseConhecimento(endpoints.ChildInstanceFormEndpoint[AdicionarABaseConhecimentoForm]):
+    class Meta:
+        icon = 'file-circle-plus'
+        verbose_name = 'Adicionar a Base de Conhecimento'
+
+    def check_permission(self):
+        instance = self.get_instance()
+        return self.check_role('administrador') and instance.data_resposta and not instance.pergunta_frequente_id
+
 class AssumirConsulta(endpoints.ChildInstanceEndpoint):
     class Meta:
         icon = 'file-circle-check'
@@ -169,16 +179,16 @@ class EnviarResposta(endpoints.InstanceFormEndpoint[EnviarRespostaForm]):
         verbose_name = 'Enviar Resposta'
 
     def check_permission(self):
-        return self.get_instance().data_consulta    
+        return self.check_role('especialista') and self.get_instance().data_consulta    
 
-class DeixarConsulta(endpoints.ChildInstanceEndpoint):
+class LiberarConsulta(endpoints.ChildInstanceEndpoint):
     class Meta:
-        icon = 'file-circle-xmark'
-        verbose_name = 'Deixar Consulta'
+        icon = 'file-export'
+        verbose_name = 'Liberar Consulta'
     
     def get(self):
         return super().formfactory().fields('especialista').setvalue(especialista=None)
     
     def check_permission(self):
-        return self.check_role('especialista') and self.get_instance().especialista_id
+        return self.check_role('especialista', 'administrador') and self.get_instance().especialista_id
 

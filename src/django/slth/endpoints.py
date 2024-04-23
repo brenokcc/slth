@@ -11,7 +11,7 @@ from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .factory import FormFactory
-from .forms import LoginForm, ModelForm, Form, SendPushNotificationForm
+from .forms import LoginForm, ModelForm, Form, SendPushNotificationForm, EditProfileForm
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
@@ -579,7 +579,7 @@ class EditProfile(Endpoint):
 
     def get(self):
         profile = Profile.objects.filter(user=self.request.user).first() or Profile(user=self.request.user)
-        return FormFactory(instance=profile).fieldset('Dados Gerais', ['photo'])
+        return EditProfileForm(instance=profile, request=self.request)
 
     def check_permission(self):
         return self.request.user.is_authenticated

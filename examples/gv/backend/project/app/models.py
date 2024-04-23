@@ -75,12 +75,10 @@ class Assunto(models.Model):
     
     @meta('Tópicos')
     def get_topicos(self):
-        return self.topico_set.fields('descricao', 'codigo_openai', 'get_qtd_arquivos').actions('edit', 'delete', 'add', 'visualizartopico').related_values(assunto=self)
+        return self.topico_set.fields('descricao', 'get_qtd_arquivos').actions('edit', 'delete', 'add', 'visualizartopico').related_values(assunto=self)
     
-
     def get_qtd_topicos(self):
         return self.topicos.count()
-    
 
 class Topico(models.Model):
     assunto = models.ForeignKey(Assunto, verbose_name='Assunto')
@@ -90,6 +88,7 @@ class Topico(models.Model):
     class Meta:
         verbose_name = 'Tópico'
         verbose_name_plural = 'Tópicos'
+        search_fields = 'assunto__descricao', 'descricao'
 
     def __str__(self):
         return '{} - {}'.format(self.assunto, self.descricao)
@@ -145,7 +144,7 @@ class Topico(models.Model):
 class Arquivo(models.Model):
     topico = models.ForeignKey(Topico, verbose_name='Tópico', null=True)
     nome = models.CharField('Nome')
-    arquivo = models.FileField('Arquivo', upload_to='arquivos', null=True)
+    arquivo = models.FileField('Arquivo', upload_to='arquivos', null=True, extensions=('txt',))
     codigo_openai = models.CharField('Código', null=True, blank=True)
 
     class Meta:
@@ -255,8 +254,6 @@ class Especialista(models.Model):
             .fieldset('Dados de Contato', ('endereco', ('telefone', 'email')))
             .fieldset('Atuação', ('estados', 'assuntos'))
         )
-    
-    
     
 class ClienteQuerySet(models.QuerySet):
     def all(self):
@@ -436,6 +433,7 @@ class Consulta(models.Model):
     data_resposta = models.DateTimeField('Data da Resposta', null=True, blank=True)
 
     anexos = models.OneToManyField(Anexo, verbose_name='Anexos')
+    pergunta_frequente = models.ForeignKey(PerguntaFrequente, verbose_name='Pergunta Frequente', null=True, blank=True)
 
     objects = ConsultaQuerySet()
 
@@ -456,13 +454,13 @@ class Consulta(models.Model):
     def serializer(self):
         return (
             super().serializer()
-            # .actions('x', 'y')
+            .actions('adicionarabaseconhecimento')
             .field('get_passos')
             .fieldset('Dados Gerais', ('consultante', ('get_prioridade', 'topico'), 'pergunta', 'observacao'))
             .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta'),), reload=False)
             .queryset('Anexos', 'get_anexos')
             .queryset('Interações', 'get_interacoes')
-            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta'), actions=('assumirconsulta', 'deixarconsulta', 'consultaria','enviarresposta'))
+            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta'), actions=('assumirconsulta', 'liberarconsulta', 'consultaria','enviarresposta'))
         )
     
     @meta('Anexos')
@@ -518,12 +516,18 @@ class Consulta(models.Model):
                 return '{} dias e {} horas'.format(int(minutos/60/24), int(minutos/60%24)) 
             return '{} horas e {} minutos'.format(int(minutos/60), int(minutos%60))
         return '{} minutos'.format(minutos)
+    
+    def get_topico_queryset(self, queryset, values):
+        consultante = values.get('consultante')
+        if consultante:
+            queryset = queryset.filter(assunto__in=consultante.cliente.assuntos.values_list('pk', flat=True))
+        return queryset
 
 class Interacao(models.Model):
     consulta = models.ForeignKey(Consulta, verbose_name='Consulta')
     mensagem = models.TextField('Mensagem')
     data_hora = models.DateTimeField(auto_now_add=True)
-    arquivo = models.FileField('Arquivo', upload_to='interacoes', null=True, blank=True)
+    arquivo = models.FileField('Arquivo', upload_to='interacoes', extensions=['pdf'], max_size=1, null=True, blank=True)
     
     class Meta:
         verbose_name = 'Interação'

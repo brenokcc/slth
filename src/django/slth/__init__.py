@@ -46,7 +46,7 @@ class Manager(BaseManager.from_queryset(QuerySet)):
 
 models.QuerySet = QuerySet
 models.Manager = Manager
-setattr(options, 'DEFAULT_NAMES', options.DEFAULT_NAMES + ('icon',))
+setattr(options, 'DEFAULT_NAMES', options.DEFAULT_NAMES + ('icon', 'search_fields'))
 
 
 

@@ -12,7 +12,6 @@ function Message(props) {
       top: 10,
       left: (window.innerWidth - 320) / 2,
       padding: 10,
-      opacity: 0.75,
     };
     return (
       <div style={style}>

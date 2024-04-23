@@ -291,7 +291,6 @@ function InputField(props) {
         var reader = new FileReader();
         reader.onload = function (event) {
           if (isImage(file.name)) {
-            const MAX_WIDTH = 400;
             const DISPLAY_ID = "display" + id;
             var img = document.createElement("img");
             img.id = e.target.id + "img";
@@ -300,7 +299,10 @@ function InputField(props) {
             img.style.margin = "auto";
             img.style.marginTop = "20px";
             img.onload = function (event2) {
-              const ratio = MAX_WIDTH / img.width;
+              const ratio =
+                props.data.width > props.data.height
+                  ? props.data.width / img.width
+                  : props.data.height / img.height;
               var canvas = document.createElement("canvas");
               const ctx = canvas.getContext("2d");
               canvas.height = canvas.width * (img.height / img.width);
@@ -321,7 +323,10 @@ function InputField(props) {
                 canvas.height
               );
               oc.toBlob(function (blob) {
-                e.target.blob = blob;
+                //e.target.blob = blob;
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(new File([blob], file.name));
+                e.target.files = dataTransfer.files;
               });
               var div = document.getElementById(DISPLAY_ID);
               if (div == null) {
@@ -338,8 +343,20 @@ function InputField(props) {
           const info = document.getElementById("fileinfo" + id);
           var size = file.size / 1024;
           if (size < 1024) size = parseInt(size) + " Kb";
-          else size = parseInt(size / 1024) + " Mb";
+          else size = (size / 1024).toFixed(2) + " Mb";
           info.innerHTML = file.name + " / " + size;
+          if (
+            props.data.max_size &&
+            file.size / 1024 / 1024 > props.data.max_size
+          ) {
+            alert(
+              "O limite de tamanho é " +
+                props.data.max_size +
+                "Mb. O arquivo informado possui " +
+                size +
+                ". Por favor, adicione um arquivo menor."
+            );
+          }
         };
         reader.readAsDataURL(file);
       }
@@ -357,6 +374,12 @@ function InputField(props) {
         padding: 30,
         maxWidth: "100%",
       };
+      var accept = null;
+      if (props.data.extensions && props.data.extensions.length > 0) {
+        accept = props.data.extensions
+          .map((extension) => "." + extension)
+          .join(", ");
+      }
       return (
         <>
           <div
@@ -375,18 +398,25 @@ function InputField(props) {
               />
             </div>
             <div style={style}>
-              {props.data.value &&
-                isImage()(
-                  <div style={{ textAlign: "center" }}>
-                    <img src={props.data.value} height={50} />
-                  </div>
-                )}
-              {props.data.value &&
-                !isImage()(
-                  <div style={{ textAlign: "center" }}>{props.data.value}</div>
-                )}
+              {props.data.value && isImage(props.data.value) && (
+                <div style={{ textAlign: "center" }}>
+                  <img src={props.data.value} height={50} />
+                </div>
+              )}
+              {props.data.value && !isImage(props.data.value) && (
+                <div style={{ textAlign: "center" }}>{props.data.value}</div>
+              )}
               Selecione um arquivo clicando no botão ao lado.
-              <div className="bold" id={"fileinfo" + id}></div>
+              <div className="bold" id={"fileinfo" + id}>
+                O arquivo
+                {props.data.max_size &&
+                  "deve possuir até " + props.data.max_size + " Mb e "}
+                deve ter extensão{" "}
+                {props.data.extensions
+                  .map((extension) => "." + extension)
+                  .join(" ou ")}
+                .
+              </div>
             </div>
             <div style={style}>
               <Button
@@ -405,6 +435,7 @@ function InputField(props) {
             onBlur={props.data.onchange ? onBlur : null}
             onChange={onChange}
             style={{ display: "none" }}
+            accept={accept}
           />
         </>
       );

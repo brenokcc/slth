@@ -1,6 +1,6 @@
 import datetime
 from slth import forms
-from .models import Consulta
+from .models import Consulta, PerguntaFrequente
 
 
 class ConsultarIAForm(forms.ModelForm):
@@ -30,3 +30,17 @@ class EnviarRespostaForm(forms.ModelForm):
     def submit(self):
         self.instance.data_resposta = datetime.datetime.now()
         self.instance.save()
+
+class AdicionarABaseConhecimentoForm(forms.ModelForm):
+    class Meta:
+        model = Consulta
+        fields = ()
+
+    def submit(self):
+        pergunta_frequente = PerguntaFrequente.objects.create(
+            topico=self.instance.topico,
+            pergunta=self.instance.pergunta_ia,
+            resposta=self.instance.resposta
+        )
+        self.instance.pergunta_frequente = pergunta_frequente
+        return super().submit()

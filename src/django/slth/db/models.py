@@ -1,3 +1,4 @@
+from uuid import uuid1
 from django.db.models import Model as DjangoModel
 from django.db.models import *
 from django.utils.translation import gettext_lazy as _
@@ -70,7 +71,6 @@ class OneToOneField(OneToOneField):
         field.required2 = not self.blank
         return field
 
-
 class DecimalField(DecimalField):
     def __init__(self, *args, **kwargs):
         kwargs['decimal_places'] = kwargs.pop('decimal_places', 2)
@@ -89,12 +89,45 @@ class ColorField(CharField):
         kwargs.update(form_class=forms.ColorField)
         return super().formfield(*args, **kwargs)
 
-
 class TextField(TextField):
     def __init__(self, *args, **kwargs):
         self.formatted= kwargs.pop('formatted', False)
         super().__init__(*args, **kwargs)
 
+class FileField(FileField):
+    def __init__(self, *args, extensions=('pdf',), max_size=5, **kwargs):
+        self.extensions= extensions
+        self.max_size = max_size
+        super().__init__(*args, **kwargs)
+
+    def formfield(self, *args, **kwargs):
+        from .. import forms
+        kwargs.update(extensions=self.extensions, max_size=self.max_size)
+        kwargs.update(form_class=forms.FileField)
+        return super().formfield(*args, **kwargs)
+    
+    def generate_filename(self, instance, filename):
+        filename = '{}.{}'.format(uuid1().hex, filename.split('.')[-1].lower())
+        print(filename)
+        return super().generate_filename(instance, filename)
+    
+class ImageField(ImageField):
+    def __init__(self, *args, extensions=('png', 'jpg', 'jpeg'), width=None, height=None, **kwargs):
+        self.extensions= extensions
+        self.width = width
+        self.height = height
+        super().__init__(*args, **kwargs)
+
+    def formfield(self, *args, **kwargs):
+        from .. import forms
+        kwargs.update(extensions=self.extensions, width=self.width, height=self.height)
+        kwargs.update(form_class=forms.ImageField)
+        return super().formfield(*args, **kwargs)
+    
+    def generate_filename(self, instance, filename):
+        filename = '{}.{}'.format(uuid1().hex, filename.split('.')[-1].lower())
+        print(filename)
+        return super().generate_filename(instance, filename)
 
 class Model(DjangoModel, ModelMixin):
     class Meta:

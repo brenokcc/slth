@@ -8,6 +8,7 @@ function Menu() {
       width: 150,
       height: 150,
       borderRadius: "50%",
+      objectFit: "cover",
     };
     //`${import.meta.env.VITE_BACKEND_URL}/static/images/user.png`
     return (

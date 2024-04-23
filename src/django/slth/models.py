@@ -132,7 +132,7 @@ class Email(models.Model):
 class Profile(models.Model):
     
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    photo = models.ImageField(verbose_name=_("Photo"))
+    photo = models.ImageField(verbose_name=_("Photo"), width=500, blank=True, null=True, extensions=['png', 'jpg', 'jpeg'])
 
     class Meta:
         verbose_name = _("Profile")

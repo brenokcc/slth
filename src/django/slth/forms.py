@@ -5,10 +5,10 @@ import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
-from django.db.models.fields.files import FieldFile
+from django.db.models.fields.files import FieldFile, ImageFieldFile
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.db.models import Model, QuerySet, Manager
-from .models import Token
+from .models import Token, Profile
 from django.db import transaction
 from django.db.models import Manager
 from .exceptions import JsonResponseException
@@ -24,6 +24,8 @@ DjangoForm = Form
 DjangoModelChoiceField = ModelChoiceField
 DjangoMultipleChoiceField = MultipleChoiceField
 DjangoModelMultipleChoiceField = ModelMultipleChoiceField
+DjangoFileField = FileField
+DjangoImageField = ImageField
 
 MASKS = dict(
     cpf_cnpj='999.999.999-99|99.999.999/9999-99',
@@ -154,6 +156,7 @@ class FormMixin:
             required = getattr(field, 'required2', field.required)
             data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
         else:
+            extra = {}
             ftype = FIELD_TYPES.get(type(field).__name__, 'text')
             if name in self._values:
                 ftype = 'hidden'
@@ -171,8 +174,12 @@ class FormMixin:
                 elif value and (isinstance(field, ModelChoiceField) or isinstance(field, DjangoModelChoiceField)):
                     obj = field.queryset.get(pk=value)
                     value = dict(id=obj.id, label=str(obj))
+                elif isinstance(value, ImageFieldFile):
+                    value = build_url(self.request, value.url) if value else None
+                    extra.update(extensions=field.extensions, width=field.width, height=field.height)
                 elif isinstance(value, FieldFile):
                     value = build_url(self.request, value.url) if value else None
+                    extra.update(extensions=field.extensions, max_size=field.max_size)
             
             if isinstance(field.widget, HiddenInput):
                 ftype = 'hidden'
@@ -180,6 +187,7 @@ class FormMixin:
 
             fname = name if prefix is None else f'{prefix}__{name}'
             data = dict(type=ftype, name=fname, label=field.label, required=field.required, value=value, help_text=field.help_text, mask=None)
+            data.update(**extra)
             for word in MASKS:
                 if word in name:
                     data.update(mask=MASKS[word])
@@ -200,15 +208,24 @@ class FormMixin:
                 else:
                     if isinstance(field.choices, ModelChoiceIterator):
                         if choices_field_name == fname:
-                            method_name = f'get_{fname}_queryset'
                             qs = field.choices.queryset
+                            
+                            method_attr = None
+                            method_name = f'get_{fname}_queryset'
                             if hasattr(self, method_name):
-                                values = {}
+                                method_attr = getattr(self, method_name)
+                            elif hasattr(self, 'instance') and hasattr(self.instance, method_name):
+                                method_attr = getattr(self.instance, method_name)
+
+                            if method_attr:
+                                values = dict(user=self.request.user)
+                                values.update(**self._values)
                                 for name2 in self.fields:
                                     value2 = self.getdata(name2, self.request.GET.get(name2))
                                     if value2:
                                         values[name2] = value2
-                                qs = getattr(self, method_name)(qs, values)
+                                qs = method_attr(qs, values)
+                            
                             if 'term' in self.request.GET:
                                 qs = qs.apply_search(self.request.GET['term'])
                             raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
@@ -284,12 +301,11 @@ class FormMixin:
                                     setattr(self.instance, inline_field_name, None)
                                 else:
                                     setattr(self.instance, inline_field_name, obj)
-                    self.submit()
+                    response = self.submit()
                     for inline_field_name in inline_fields:
                         for obj in self.cleaned_data[inline_field_name]:
                             if hasattr(obj, 'deleting'):
                                 obj.delete()
-                    response = Response(message='Ação realizada com sucesso')
                 else:
                     response = self.submit()
             return response
@@ -406,6 +422,7 @@ class ModelForm(DjangoModelForm, FormMixin):
 
     def submit(self):
         self.instance.delete() if self.delete else self.save()
+        return Response(message='Ação realizada com sucesso')
 
     def get_fieldsets(self):
         return self.fieldsets
@@ -463,6 +480,22 @@ class DecimalField(DecimalField):
 class ColorField(CharField):
     pass
 
+class FileField(FileField):
+    def __init__(self, *args, extensions=('pdf',), max_size=5, **kwargs):
+        self.extensions = extensions
+        self.max_size = max_size
+        super().__init__(*args, **kwargs)
+
+class ImageField(ImageField):
+    def __init__(self, *args, extensions=('png', 'jpg', 'jpeg'), width=None, height=None, **kwargs):
+        self.extensions = extensions
+        if width or height:
+            self.width = width or height
+            self.height = height or width
+        else:
+            self.width = self.height = 500
+        super().__init__(*args, **kwargs)
+
 class ChoiceField(ChoiceField):
     
     def __init__(self, *args, **kwargs):
@@ -510,6 +543,34 @@ class LoginForm(Form):
         
     def submit(self):
         return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key, application=None))
+
+class EditProfileForm(ModelForm):
+    password = CharField(label=_('Senha'), required=False)
+    password2 = CharField(label=_('Confirmação'), required=False)
+
+    class Meta:
+        title = 'Editar Perfil'
+        model = Profile
+        fields = 'photo',
+
+    def get_fieldsets(self):
+        return {
+            'Dados Gerais': ('photo',),
+            'Dados de Acesso': (('password', 'password2'),)
+        }
+
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        password2 = self.cleaned_data.get('password2')
+        if password and password != password2:
+            print(password, password2, 9999)
+            raise ValidationError('As senhas devem ser iguais.')
+        
+    def submit(self):
+        self.save()
+        self.instance.user.set_password(self.cleaned_data.get('password'))
+        self.instance.user.save()
+        return Response(message='Ação realizada com sucesso.', redirect='/api/dashboard/', store=dict(application=None))
 
 class SendPushNotificationForm(Form):
     message = CharField(label='Text', widget=Textarea())
