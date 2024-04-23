@@ -26,7 +26,7 @@ services:
     restart: on-failure
     working_dir: /project
     entrypoint: ./build.sh
-  frontend-server:
+  proxy:
     image: nginx
     ports:
       - "80:80"
