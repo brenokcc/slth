@@ -1,17 +1,11 @@
-
+from django.conf import settings
 
 def build_url(request, path=None):
-    url = ''
     if path and path.startswith('http'):
-        url = path
+        return path
     elif request:
-        port = request.META.get('HTTP_X_FORWARDED_PORT', request.get_port())
-        port = '' if port in (80, 443) else f':{port}'
-        url = "{}://{}{}{}".format(
-            request.META.get('HTTP_X_FORWARDED_PROTO', request.scheme),
-            request.get_host().split(':')[0], port, path or request.path
-        )
-    return url
+        return '{}{}'.format(settings.SITE_URL, path or request.path)
+    return ''
 
 def absolute_url(request, *querystrings):
     url = build_url(request)

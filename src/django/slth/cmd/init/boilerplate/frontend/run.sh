@@ -1,24 +1,32 @@
 #!/bin/sh
-npm run build
-#npm run preview -- --host --port 5173
 
-printf "
-server {
-    listen $FRONTEND_PORT;
-    server_name $DOMAIN localhost;
-    location /api {
-        proxy_pass http://$BACKEND_HOST:$BACKEND_PORT;
-        proxy_set_header Host \$host;
-        proxy_pass_request_headers on;
-        expires -1;
-    }
-    location /app {
-        root /project/dist/;
-        try_files \$uri /index.html;
-    }
-    location / {
-        alias /project/dist/;
-    }
-}
-" > /etc/nginx/http.d/default.conf
-nginx -g 'daemon off;'
+if [ "$DOMAIN" == "localhost" ]; then
+    export VITE_API_URL=$API_URL
+    npm run dev -- --host --port 5173
+else
+    printf "
+        
+        server {
+            listen $FRONTEND_PORT;
+            server_name $DOMAIN localhost;
+            location /api/static {
+                alias /opt/deploy/static;
+            }
+            location /api/media {
+                alias /opt/deploy/media;
+            }
+            location /api {
+                proxy_pass http://127.0.0.1:8000;
+                proxy_pass_request_headers on;
+            }
+            location /app {
+                root /opt/deploy/dist/;
+                try_files \$uri /index.html;
+            }
+            location / {
+                alias /opt/deploy/dist/;
+            }
+        }
+    " > /etc/nginx/http.d/default.conf
+    nginx -g 'daemon off;'    
+fi

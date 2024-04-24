@@ -1,36 +1,27 @@
 import { showMessage } from "./Message";
 
-const API_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  document.location.origin
-    .replace(
-      (/\:\d+/i.exec(document.location.origin) || ["|"]).join(""),
-      ":8000"
-    )
-    .replace("frontend", "backend");
-
 function Response(props) {
   return response(props.data);
 }
 
-function apiurl(url) {
-  if (url.startsWith("/")) url = API_URL + url;
-  return url.replace("/app/", "/api/");
+function buildurl(path) {
+  return path.startsWith("http") ? path : window["API_URL"] + path;
 }
 
-function appurl(url) {
-  return url ? document.location.origin + "/app/" + url.split("/api/")[1] : url;
+function apiurl(path) {
+  return buildurl(path).replace("/app/", "/api/");
 }
 
-function request(method, url, callback, data) {
+function appurl(path) {
+  return buildurl(path).replace("/api/", "/app/");
+}
+
+function request(method, path, callback, data) {
   const token = localStorage.getItem("token");
   var headers = { Accept: "application/json" };
   if (token) headers["Authorization"] = "Token " + token;
-  url = url.replace(document.location.origin, "");
-  url = url.replace(document.location.search, "");
-  url = apiurl(url);
-  url = url + document.location.search;
-  if (url.indexOf(API_URL) == -1) url = API_URL + url;
+  const url = apiurl(path);
+  console.log(url);
   var params = {
     method: method,
     headers: new Headers(headers),
@@ -98,5 +89,5 @@ function response(data) {
   }
 }
 
-export { Response, apiurl, appurl, request, response, API_URL };
+export { Response, apiurl, appurl, request, response };
 export default request;

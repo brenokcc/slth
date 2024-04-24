@@ -33,6 +33,8 @@ slth/management/commands/sync.py
 slth/migrations/0001_initial.py
 slth/migrations/0002_email_role_pushsubscription_error.py
 slth/migrations/0003_rename_photo_profile_alter_profile_options.py
+slth/migrations/0004_alter_profile_photo.py
+slth/migrations/0005_alter_profile_photo.py
 slth/migrations/__init__.py
 slth/selenium/__init__.py
 slth/selenium/browser.py

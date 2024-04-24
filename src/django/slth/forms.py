@@ -560,11 +560,11 @@ class EditProfileForm(ModelForm):
         }
 
     def clean_password(self):
-        password = self.cleaned_data.get('password')
-        password2 = self.cleaned_data.get('password2')
+        password = self.data.get('password')
+        password2 = self.data.get('password2')
         if password and password != password2:
-            print(password, password2, 9999)
             raise ValidationError('As senhas devem ser iguais.')
+        return password
         
     def submit(self):
         self.save()

@@ -1,3 +1,6 @@
+**/backend/static
+src/django/slth/cmd/init/boilerplate/package-lock.json
+pyslth.egg-info
 media
 .DS_Store
 db.sqlite3

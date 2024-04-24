@@ -1,3 +1,3 @@
 #!/bin/sh
 touch local.env
-docker-compose up backend frontend --build
+docker-compose --progress plain --env-file base.env --env-file local.env up frontend backend --build

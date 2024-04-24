@@ -1,8 +1,10 @@
 # React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Build Boilerplate Locally
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+npm uninstall slth
+(cd /Users/breno/Documents/Workspace/slth/src/reactjs/ && npm run build && npm pack)
+npm install /Users/breno/Documents/Workspace/slth/src/reactjs/slth-0.0.6.tgz
+npm run build
+```
