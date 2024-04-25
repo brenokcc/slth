@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "slth": "file:../../../src/reactjs/slth-0.0.7.tgz"
+    "slth": "latest"
   },
   "devDependencies": {
     "@types/react": "^18.2.74",
