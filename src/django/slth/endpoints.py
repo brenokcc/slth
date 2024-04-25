@@ -532,8 +532,8 @@ class Manifest(PublicEndpoint):
                 "name": APPLICATON['title'],
                 "short_name": APPLICATON['title'],
                 "lang": 'pt-BR',
-                "start_url": "http://localhost:5173/app/login/",
-                "scope": "http://localhost:5173/app/login/",
+                "start_url": build_url(self.request, "/app/login/"),
+                "scope": build_url(self.request, "/app/login/"),
                 "display": "standalone",
                 "icons": [{
                     "src": build_url(self.request, APPLICATON['logo']),

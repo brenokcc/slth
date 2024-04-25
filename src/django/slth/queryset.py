@@ -164,7 +164,7 @@ class QuerySet(models.QuerySet):
             qs = qs.apply_search(request.GET['q'], search)
 
         if choices_field_name:
-            field = qs.model._meta.get_field(choices_field_name)
+            field = qs.model.get_field(choices_field_name)
             choices = field.related_model.objects.filter(pk__in=qs.values_list(choices_field_name, flat=True))
             term = self.request.GET.get('term')
             if term:
