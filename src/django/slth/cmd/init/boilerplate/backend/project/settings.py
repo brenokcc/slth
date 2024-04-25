@@ -116,7 +116,7 @@ MEDIA_URL = 'api/media/'
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 STATIC_ROOT = 'static'
 STATIC_URL = os.path.join(SITE_URL, 'api/static/')
-ALLOWED_HOSTS = ['selenium', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['selenium', '127.0.0.1', 'localhost', '*']
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = 'ALLOWALL'
 

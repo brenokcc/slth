@@ -16,7 +16,7 @@ else
                 alias /opt/deploy/media;
             }
             location /api {
-                proxy_pass http://127.0.0.1:8000;
+                proxy_pass http://$BACKEND_HOST:8000;
                 proxy_pass_request_headers on;
             }
             location /app {

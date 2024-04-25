@@ -12,4 +12,4 @@ ADD test.sh .
 ADD project project
 ADD application.yml .
 RUN echo $VERSION
-RUN pip install pyslth
+RUN pip install -U pyslth

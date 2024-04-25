@@ -34,7 +34,6 @@ INSTALLED_APPS = [
     'slth',
     'project.app',
     'whitenoise.runserver_nostatic',
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -112,12 +111,12 @@ TIME_ZONE = 'America/Recife'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = False
-STATIC_ROOT = 'static'
-STATIC_URL = 'api/static/'
 MEDIA_ROOT = 'media'
 MEDIA_URL = 'api/media/'
-SITE_URL = 'http://localhost:8000'
-ALLOWED_HOSTS = ['*', 'selenium']
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
+STATIC_ROOT = 'static'
+STATIC_URL = os.path.join(SITE_URL, 'api/static/')
+ALLOWED_HOSTS = ['selenium', '127.0.0.1', 'localhost', '*']
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = 'ALLOWALL'
 
