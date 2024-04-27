@@ -2,7 +2,7 @@ import sys
 import os
 import shutil
 
-NO_OVERRIDE = ['endpoints.py', 'forms.py', 'models.py', 'tests.py', 'application.yml']
+NO_OVERRIDE = ['endpoints.py', 'forms.py', 'models.py', 'tests.py', 'application.yml', 'requirements.txt']
 IGNORE = ['.deploy']
 def copy_files(src, dest):
     src_files = os.listdir(src)

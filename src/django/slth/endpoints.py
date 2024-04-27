@@ -474,6 +474,7 @@ class Dashboard(Endpoint):
     
 class Application(PublicEndpoint):
     def get(self):
+        print(APPLICATON)
         navbar = None
         menu = None
         icon = build_url(self.request, APPLICATON['logo'])

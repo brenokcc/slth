@@ -1,4 +1,4 @@
 #!/bin/sh
 touch local.env
-docker-compose -p "${1:-test}-$(basename $PWD)" up selenium frontend tester --build --exit-code-from tester
-docker-compose -p "${1:-test}-$(basename $PWD)" down
+docker-compose --progress plain -p "${1:-test}-$(basename $PWD)" up selenium tester --build --exit-code-from tester
+docker-compose --progress plain -p "${1:-test}-$(basename $PWD)" down

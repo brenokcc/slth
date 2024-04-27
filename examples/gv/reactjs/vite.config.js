@@ -12,7 +12,7 @@ export default defineConfig({
           if (id.includes("slth/src/reactjs/src/")) return "slth";
           if (id.includes("service-worker")) return "service-worker";
         },
-        dir: "../backend/assets/",
+        dir: "../django/project/app/static",
         entryFileNames: `[name].js`,
         chunkFileNames: `[name].js`,
         assetFileNames: `[name].[ext]`,

@@ -184,5 +184,3 @@ if os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
             'PORT': os.environ.get('DATABASE_PORT', '5432'),
         }
     }
-
-DEBUG = True
