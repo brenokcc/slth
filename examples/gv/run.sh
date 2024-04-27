@@ -1,3 +1,3 @@
 #!/bin/sh
 touch local.env
-docker compose --progress up -d app --build
+docker compose --progress plain up -d app --build
