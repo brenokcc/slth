@@ -11,6 +11,7 @@ ADD src src
 ARG VERSION
 ARG VITE_API_URL
 RUN echo $VITE_API_URL
+RUN echo $VERSION
 RUN rm -f dist/*
 RUN npm install slth
 RUN npm run build

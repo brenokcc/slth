@@ -10,7 +10,6 @@ function Menu() {
       borderRadius: "50%",
       objectFit: "cover",
     };
-    //`${import.meta.env.VITE_BACKEND_URL}/static/images/user.png`
     return (
       window.application.menu.user && (
         <div align="center">
@@ -83,7 +82,7 @@ function Menu() {
     const iconStyle = { padding: 5, fontSize: "1.2rem" };
     if (item.url) {
       return (
-        <li key={Math.random()} style={style}>
+        <li key={Math.random()} style={style} onClick={onClick}>
           <Link
             href={item.url}
             dataLabel={toLabelCase(item.label)}

@@ -25,22 +25,6 @@ import {
   Counter,
 } from "./Library";
 
-import "./vendors/css/fonts/Eina02-Bold.f8011405.ttf";
-import "./vendors/css/fonts/Eina02-Regular.2e682693.ttf";
-import "./vendors/css/slth.css";
-
-import "./vendors/css/fonts/fa-solid-900.ttf";
-import "./vendors/css/fonts/fa-solid-900.woff2";
-import "./vendors/css/fontawesome.min.css";
-import "./vendors/css/solid.min.css";
-
-import "./vendors/js/echarts.min.js";
-import "./vendors/js/peerjs.min.js";
-import "./vendors/js/service-worker.js";
-import "./vendors/js/slth.js";
-import "./vendors/js/vanilla-masker.min.js";
-import "./vendors/js/react-trigger-change.js";
-
 var ROOT;
 var COMPONENT_REGISTRY = {};
 const APPLICATION_URL = "/api/application/";
@@ -55,7 +39,11 @@ ComponentFactory.register = function (type, func) {
 };
 ComponentFactory.render = function (root) {
   ROOT = root;
-  if (
+  if (document.location.pathname == "/") {
+    localStorage.getItem("token")
+      ? window.reload("/app/dashboard/")
+      : window.reload("/app/login/");
+  } else if (
     document.location.pathname == "/app/login/" &&
     (localStorage.getItem("token") || localStorage.getItem("application"))
   ) {
@@ -65,29 +53,6 @@ ComponentFactory.render = function (root) {
   } else {
     window.reload(document.location.href);
   }
-
-  [
-    { rel: "manifest", href: apiurl("/api/manifest/") },
-    {
-      rel: "icon",
-      type: "image/png",
-      href: apiurl("/api/static/images/logo.png"),
-    },
-    {
-      rel: "apple-touch-icon",
-      sizes: "128x128",
-      href: apiurl("/api/static/images/logo.png"),
-    },
-    {
-      rel: "icon",
-      sizes: "192x192",
-      href: apiurl("/api/static/images/logo.png"),
-    },
-  ].forEach(function (link) {
-    const element = document.createElement("link");
-    Object.keys(link).forEach((k) => element.setAttribute(k, link[k]));
-    document.querySelector("head").appendChild(element);
-  });
 };
 
 ComponentFactory.register("counter", (data) => <Counter data={data} />);
@@ -127,6 +92,7 @@ window.reload = function (url) {
   }
   if (APPLICATION_DATA) {
     window.application = JSON.parse(APPLICATION_DATA);
+    window.configure();
     request("GET", apiurl(url), function (content) {
       window.application.content = content;
       ROOT.render(
@@ -136,6 +102,7 @@ window.reload = function (url) {
   } else {
     request("GET", APPLICATION_URL, function callback(data) {
       window.application = data;
+      window.configure();
       localStorage.setItem("application", JSON.stringify(window.application));
       request("GET", apiurl(url), function (content) {
         window.application.content = content;
@@ -157,6 +124,47 @@ window.load = function (url) {
     });
   } else {
     document.location.href = url;
+  }
+};
+
+window.configure = function () {
+  const ICON = window.application.icon || "/static/images/logo.png";
+  [
+    { rel: "manifest", href: apiurl("/api/manifest/") },
+    {
+      rel: "icon",
+      type: "image/png",
+      href: apiurl(ICON),
+    },
+    {
+      rel: "apple-touch-icon",
+      sizes: "128x128",
+      href: apiurl(ICON),
+    },
+    {
+      rel: "icon",
+      sizes: "192x192",
+      href: apiurl(ICON),
+    },
+  ].forEach(function (link) {
+    const element = document.createElement("link");
+    Object.keys(link).forEach((k) => element.setAttribute(k, link[k]));
+    document.querySelector("head").appendChild(element);
+  });
+
+  if ("serviceWorker" in navigator && "PushManager" in window) {
+    navigator.serviceWorker
+      .register("/static/js/service-worker.js", {
+        type: "module",
+      })
+      .then(function (swRegistration) {
+        console.log("Service worker registered!");
+      })
+      .catch(function (error) {
+        console.error("Service worker error:", error);
+      });
+  } else {
+    console.log("Push messaging is not supported!");
   }
 };
 

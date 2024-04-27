@@ -157,8 +157,9 @@ class AssumirConsulta(endpoints.ChildInstanceEndpoint):
         verbose_name = 'Assumir Consulta'
     
     def get(self):
-        especialista=Especialista.objects.get(cpf=self.request.user.username)
-        return super().formfactory().fields('especialista').setvalue(especialista=especialista)
+        return super().formfactory().fields(
+            especialista=Especialista.objects.get(cpf=self.request.user.username)
+        )
     
     def check_permission(self):
         return self.check_role('especialista') and not self.get_instance().especialista_id
@@ -187,7 +188,7 @@ class LiberarConsulta(endpoints.ChildInstanceEndpoint):
         verbose_name = 'Liberar Consulta'
     
     def get(self):
-        return super().formfactory().fields('especialista').setvalue(especialista=None)
+        return super().formfactory().fields(especialista=None)
     
     def check_permission(self):
         return self.check_role('especialista', 'administrador') and self.get_instance().especialista_id

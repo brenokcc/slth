@@ -19,12 +19,8 @@ function PushWebNotification(props) {
     if ("serviceWorker" in navigator && "PushManager" in window) {
       //console.log('Service Worker and Push is supported');
       navigator.serviceWorker
-        .register("/service-worker.js", {
-          type: "module",
-        })
+        .getRegistration()
         .then(function (swRegistration) {
-          0 / 0;
-          console.log("Service Worker is registered");
           const applicationServerKey = urlB64ToUint8Array(
             "BLoLJSopQbe04v_zpegJmayhH2Px0EGzrFIlM0OedSOTYsMpO5YGmHOxbpPXdM09ttIuDaDTI86uC85JXZPpEtA"
           );
@@ -38,21 +34,21 @@ function PushWebNotification(props) {
               subscriptionJson = JSON.stringify(subscription);
               console.log(subscriptionJson);
               if (subscription) {
-                alert("Notificação ativida com sucesso.");
+                alert("Notificação ativada com sucesso.");
+                var data = new FormData();
+                data.append("subscription", subscriptionJson);
+                request(
+                  "POST",
+                  "/api/pushsubscribe/",
+                  function (data) {
+                    console.log(data);
+                  },
+                  data
+                );
               } else {
                 alert("Problema ao ativar notificações.");
                 return;
               }
-              var data = new FormData();
-              data.append("subscription", subscriptionJson);
-              request(
-                "POST",
-                "/api/pushsubscribe/",
-                function (data) {
-                  console.log(data);
-                },
-                data
-              );
             })
             .catch(function (err) {
               alert("Problema ao tentar ativar notificações.");

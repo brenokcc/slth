@@ -2,8 +2,8 @@ application:
   lang: pt-br
   title: AnsalisaRN
   subtitle: Consultoria Jurídica
-  icon: /api/static/images/analisa.png
-  logo: /api/static/images/analisa.png
+  icon: /static/images/analisa.png
+  logo: /static/images/analisa.png
   version: 1.0.0
   groups:
     administrador: Administrador

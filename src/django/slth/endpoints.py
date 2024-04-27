@@ -476,6 +476,7 @@ class Application(PublicEndpoint):
     def get(self):
         navbar = None
         menu = None
+        icon = build_url(self.request, APPLICATON['logo'])
         if self.request.user.is_authenticated:
             logo = build_url(self.request, APPLICATON['logo'])
             navbar = Navbar(
@@ -516,10 +517,10 @@ class Application(PublicEndpoint):
                 if item:
                     items.append(item)
             profile = Profile.objects.filter(user=self.request.user).first()
-            photo_url = profile.photo.url if profile and profile.photo else '/api/static/images/user.png'
+            photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
             menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
         footer = Footer(APPLICATON['version'])
-        return Application_(navbar=navbar, menu=menu, footer=footer)
+        return Application_(icon=icon, navbar=navbar, menu=menu, footer=footer)
     
 class Manifest(PublicEndpoint):
 
@@ -532,8 +533,8 @@ class Manifest(PublicEndpoint):
                 "name": APPLICATON['title'],
                 "short_name": APPLICATON['title'],
                 "lang": 'pt-BR',
-                "start_url": build_url(self.request, "/app/login/"),
-                "scope": build_url(self.request, "/app/login/"),
+                "start_url": build_url(self.request, "/app/dashboard/"),
+                "scope": build_url(self.request, "/app/"),
                 "display": "standalone",
                 "icons": [{
                     "src": build_url(self.request, APPLICATON['logo']),

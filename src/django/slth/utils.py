@@ -1,11 +1,7 @@
 from django.conf import settings
 
 def build_url(request, path=None):
-    if path and path.startswith('http'):
-        return path
-    elif request:
-        return '{}{}'.format(settings.SITE_URL, path or request.path)
-    return ''
+    return path or request.path if request else ''
 
 def absolute_url(request, *querystrings):
     url = build_url(request)

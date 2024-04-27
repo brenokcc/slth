@@ -2,8 +2,8 @@ application:
   lang: pt-br
   title: Sloth
   subtitle: Take your time!
-  icon: /api/static/images/logo.png
-  logo: /api/static/images/logo.png
+  icon: /static/images/logo.png
+  logo: /static/images/logo.png
   version: 1.0.5
   oauth:
     govbr:

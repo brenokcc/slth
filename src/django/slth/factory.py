@@ -9,9 +9,14 @@ class FormFactory:
         self._info = None
         self._actions = {}
         self._delete = delete
+        self._empty = False
 
-    def fields(self, *names) -> 'FormFactory':
+    def fields(self, *names, **values) -> 'FormFactory':
         self._fieldlist.extend(names)
+        for k, v in values.items():
+            self._fieldlist.append(k)
+            self.setvalue(**values)
+        self._empty = not self._fieldlist
         return self
 
     def fieldset(self, title, fields) -> 'FormFactory':
@@ -52,7 +57,7 @@ class FormFactory:
                     type(self._instance)._meta.verbose_name
                 )
                 model = type(self._instance)
-                fields = () if self._delete else (self._fieldlist or '__all__')
+                fields = () if self._delete or self._empty else (self._fieldlist or '__all__')
     
         form = Form(instance=self._instance, request=request, delete=self._delete)
         form.fieldsets = self._fieldsets

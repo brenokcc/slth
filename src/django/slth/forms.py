@@ -357,6 +357,7 @@ class Form(DjangoForm, FormMixin):
         self.fields = dict(self.fieldsets)
         self.display_data = []
         self.controls = dict(hide=[], show=[], set={})
+        self.instance = kwargs.pop('instance', None)
         self.endpoint = endpoint
         self.request = request
         self._info = None
@@ -576,7 +577,7 @@ class SendPushNotificationForm(Form):
     message = CharField(label='Text', widget=Textarea())
 
     def submit(self):
-        send_push_web_notification(self.endpoint.source, self.cleaned_data['message'])
+        send_push_web_notification(self.instance, self.cleaned_data['message'])
         return Response(message='Notificação enviada com sucesso.')
 
 

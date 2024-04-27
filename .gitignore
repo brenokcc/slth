@@ -2,6 +2,7 @@
 src/django/slth/cmd/init/boilerplate/package-lock.json
 pyslth.egg-info
 media
+src/django/slth/static
 .DS_Store
 db.sqlite3
 .vscode

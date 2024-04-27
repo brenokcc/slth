@@ -1,40 +1,14 @@
 services:
-  frontend: &frontend
-    hostname: frontend
+  app: &app
+    hostname: app
     env_file:
       - base.env
       - local.env
     ports:
-      - "${FRONTEND_PORT-5173}:5173"
+      - "8000:8000"
     build:
-      context: frontend
+      context: django
       dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${API_URL}
-        - VITE_VERSION=${VERSION}
-    restart: always
-    working_dir: /opt/deploy
-    volumes:
-      - .deploy/media:/opt/deploy/media
-      - .deploy/static:/opt/deploy/static
-    entrypoint: ./run.sh
-    healthcheck:
-      test: curl http://localhost:${FRONTEND_PORT-5173}
-    depends_on:
-      backend:
-        condition: service_started
-  backend: &backend
-    hostname: backend
-    env_file:
-      - base.env
-      - local.env
-    ports:
-      - "${BACKEND_PORT-8000}:8000"
-    build:
-      context: backend
-      dockerfile: Dockerfile
-      args:
-        - VERSION=${VERSION}
     restart: always
     volumes:
       - .deploy/media:/opt/deploy/media
@@ -45,14 +19,12 @@ services:
     healthcheck:
       test: curl http://127.0.0.1:8000/api/login/
     working_dir: /opt/deploy
-    entrypoint: ./run.sh
+    entrypoint: ./entrypoint.sh
   tester:
-    <<: *backend
+    <<: *app
     depends_on:
       selenium:
         condition: service_started
-      frontend:
-        condition: service_healthy
     entrypoint: ./test.sh
   selenium:
     hostname: selenium

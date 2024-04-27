@@ -9,7 +9,7 @@ else
         server {
             listen $FRONTEND_PORT;
             server_name $DOMAIN localhost;
-            location /api/static {
+            location /static {
                 alias /opt/deploy/static;
             }
             location /api/media {

@@ -5,20 +5,15 @@ function Response(props) {
 }
 
 function buildurl(path) {
-  return path.startsWith("http") ? path : window["API_URL"] + path;
+  return path;
 }
 
 function apiurl(path) {
-  return buildurl(path.replace(document.location.origin, "")).replace(
-    "/app/",
-    "/api/"
-  );
+  return buildurl(path.replace("/app/", "/api/"));
 }
 
 function appurl(path) {
-  return path
-    .replace(window["API_URL"], document.location.origin)
-    .replace("/api/", "/app/");
+  return path.replace("/api/", "/app/");
 }
 
 function request(method, path, callback, data) {
@@ -26,9 +21,6 @@ function request(method, path, callback, data) {
   var headers = { Accept: "application/json" };
   if (token) headers["Authorization"] = "Token " + token;
   const url = apiurl(path);
-  console.log(path);
-  console.log(url);
-  console.log("----");
   var params = {
     method: method,
     headers: new Headers(headers),

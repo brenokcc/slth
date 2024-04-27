@@ -2,7 +2,7 @@ application:
   lang: pt-br
   title: CECATE
   subtitle: Sistema CECATE-NE
-  icon: /api/static/images/logo.png
+  icon: /static/images/logo.png
   logo: https://www.gstatic.com/images/branding/googlelogo/svg/googlelogo_dark_clr_74x24px.svg
   version: 1.0.5
   oauth:

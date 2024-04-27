@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Projeto</title>
+  <link rel="stylesheet" href="/static/css/slth.css">
+  <link rel="stylesheet" href="/static/css/fontawesome.min.css">
+  <link rel="stylesheet" href="/static/css/solid.min.css">
+  <script type="module" src="/static/js/vanilla-masker.min.js"></script>
+  <script type="module" src="/static/js/react-trigger-change.js"></script>
+  <!-- <script type="module" src="/static/js/qrcode.min.js"></script> -->
+  <script type="module" src="/static/js/peerjs.min.js"></script>
+  <script type="module" src="/static/js/echarts.min.js"></script>
+  {% if vite %}
+  <script type="module" src="http://localhost:5173/@vite/client"></script>
+  <script type="module">
+    import RefreshRuntime from 'http://localhost:5173/@react-refresh'
+    if (RefreshRuntime) {
+      RefreshRuntime.injectIntoGlobalHook(window)
+      window.$RefreshReg$ = () => { }
+      window.$RefreshSig$ = () => (type) => type
+      window.__vite_plugin_react_preamble_installed__ = true
+    }
+  </script>
+  {% endif %}
+</head>
+
+<body>
+  <div id="root"></div>
+</body>
+
+{% if vite %}
+  <script type="module" src="http://localhost:5173/src/main.jsx"></script>
+{% else %}
+  <script type="module" src="/static/js/react.min.js"></script>
+  <script type="module" src="/static/js/lib.min.js"></script>
+  <script type="module" src="/static/js/index.min.js"></script>
+{% endif %}
+</html>

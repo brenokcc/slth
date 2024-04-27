@@ -1,2 +1,3 @@
 include requirements.txt
 recursive-include slth/static *.*
+recursive-include slth/templates *.*
