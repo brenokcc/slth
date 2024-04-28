@@ -80,6 +80,7 @@ function QuerySet(props) {
                   e.preventDefault();
                   setSubset(subset.name);
                 }}
+                dataLabel={toLabelCase(subset.label)}
               >
                 <div style={{ display: "inline-block" }}>
                   {subset.label} ({subset.count})

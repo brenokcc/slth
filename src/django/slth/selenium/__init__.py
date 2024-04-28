@@ -12,7 +12,7 @@ from django.core.management import call_command
 from django.core.servers.basehttp import WSGIServer
 from django.db import connection
 from django.http import HttpResponse
-
+from django.core.management import call_command
 from django.contrib.auth.models import User
 
 from .browser import Browser
@@ -60,16 +60,17 @@ class SeleniumTestCase(LiveServerTestCase):
 
     @classmethod
     def setUpClass(cls):
+        call_command("sync")
         cls.host = os.environ.get('BACKEND_HOST', '127.0.0.1')
         cls.port = int(os.environ.get('BACKEND_PORT', '8000'))
         super().setUpClass()
         print(cls.live_server_url)
         cache.clear()
-        url = "http://{}:{}".format(
-            os.environ.get('FRONTEND_HOST', '127.0.0.1'),
-            os.environ.get('FRONTEND_PORT', '5173')
-        )
-        cls.browser = Browser(url, slowly=False, headless=SeleniumTestCase.HEADLESS)
+        # url = "http://{}:{}".format(
+        #     os.environ.get('FRONTEND_HOST', '127.0.0.1'),
+        #     os.environ.get('FRONTEND_PORT', '5173')
+        # )
+        cls.browser = Browser(cls.live_server_url, slowly=False, headless=SeleniumTestCase.HEADLESS)
         for app_label in settings.INSTALLED_APPS:
             app_module = __import__(app_label)
             app_dir = os.path.dirname(app_module.__file__)

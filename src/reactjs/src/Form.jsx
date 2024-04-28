@@ -434,7 +434,7 @@ function InputField(props) {
             readOnly={props.data.read_only}
             onBlur={props.data.onchange ? onBlur : null}
             onChange={onChange}
-            style={{ display: "none" }}
+            style={{ zIndex: "-1", marginTop: -20 }}
             accept={accept}
           />
         </>
@@ -602,6 +602,7 @@ function Selector(props) {
           onBlur={onLeaveInput}
           defaultValue={defaultValue}
           style={style}
+          data-label={toLabelCase(props.data.label)}
         ></input>
         {options && seaching && (
           <ul
@@ -622,6 +623,8 @@ function Selector(props) {
                   props.onSelect ? props.onSelect(option) : select(option);
                 }}
                 style={li}
+                className="autocomplete-item"
+                data-label={toLabelCase(option.value)}
               >
                 {option.value}
               </li>

@@ -285,6 +285,7 @@ function Tabs(props) {
                 setActive(i);
                 props.loadContent(item.url);
               }}
+              dataLabel={toLabelCase(item.title)}
             >
               {item.title}
             </Link>

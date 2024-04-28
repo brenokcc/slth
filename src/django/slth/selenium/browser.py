@@ -16,10 +16,11 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import Select
 
 
-from selenium.webdriver import Remote
+from selenium.webdriver import Remote, Firefox
 from selenium.webdriver.remote.file_detector import LocalFileDetector
 from selenium.webdriver.remote.webelement import WebElement
 
+REMOTE = 'SELENIUM_HOST' in os.environ
 
 def to_label_case(text):
     return unicodedata.normalize('NFD', text.replace('-', '').replace('_', '').lower())
@@ -29,7 +30,7 @@ def _upload(self, filename):
 
 WebElement._upload = _upload
 
-class Browser(Remote):
+class Browser(Remote if REMOTE else Firefox):
     def __init__(self, server_url, options=None, verbose=True, slowly=False, maximize=True, headless=True):
         if not options:
             options = Options()
@@ -39,12 +40,16 @@ class Browser(Remote):
             options.add_argument("--window-size=720x800")
         if headless and "-v" not in sys.argv:
             options.add_argument("--headless")
-        url = 'http://{}:{}'.format(
-            os.environ.get('SELENIUM_HOST', '127.0.0.1'),
-            os.environ.get('SELENIUM_POST', '4444')
-        )
-        super().__init__(command_executor=url, options=options)
-        self.file_detector = LocalFileDetector()
+        
+        if REMOTE:
+            url = 'http://{}:{}'.format(
+                os.environ.get('SELENIUM_HOST', '127.0.0.1'),
+                os.environ.get('SELENIUM_POST', '4444')
+            )
+            super().__init__(command_executor=url, options=options)
+            self.file_detector = LocalFileDetector()
+        else:
+             super().__init__(options=options)
 
         self.cursor = None
         self.verbose = verbose
@@ -131,7 +136,7 @@ class Browser(Remote):
             else:
                 raise WebDriverException(f"Element {value} NOT FOUND in {self.cursor.tag_name}.")
 
-    def wait(self, seconds=1):
+    def wait(self, seconds=2):
         time.sleep(seconds)
 
     def watch(self, e):
@@ -175,10 +180,15 @@ class Browser(Remote):
                 value = datetime.datetime.strptime(value, "%d/%m/%Y").strftime("%Y-%m-%d")
         try:
             widget = self.find_element("css selector", f'[data-label="{to_label_case(name)}"]')
-            if widget.tag_name == "input" and widget.get_property("type") == "file":
-                value = os.path.join(settings.BASE_DIR, value)
-            widget.clear()
-            widget.send_keys(value)
+            if widget.tag_name == "input" and widget.get_property("type") == "color":
+                self.execute_script(
+                    f'document.querySelector(\'input[data-label="{to_label_case(name)}"]\').value = "{value}";'
+                )
+            else:
+                if widget.tag_name == "input" and widget.get_property("type") == "file":
+                    value = os.path.join(settings.BASE_DIR, value)
+                widget.clear()
+                widget.send_keys(value)
         except WebDriverException as e:
             if count:
                 self.wait()
@@ -191,7 +201,7 @@ class Browser(Remote):
     def choose(self, name, value, count=4):
         self.print('{} "{}" for "{}"'.format("Choosing", value, name))
         try:
-            widgets = self.find_elements(By.CSS_SELECTOR, f'select[data-label="{to_label_case(name)}"]')
+            widgets = self.find_elements(By.CSS_SELECTOR, f'[data-label="{to_label_case(name)}"]')
             if widgets:
                 if widgets[0].tag_name.lower() == "select":
                     select = Select(widgets[0])
@@ -203,17 +213,16 @@ class Browser(Remote):
                         self.wait(0.5)
                         try:
                             super().find_element(By.CSS_SELECTOR, f'.autocomplete-item[data-label*="{to_label_case(value)}"]').click()
+                            self.wait(0.5)
                             break
                         except WebDriverException:
                             pass
+                elif widgets[0].get_dom_attribute("type") == "radio":
+                    widgets[0].click()
+                elif widgets[0].get_dom_attribute("type") == "checkbox":
+                    widgets[0].click()
             else:
-                self.look_at(name)
-                inputs = self.find_elements(By.CSS_SELECTOR, f'input[data-label="{to_label_case(value)}"]')
-                if inputs:
-                    if inputs[0].get_dom_attribute("type") == "radio":
-                        inputs[0].click()
-                    elif inputs[0].get_dom_attribute("type") == "checkbox":
-                        inputs[0].click()
+                raise WebDriverException()
         except WebDriverException as e:
             if count:
                 self.wait()

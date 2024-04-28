@@ -171,7 +171,7 @@ class ConsultarIA(endpoints.ChildInstanceFormEndpoint[ConsultarIAForm]):
         verbose_name = 'Consultar I.A.'
 
     def check_permission(self):
-        return self.check_role('especialista') and self.get_instance().especialista_id
+        return self.check_role('especialista') and self.get_instance().especialista_id and not self.get_instance().data_resposta
 
 class EnviarResposta(endpoints.InstanceFormEndpoint[EnviarRespostaForm]):
     class Meta:
@@ -180,7 +180,7 @@ class EnviarResposta(endpoints.InstanceFormEndpoint[EnviarRespostaForm]):
         verbose_name = 'Enviar Resposta'
 
     def check_permission(self):
-        return self.check_role('especialista') and self.get_instance().data_consulta    
+        return self.check_role('especialista') and self.get_instance().data_consulta and not self.get_instance().data_resposta
 
 class LiberarConsulta(endpoints.ChildInstanceEndpoint):
     class Meta:
@@ -191,5 +191,5 @@ class LiberarConsulta(endpoints.ChildInstanceEndpoint):
         return super().formfactory().fields(especialista=None)
     
     def check_permission(self):
-        return self.check_role('especialista', 'administrador') and self.get_instance().especialista_id
+        return self.check_role('especialista', 'administrador') and self.get_instance().especialista_id and not self.get_instance().data_resposta
 

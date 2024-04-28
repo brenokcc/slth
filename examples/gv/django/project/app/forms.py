@@ -15,7 +15,7 @@ class ConsultarIAForm(forms.ModelForm):
     def submit(self):
         self.instance.data_consulta = datetime.datetime.now()
         self.instance.resposta_ia = self.instance.topico.perguntar_inteligencia_artificial(self.instance.pergunta_ia)
-        self.instance.save()
+        return super().submit()
 
 
 class EnviarRespostaForm(forms.ModelForm):
@@ -29,7 +29,7 @@ class EnviarRespostaForm(forms.ModelForm):
 
     def submit(self):
         self.instance.data_resposta = datetime.datetime.now()
-        self.instance.save()
+        return super().submit()
 
 class AdicionarABaseConhecimentoForm(forms.ModelForm):
     class Meta:

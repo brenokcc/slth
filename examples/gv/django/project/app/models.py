@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import datetime
 from openai import OpenAI
@@ -6,6 +7,7 @@ from slth.db import models, meta, role
 from slth.components import Badge, Steps, FileLink
 from slth.models import PushSubscription
 
+OPENAI_KEY = os.getenv('OPENAI_KEY') if 'integration_test' not in sys.argv else None
 
 @role('administrador', 'cpf')
 class Administrador(models.Model):
@@ -95,7 +97,7 @@ class Topico(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if os.getenv('OPENAI_KEY') and self.codigo_openai is None:
+        if OPENAI_KEY and self.codigo_openai is None:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             assistant = client.beta.assistants.create(
                 name='AnalisaRN {} - {}'.format(self.assunto, self.descricao),
@@ -106,7 +108,7 @@ class Topico(models.Model):
             Topico.objects.filter(pk=self.pk).update(codigo_openai=assistant.id)
 
     def perguntar_inteligencia_artificial(self, pergunta):
-        if os.getenv('OPENAI_KEY'):
+        if OPENAI_KEY:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             attachments = []
             for arquivo in self.arquivo_set.filter(codigo_openai__isnull=False):
@@ -153,7 +155,7 @@ class Arquivo(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if os.getenv('OPENAI_KEY') and self.codigo_openai is None:
+        if OPENAI_KEY and self.codigo_openai is None:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             with open(self.arquivo.path, 'rb') as file:
                 vector_store = client.beta.vector_stores.create(name="{} - {}".format(self.topico, self.nome))
@@ -168,7 +170,7 @@ class Arquivo(models.Model):
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
-        if os.getenv('OPENAI_KEY') and self.codigo_openai:
+        if OPENAI_KEY and self.codigo_openai:
             client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
             client.beta.assistants.files.delete(
                 file_id=self.codigo_openai, assistant_id=self.topico.codigo_openai
