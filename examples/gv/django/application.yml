@@ -4,7 +4,7 @@ application:
   subtitle: Consultoria Jurídica
   icon: /static/images/analisa.png
   logo: /static/images/analisa.png
-  version: 1.0.0
+  version: 1.0.1
   groups:
     administrador: Administrador
     especialista: Especialista

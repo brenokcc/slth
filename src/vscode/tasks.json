@@ -1,0 +1,32 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Release Sloth (PyPI)",
+            "type": "shell",
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/src/django/"
+            },
+            "args": ["release.sh"]
+        },
+        {
+            "label": "Release Sloth (NPM)",
+            "type": "shell",
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/src/reactjs/"
+            },
+            "args": ["release.sh"]
+        },
+        {
+            "label": "Build Sloth (ReactJS -> Django)",
+            "type": "shell",
+            "command": "npm",
+            "options": {
+                "cwd": "${workspaceFolder}/src/reactjs/"
+            },
+            "args": ["run", "django"]
+        }
+    ]
+}
