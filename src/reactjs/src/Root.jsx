@@ -113,8 +113,8 @@ window.reload = function (url) {
 };
 
 window.load = function (url) {
-  if (url.indexOf(window.origin) >= 0) {
-    if (url != document.location.href) {
+  if (url.indexOf(window.origin) >= 0 || url.startsWith("/")) {
+    if (url != document.location.href && url != document.location.pathname) {
       window.history.pushState({ url: url }, "", url);
     }
     request("GET", apiurl(url), function (data) {
