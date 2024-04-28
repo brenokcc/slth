@@ -10,12 +10,15 @@ from django.views.decorators.csrf import csrf_exempt
 from .exceptions import JsonResponseException
 from .serializer import serialize
 from .utils import build_url
-
+from slth import APPLICATON
 from django.shortcuts import render
 
 def index(request, path=None):
     vite = not socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(('127.0.0.1',5173))
-    return render(request, 'index.html', dict(vite=vite))
+    return render(request, 'index.html', dict(vite=vite, application=APPLICATON))
+
+def service_worker(request):
+    return render(request, 'service-worker.js', content_type='text/javascript')
 
 @csrf_exempt
 def dispatcher(request, **kwargs):

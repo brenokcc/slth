@@ -25,7 +25,7 @@ import {
   Counter,
 } from "./Library";
 
-var ROOT;
+var root;
 var COMPONENT_REGISTRY = {};
 const APPLICATION_URL = "/api/application/";
 const APPLICATION_DATA = localStorage.getItem("application");
@@ -37,8 +37,8 @@ function ComponentFactory(props) {
 ComponentFactory.register = function (type, func) {
   COMPONENT_REGISTRY[type] = func;
 };
-ComponentFactory.render = function (root) {
-  ROOT = root;
+ComponentFactory.render = function (element) {
+  root = element;
   if (document.location.pathname == "/") {
     localStorage.getItem("token")
       ? window.reload("/app/dashboard/")
@@ -92,21 +92,19 @@ window.reload = function (url) {
   }
   if (APPLICATION_DATA) {
     window.application = JSON.parse(APPLICATION_DATA);
-    window.configure();
     request("GET", apiurl(url), function (content) {
       window.application.content = content;
-      ROOT.render(
+      root.render(
         <ComponentFactory key={Math.random()} data={window.application} />
       );
     });
   } else {
     request("GET", APPLICATION_URL, function callback(data) {
       window.application = data;
-      window.configure();
       localStorage.setItem("application", JSON.stringify(window.application));
       request("GET", apiurl(url), function (content) {
         window.application.content = content;
-        ROOT.render(
+        root.render(
           <ComponentFactory key={Math.random()} data={window.application} />
         );
       });
@@ -124,47 +122,6 @@ window.load = function (url) {
     });
   } else {
     document.location.href = url;
-  }
-};
-
-window.configure = function () {
-  const ICON = window.application.icon || "/static/images/logo.png";
-  [
-    { rel: "manifest", href: apiurl("/api/manifest/") },
-    {
-      rel: "icon",
-      type: "image/png",
-      href: apiurl(ICON),
-    },
-    {
-      rel: "apple-touch-icon",
-      sizes: "128x128",
-      href: apiurl(ICON),
-    },
-    {
-      rel: "icon",
-      sizes: "192x192",
-      href: apiurl(ICON),
-    },
-  ].forEach(function (link) {
-    const element = document.createElement("link");
-    Object.keys(link).forEach((k) => element.setAttribute(k, link[k]));
-    document.querySelector("head").appendChild(element);
-  });
-
-  if ("serviceWorker" in navigator && "PushManager" in window) {
-    navigator.serviceWorker
-      .register("/static/js/service-worker.js", {
-        type: "module",
-      })
-      .then(function (swRegistration) {
-        console.log("Service worker registered!");
-      })
-      .catch(function (error) {
-        console.error("Service worker error:", error);
-      });
-  } else {
-    console.log("Push messaging is not supported!");
   }
 };
 

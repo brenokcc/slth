@@ -1,13 +1,14 @@
 import os
 import binascii
-from .db import models
+from .db import models, meta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-
+from django.contrib.auth.models import User
 from django.apps import apps
 from datetime import datetime
 from django.utils.html import strip_tags
 from django.core.mail import EmailMultiAlternatives
+from slth import APPLICATON
 
 
 class RoleQuerySet(models.QuerySet):
@@ -53,11 +54,12 @@ class Role(models.Model):
         return self.get_description()
 
     def get_verbose_name(self):
-        return self.name
+        return APPLICATON['groups'].get(self.name, self.name)
 
     def get_scope_value(self):
         return apps.get_model(self.model).objects.get(pk=self.value) if self.model else None
 
+    @meta('Descrição')
     def get_description(self):
         scope_value = self.get_scope_value()
         return '{} - {}'.format(self.get_verbose_name(), scope_value) if scope_value else self.get_verbose_name()
@@ -155,3 +157,33 @@ class Token(models.Model):
 
     def __str__(self):
         return self.key
+    
+class User(User):
+    class Meta:
+        icon = 'users'
+        proxy = True
+        verbose_name = 'Usuário'
+        verbose_name_plural = 'Usuários'
+
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
+            .fieldset('Dados de Acesso', (('is_superuser', 'is_active'),))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
+            .fieldset('Dados de Acesso', (('is_superuser', 'is_active'),))
+            .queryset('Notificação', 'get_push_subscriptions')
+            .queryset('Papéis', 'get_roles')
+        )
+    
+    def get_push_subscriptions(self):
+        return self.pushsubscription_set.fields('device')
+    
+    def get_roles(self):
+        return Role.objects.filter(username=self.username).fields('get_description')
+

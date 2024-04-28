@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Projeto</title>
+  <title>{{ application.version }} {{ application.title }}</title>
   <link rel="stylesheet" href="/static/css/slth.css">
   <link rel="stylesheet" href="/static/css/fontawesome.min.css">
   <link rel="stylesheet" href="/static/css/solid.min.css">
@@ -13,6 +13,27 @@
   <!-- <script type="module" src="/static/js/qrcode.min.js"></script> -->
   <script type="module" src="/static/js/peerjs.min.js"></script>
   <script type="module" src="/static/js/echarts.min.js"></script>
+
+  <link rel="manifest" href="/api/manifest/">
+  <link rel="icon" type="image/png" href="{{ application.icon }}">
+  <link rel="apple-touch-icon" sizes="128x128" href="{{ application.icon }}">
+  <link rel="icon" sizes="192x192" href="{{ application.icon }}">
+
+  <script>
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .then(function (swRegistration) {
+          console.log("Service worker registered!");
+        })
+        .catch(function (error) {
+          console.error("Service worker error:", error);
+        });
+    } else {
+      console.log("Push messaging is not supported!");
+    }
+  </script>
+
   {% if vite %}
   <script type="module" src="http://localhost:5173/@vite/client"></script>
   <script type="module">

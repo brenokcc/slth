@@ -22,6 +22,7 @@ application:
     search:
     usermenu:
       - icons
+      - users
       - logout
     adder:
     tools:

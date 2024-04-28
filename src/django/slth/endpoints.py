@@ -16,10 +16,9 @@ from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
 from .utils import build_url, append_url
-from .models import PushSubscription, Profile
+from .models import PushSubscription, Profile, User
 from slth.queryset import QuerySet
 from slth import APPLICATON, ENDPOINTS
-from django.contrib.auth.models import User
 
 
 import slth
@@ -435,7 +434,11 @@ class Users(ListEndpoint[User]):
         verbose_name = 'Usuários'
 
     def get(self):
-        return super().get().fields('username', 'email', 'is_superuser').actions('sendpushnotification')
+        return (
+            super().get()
+            .fields('username', 'email', 'is_superuser')
+            .actions('add', 'view', 'edit', 'delete', 'sendpushnotification')
+        )
 
 class Dashboard(Endpoint):
     class Meta:
@@ -474,7 +477,6 @@ class Dashboard(Endpoint):
     
 class Application(PublicEndpoint):
     def get(self):
-        print(APPLICATON)
         navbar = None
         menu = None
         icon = build_url(self.request, APPLICATON['logo'])

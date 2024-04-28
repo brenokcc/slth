@@ -17,43 +17,46 @@ function PushWebNotification(props) {
   }
   function onClick() {
     if ("serviceWorker" in navigator && "PushManager" in window) {
-      //console.log('Service Worker and Push is supported');
       navigator.serviceWorker
         .getRegistration()
         .then(function (swRegistration) {
-          const applicationServerKey = urlB64ToUint8Array(
-            "BLoLJSopQbe04v_zpegJmayhH2Px0EGzrFIlM0OedSOTYsMpO5YGmHOxbpPXdM09ttIuDaDTI86uC85JXZPpEtA"
-          );
-          swRegistration.pushManager
-            .subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: applicationServerKey,
-            })
-            .then(function (subscription) {
-              console.log(subscription);
-              subscriptionJson = JSON.stringify(subscription);
-              console.log(subscriptionJson);
-              if (subscription) {
-                alert("Notificação ativada com sucesso.");
-                var data = new FormData();
-                data.append("subscription", subscriptionJson);
-                request(
-                  "POST",
-                  "/api/pushsubscribe/",
-                  function (data) {
-                    console.log(data);
-                  },
-                  data
-                );
-              } else {
-                alert("Problema ao ativar notificações.");
-                return;
-              }
-            })
-            .catch(function (err) {
-              alert("Problema ao tentar ativar notificações.");
-              console.log("Failed to subscribe the user: ", err);
-            });
+          if (swRegistration) {
+            const applicationServerKey = urlB64ToUint8Array(
+              "BLoLJSopQbe04v_zpegJmayhH2Px0EGzrFIlM0OedSOTYsMpO5YGmHOxbpPXdM09ttIuDaDTI86uC85JXZPpEtA"
+            );
+            swRegistration.pushManager
+              .subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: applicationServerKey,
+              })
+              .then(function (subscription) {
+                console.log(subscription);
+                subscriptionJson = JSON.stringify(subscription);
+                console.log(subscriptionJson);
+                if (subscription) {
+                  alert("Notificação ativada com sucesso.");
+                  var data = new FormData();
+                  data.append("subscription", subscriptionJson);
+                  request(
+                    "POST",
+                    "/api/pushsubscribe/",
+                    function (data) {
+                      console.log(data);
+                    },
+                    data
+                  );
+                } else {
+                  alert("Problema ao ativar notificações.");
+                  return;
+                }
+              })
+              .catch(function (err) {
+                alert("Problema ao tentar ativar notificações.");
+                console.log("Failed to subscribe the user: ", err);
+              });
+          } else {
+            console.log("No registered service worker.");
+          }
         })
         .catch(function (error) {
           alert("Erro");
