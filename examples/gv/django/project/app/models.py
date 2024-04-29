@@ -370,10 +370,10 @@ class ConsultaQuerySet(models.QuerySet):
 
     def all(self):
         return self.fields(
-            'consultante', 'get_prioridade', 'topico', 'pergunta', 'get_situacao'
+            ('consultante', 'get_prioridade', 'topico', 'get_situacao'), 'pergunta', 'data_pergunta'
         ).filters('topico', 'data_pergunta').subsets(
             'aguardando_especialista', 'aguardando_resposta', 'aguardando_envio', 'respondidas'
-        )
+        ).rows()
 
     @meta('Aguardando Especialista')
     def aguardando_especialista(self):
@@ -475,7 +475,7 @@ class Consulta(models.Model):
     
     @meta('Interações')
     def get_interacoes(self):
-        return self.interacao_set.fields('mensagem', 'data_hora', 'arquivo').actions('add').related_values(consulta=self)
+        return self.interacao_set.fields('data_hora', 'arquivo').actions('add').related_values(consulta=self).timeline()
 
     @meta(None)
     def get_passos(self):
@@ -524,6 +524,9 @@ class Consulta(models.Model):
         if consultante:
             queryset = queryset.filter(assunto__in=consultante.cliente.assuntos.values_list('pk', flat=True))
         return queryset
+    
+    def __str__(self):
+        return self.pergunta
 
 class Interacao(models.Model):
     consulta = models.ForeignKey(Consulta, verbose_name='Consulta')
@@ -537,7 +540,9 @@ class Interacao(models.Model):
 
     def get_arquivo(self):
         return FileLink(self.arquivo, modal=True, icon='file')
-
+    
+    def __str__(self):
+        return self.mensagem
 
 class Mensalidade(models.Model):
     cliente = models.ForeignKey(Cliente, verbose_name='Cliente', related_name='mensalidades')

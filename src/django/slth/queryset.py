@@ -46,6 +46,8 @@ class QuerySet(models.QuerySet):
 
     def fields(self, *names):
         self.metadata['fields'] = ('id',) + names if 'id' not in names else names
+        if [name for name in names if not isinstance(name, str)]:
+            return self.rows()
         return self
     
     def serializer(self, serializer):
@@ -69,12 +71,27 @@ class QuerySet(models.QuerySet):
             if k in self.metadata['actions']:
                 self.metadata['actions'].remove(k)
             self.metadata['actions'].append(v)
-            print(self.metadata['actions'])
         return self
 
     def subsets(self, *names):
         self.metadata['subsets'] = names
         return self
+    
+    def renderer(self, name):
+        self.metadata['renderer'] = name
+        return self
+    
+    def timeline(self):
+        return self.renderer('timeline')
+    
+    def accordion(self):
+        return self.renderer('accordion')
+    
+    def cards(self):
+        return self.renderer('cards')
+    
+    def rows(self):
+        return self.renderer('rows')
     
     def bi(self, *names):
         self.metadata['bi'] = []
@@ -217,6 +234,7 @@ class QuerySet(models.QuerySet):
         title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
         relations = self.metadata.get('relations')
+        renderer = self.metadata.get('renderer')
         bi = self.metadata.get('bi', [])
         subset = None
         actions = []
@@ -284,6 +302,8 @@ class QuerySet(models.QuerySet):
             aggregations.append(aggregation)
 
         data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=total, icon=None, actions=actions, filters=filters, search=search)
+        if renderer:
+            data.update(renderer=renderer)
         if bi:
             bi_data = []
             for names in bi:
@@ -311,6 +331,7 @@ class QuerySet(models.QuerySet):
             previous = None if page ==1 else page -1
             next = None if page == pages else page + 1
             count = qs[start:end].count()
+            title_func_name = '__str__'
             serializer:Serializer = qs.metadata.get('serializer')
             if serializer is None:
                 fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
@@ -326,7 +347,7 @@ class QuerySet(models.QuerySet):
             serializer.request = self.request
             
             for obj in qs[start:end]:
-                serializer.title = str(obj)
+                serializer.title = getattr(obj, title_func_name)()
                 serializer.obj = obj
                 serialized = serializer.serialize(forward_exception=True)
                 for cls in instance_actions:

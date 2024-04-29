@@ -6,6 +6,7 @@ import { Action } from "./Action.jsx";
 import { Link } from "./Link.jsx";
 import { GridLayout } from "./Layout";
 import toLabelCase from "./Utils";
+import { Info } from "./Message.jsx";
 
 function Field(props) {
   function render() {
@@ -27,8 +28,7 @@ function StaticField(props) {
     };
     return (
       <div style={style}>
-        <strong>{props.data.label}</strong>
-        <br></br>
+        <strong>{props.data.label}</strong>:<br></br>
         {format(props.data.value)}
       </div>
     );
@@ -55,6 +55,144 @@ function WrappedField(props) {
     );
   }
 
+  return render();
+}
+
+function ActionSet(props) {
+  function render() {
+    return (
+      <div
+        style={{
+          verticalAlign: "center",
+          textAlign: "right",
+          lineHeight: "3rem",
+        }}
+      >
+        {props.data.map(function (action) {
+          return <Action key={Math.random()} data={action} default compact />;
+        })}
+      </div>
+    );
+  }
+  return render();
+}
+
+function Fields(props) {
+  function render() {
+    return props.data.map(function (item) {
+      if (Array.isArray(item)) {
+        return (
+          <GridLayout width={300} key={Math.random()} alignItems="start">
+            {item.map((field) => (
+              <Field
+                key={Math.random()}
+                data={field}
+                width={100 / item.length}
+              />
+            ))}
+          </GridLayout>
+        );
+      } else {
+        if (item.label != "ID" && item.label != props.exclude) {
+          return (
+            <div key={Math.random()}>
+              <Field data={item} width={100} />
+            </div>
+          );
+        }
+      }
+    });
+  }
+  return render();
+}
+
+function Rows(props) {
+  function renderTitle() {
+    const style = { marginTop: 5, marginBottom: 5 };
+    return <h3 style={style}>{props.data.title}</h3>;
+  }
+  function renderFields() {
+    return <Fields data={props.data.data} />;
+  }
+  function renderActions() {
+    return <ActionSet data={props.data.actions} />;
+  }
+  function render() {
+    const style = {
+      border: "solid 1px #DDD",
+      padding: 10,
+      borderStyle: "dashed",
+    };
+    return (
+      <div style={style}>
+        {renderTitle()}
+        {renderFields()}
+        {renderActions()}
+      </div>
+    );
+  }
+  return render();
+}
+
+function Timeline(props) {
+  function renderTitle() {
+    const style = { marginTop: 5, marginBottom: 5 };
+    return <h3 style={style}>{props.data.title}</h3>;
+  }
+  function renderFields() {
+    return <Fields data={props.data.data} exclude={props.data.data[1].label} />;
+  }
+  function renderDate() {
+    const style = {
+      position: "absolute",
+      width: 140,
+      marginLeft: -128,
+      display: "flex",
+      justifyContent: "space-between",
+      marginTop: 10,
+      alignItems: "flex-end",
+    };
+    const info = {
+      maxWidth: 100,
+    };
+    const circle = {
+      width: 20,
+      height: 20,
+      border: "3px solid #1151b3",
+      backgroundColor: "white",
+      borderRadius: "50%",
+    };
+    return (
+      <div style={style}>
+        <div style={info}>{props.data.data[1].value}</div>
+        <div style={circle}></div>
+      </div>
+    );
+  }
+  function renderActions() {
+    return <ActionSet data={props.data.actions} />;
+  }
+  function render() {
+    const style = {
+      borderBottom: "solid 1px #DDD",
+      padding: 0,
+      borderBottomStyle: "dashed",
+      marginLeft: 140,
+      borderLeft: "3px solid #1151b3",
+      marginBottom: -5,
+    };
+    const style2 = { marginLeft: 20 };
+    return (
+      <div style={style}>
+        {renderDate()}
+        <div style={style2}>
+          {renderTitle()}
+          {renderFields()}
+          {renderActions()}
+        </div>
+      </div>
+    );
+  }
   return render();
 }
 
@@ -357,5 +495,5 @@ function Group(props) {
   return render();
 }
 
-export { Fieldset, Field, Object, Section, Group };
+export { Fieldset, Field, Object, Section, Group, Rows, Timeline };
 export default Object;

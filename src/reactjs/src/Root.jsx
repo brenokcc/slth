@@ -1,5 +1,5 @@
 import { React } from "react";
-import ReactDOM from "react-dom/client";
+import { Rows, Timeline } from "./Viewer";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
 import { Object as Object2, Fieldset, Field, Section, Group } from "./Viewer";
@@ -81,6 +81,8 @@ ComponentFactory.register("response", (data) => <Response data={data} />);
 ComponentFactory.register("application", (data) => <Application data={data} />);
 ComponentFactory.register("iconset", (data) => <IconSet data={data} />);
 ComponentFactory.register("grid", (data) => <Grid data={data} />);
+ComponentFactory.register("rows", (data) => <Rows data={data} />);
+ComponentFactory.register("timeline", (data) => <Timeline data={data} />);
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);

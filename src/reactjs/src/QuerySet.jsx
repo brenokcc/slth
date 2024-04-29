@@ -383,29 +383,20 @@ function QuerySet(props) {
     }
   }
 
-  function renderRows() {
-    const div = {
-      width: "100%",
-      overflowX: "auto",
-    };
-    const table = {
-      width: "100%",
-      lineHeight: "2rem",
-      borderSpacing: 0,
-    };
+  function renderData() {
     if (data.data.length > 0) {
-      return (
-        <div style={div}>
-          <table style={table}>
-            <thead>{renderHeader(data.data[0].data)}</thead>
-            <tbody>
-              {data.data.map(function (item) {
-                return renderRow(item);
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
+      if (data.renderer) {
+        return (
+          <>
+            {data.data.map(function (item) {
+              item.type = data.renderer;
+              return <ComponentFactory data={item} key={Math.random()} />;
+            })}
+          </>
+        );
+      } else {
+        return renderTable();
+      }
     } else {
       return (
         <Info
@@ -415,6 +406,30 @@ function QuerySet(props) {
         ></Info>
       );
     }
+  }
+
+  function renderTable() {
+    const div = {
+      width: "100%",
+      overflowX: "auto",
+    };
+    const table = {
+      width: "100%",
+      lineHeight: "2rem",
+      borderSpacing: 0,
+    };
+    return (
+      <div style={div}>
+        <table style={table}>
+          <thead>{renderHeader(data.data[0].data)}</thead>
+          <tbody>
+            {data.data.map(function (item) {
+              return renderRow(item);
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
   }
 
   function setPage(page) {
@@ -621,7 +636,7 @@ function QuerySet(props) {
           {renderTabs()}
           {renderSearchFilterPanel()}
           {renderCalendar()}
-          {renderRows()}
+          {renderData()}
           {renderPaginator()}
         </>
       );
