@@ -246,7 +246,6 @@ class FormMixin:
         return data
     
     def post(self):
-
         field_name = self.request.GET.get('on_change')
         if field_name:
             return self.on_change(field_name)

@@ -67,10 +67,10 @@ function Steps(props) {
 
   function circleStyle(step) {
     return {
-      border: "2px solid " + (step.done ? "#1351b4" : "#EEE"),
+      border: "3px solid " + (step.done ? "#1351b4" : "#1151b3"),
       borderRadius: "50%",
       background: step.done ? "#1351b4" : "white",
-      color: step.done ? "white" : "black",
+      color: step.done ? "white" : "#1151b3",
       textAlign: "center",
       width: 50,
       height: 50,
@@ -102,7 +102,7 @@ function Steps(props) {
     };
     const divider = {
       position: "relative",
-      borderBottom: "2px solid #EEE",
+      borderBottom: "2px solid #1151b3",
       top: -28,
       width: 45,
       left: 77,

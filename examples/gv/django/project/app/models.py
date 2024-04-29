@@ -182,6 +182,9 @@ class Arquivo(models.Model):
 
     def formfactory(self):
         return super().formfactory().fields('topico', 'nome', 'arquivo')
+    
+    def __str__(self):
+        return self.nome
 
 class PerguntaFrequenteQuerySet(models.QuerySet):
 
@@ -467,7 +470,7 @@ class Consulta(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexos.fields('nome', 'get_arquivo').actions('add').related_values(consulta=self)
+        return self.anexos.fields('nome', 'get_arquivo')
 
     @meta('Prioridade')
     def get_prioridade(self):

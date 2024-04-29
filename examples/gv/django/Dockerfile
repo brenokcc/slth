@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 ADD manage.py .
 ADD project project
 ADD application.yml .
-RUN pip install -U pyslth
+RUN pip install -U pyslth==0.2.1
 ADD entrypoint.sh .
 

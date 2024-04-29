@@ -371,8 +371,9 @@ function InputField(props) {
       const style = {
         alignContent: "center",
         height: 75,
-        padding: 30,
+        padding: 5,
         maxWidth: "100%",
+        margin: "auto",
       };
       var accept = null;
       if (props.data.extensions && props.data.extensions.length > 0) {
@@ -384,11 +385,12 @@ function InputField(props) {
         <>
           <div
             style={{
-              display: "flex",
+              display: window.innerWidth < 800 ? "block" : "flex",
               justifyContent: "space-between",
               backgroundColor: "rgba(15, 145, 210, 0.05)",
               border: "1px dashed rgba(15, 145, 210, 0.4)",
               borderRadius: 10,
+              textAlign: "center",
             }}
           >
             <div style={style}>
@@ -418,7 +420,7 @@ function InputField(props) {
                 .
               </div>
             </div>
-            <div style={style}>
+            <div style={style} align="center">
               <Button
                 label="Selecionar Arquivo"
                 onClick={() => document.getElementById(id).click()}

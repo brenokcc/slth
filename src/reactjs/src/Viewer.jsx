@@ -136,8 +136,16 @@ function Rows(props) {
 
 function Timeline(props) {
   function renderTitle() {
-    const style = { marginTop: 5, marginBottom: 5 };
-    return <h3 style={style}>{props.data.title}</h3>;
+    const style = {
+      paddingTop: 15,
+      marginBottom: 10,
+      color: "#1151b3",
+    };
+    return (
+      <div style={style}>
+        <strong>{props.data.title}</strong>
+      </div>
+    );
   }
   function renderFields() {
     return <Fields data={props.data.data} exclude={props.data.data[1].label} />;
@@ -179,7 +187,7 @@ function Timeline(props) {
       borderBottomStyle: "dashed",
       marginLeft: 140,
       borderLeft: "3px solid #1151b3",
-      marginBottom: -5,
+      marginBottom: -10,
     };
     const style2 = { marginLeft: 20 };
     return (

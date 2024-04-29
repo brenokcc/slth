@@ -19,6 +19,7 @@ application:
       - consultasematendimento
       - consultasatendidas
     boxes:
+      - consultas
     search:
     usermenu:
       - icons

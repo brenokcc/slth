@@ -26,7 +26,7 @@ function Action(props) {
 
   function renderContent() {
     if (props.data.icon) {
-      if (props.compact || !props.data.name) {
+      if (props.compact || !props.data.name || window.innerWidth < 800) {
         return <Icon icon={props.data.icon} />;
       } else {
         return (

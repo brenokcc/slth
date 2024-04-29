@@ -16,10 +16,19 @@ function QuerySet(props) {
   const [data, setData] = useState(props.data);
 
   function renderTitleText() {
+    const style = { margin: 0 };
     if (data.attrname) {
-      return <h2 data-label={toLabelCase(data.title)}>{data.title}</h2>;
+      return (
+        <h2 style={style} data-label={toLabelCase(data.title)}>
+          {data.title}
+        </h2>
+      );
     } else {
-      return <h1 data-label={toLabelCase(data.title)}>{data.title}</h1>;
+      return (
+        <h1 style={style} data-label={toLabelCase(data.title)}>
+          {data.title}
+        </h1>
+      );
     }
   }
 
@@ -27,7 +36,7 @@ function QuerySet(props) {
     const syle = {
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "baseline",
+      alignItems: "center",
     };
     return (
       <div style={syle}>

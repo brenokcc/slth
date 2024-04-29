@@ -4,11 +4,45 @@ import { appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
 import { Dropdown } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
-import { SystemLayout } from "./Layout.jsx";
 import { Menu } from "./Menu.jsx";
 import { Icon } from "./Icon.jsx";
 import { PushWebNotification } from "./Notification.jsx";
 import toLabelCase from "./Utils.jsx";
+
+function Floating(props) {
+  function render() {
+    if (window.innerWidth > 800) return;
+    const style = {
+      position: "fixed",
+      display: "flex",
+      width: 50,
+      height: 50,
+      backgroundColor: "#1151b3",
+      color: "white",
+      right: 10,
+      borderRadius: "50%",
+      cursor: "pointer",
+    };
+    const icon = { paddingLeft: 14, paddingTop: 12, fontSize: "1.8rem" };
+    return (
+      <>
+        <div
+          style={{ ...style, ...{ bottom: 80 } }}
+          onClick={() => history.back()}
+        >
+          <Icon icon="arrow-left" style={icon} />
+        </div>
+        <div
+          style={{ ...style, ...{ bottom: 20 } }}
+          onClick={() => window.scrollTo(0, 0)}
+        >
+          <Icon icon="arrow-up" style={icon} />
+        </div>
+      </>
+    );
+  }
+  return render();
+}
 
 function Content(props) {
   const [data, setData] = useState(props.data);
@@ -47,6 +81,11 @@ function Application(props) {
     menu.style.display = menu.style.display == "none" ? "block" : "none";
   }
 
+  function onLogoClick(e) {
+    e.preventDefault();
+    window.load(e.target.href);
+  }
+
   function renderHeader() {
     const style = {
       display: "flex",
@@ -72,7 +111,11 @@ function Application(props) {
             style={{ fontSize: "1.5rem", marginRight: 10, cursor: "pointer" }}
             onClick={toggleMenu}
           />
-          <a href="/" style={{ fontSize: "1.5rem", textDecoration: "none" }}>
+          <a
+            href="/app/dashboard/"
+            onClick={onLogoClick}
+            style={{ fontSize: "1.5rem", textDecoration: "none" }}
+          >
             {props.data.navbar.logo && (
               <img src={props.data.navbar.logo} height={20} />
             )}
@@ -161,6 +204,7 @@ function Application(props) {
       <main style={{ flexGrow: 6, minWidth: "400px" }}>
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>
+        <Floating />
       </main>
     );
   }
@@ -191,7 +235,6 @@ function Application(props) {
       </div>
     );
   }
-  return render();
   return render();
 }
 
