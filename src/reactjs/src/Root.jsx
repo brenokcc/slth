@@ -1,4 +1,4 @@
-import { React } from "react";
+import React from "react";
 import { Rows, Timeline } from "./Viewer";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
@@ -32,10 +32,14 @@ const APPLICATION_DATA = localStorage.getItem("application");
 
 function ComponentFactory(props) {
   const func = COMPONENT_REGISTRY[props.data.type];
-  return func ? func(props.data) : <div>{JSON.stringify(props.data)}</div>;
+  return func ? (
+    React.createElement(func, { data: props.data })
+  ) : (
+    <div>{JSON.stringify(props.data)}</div>
+  );
 }
-ComponentFactory.register = function (type, func) {
-  COMPONENT_REGISTRY[type] = func;
+ComponentFactory.register = function (func) {
+  COMPONENT_REGISTRY[func.name.toLowerCase()] = func;
 };
 ComponentFactory.render = function (element) {
   root = element;
@@ -55,34 +59,34 @@ ComponentFactory.render = function (element) {
   }
 };
 
-ComponentFactory.register("counter", (data) => <Counter data={data} />);
-ComponentFactory.register("form", (data) => <Form data={data} />);
-ComponentFactory.register("queryset", (data) => <QuerySet data={data} />);
-ComponentFactory.register("fieldset", (data) => <Fieldset data={data} />);
-ComponentFactory.register("field", (data) => <Field data={data} />);
-ComponentFactory.register("object", (data) => <Object2 data={data} />);
-ComponentFactory.register("section", (data) => <Section data={data} />);
-ComponentFactory.register("group", (data) => <Group data={data} />);
-ComponentFactory.register("statistics", (data) => <Statistics data={data} />);
-ComponentFactory.register("image", (data) => <Image data={data} />);
-ComponentFactory.register("banner", (data) => <Banner data={data} />);
-ComponentFactory.register("map", (data) => <Map data={data} />);
-ComponentFactory.register("steps", (data) => <Steps data={data} />);
-ComponentFactory.register("qrcode", (data) => <QrCode data={data} />);
-ComponentFactory.register("badge", (data) => <Badge data={data} />);
-ComponentFactory.register("status", (data) => <Status data={data} />);
-ComponentFactory.register("progress", (data) => <Progress data={data} />);
-ComponentFactory.register("color", (data) => <Color data={data} />);
-ComponentFactory.register("boxes", (data) => <Boxes data={data} />);
-ComponentFactory.register("shell", (data) => <Shell data={data} />);
-ComponentFactory.register("file_link", (data) => <FileLink data={data} />);
-ComponentFactory.register("file_viewer", (data) => <FilePreview data={data} />);
-ComponentFactory.register("response", (data) => <Response data={data} />);
-ComponentFactory.register("application", (data) => <Application data={data} />);
-ComponentFactory.register("iconset", (data) => <IconSet data={data} />);
-ComponentFactory.register("grid", (data) => <Grid data={data} />);
-ComponentFactory.register("rows", (data) => <Rows data={data} />);
-ComponentFactory.register("timeline", (data) => <Timeline data={data} />);
+ComponentFactory.register(Counter);
+ComponentFactory.register(Form);
+ComponentFactory.register(QuerySet);
+ComponentFactory.register(Fieldset);
+ComponentFactory.register(Field);
+ComponentFactory.register(Object2);
+ComponentFactory.register(Section);
+ComponentFactory.register(Group);
+ComponentFactory.register(Statistics);
+ComponentFactory.register(Image);
+ComponentFactory.register(Banner);
+ComponentFactory.register(Map);
+ComponentFactory.register(Steps);
+ComponentFactory.register(QrCode);
+ComponentFactory.register(Badge);
+ComponentFactory.register(Status);
+ComponentFactory.register(Progress);
+ComponentFactory.register(Color);
+ComponentFactory.register(Boxes);
+ComponentFactory.register(Shell);
+ComponentFactory.register(FileLink);
+ComponentFactory.register(FilePreview);
+ComponentFactory.register(Response);
+ComponentFactory.register(Application);
+ComponentFactory.register(IconSet);
+ComponentFactory.register(Grid);
+ComponentFactory.register(Rows);
+ComponentFactory.register(Timeline);
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);

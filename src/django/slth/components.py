@@ -25,7 +25,7 @@ class Image(dict):
 
 class FileLink(dict):
     def __init__(self, url, modal=False, icon=None):
-        self['type'] = 'file_link'
+        self['type'] = 'filelink'
         self['url'] = url
         self['modal'] = modal
         self['icon'] = icon
@@ -33,7 +33,7 @@ class FileLink(dict):
 
 class FileViewer(dict):
     def __init__(self, url):
-        self['type'] = 'file_viewer'
+        self['type'] = 'fileviewer'
         self['url'] = url
 
 
