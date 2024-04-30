@@ -3,7 +3,10 @@
 src/django/slth/cmd/init/boilerplate/package-lock.json
 pyslth.egg-info
 media
-src/django/slth/static
+src/django/slth/static/js/react.min.js
+src/django/slth/static/js/lib.min.js
+src/django/slth/static/js/index.min.js
+src/django/slth/static/index.html
 .DS_Store
 db.sqlite3
 .vscode

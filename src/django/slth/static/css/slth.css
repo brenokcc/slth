@@ -1,0 +1,21 @@
+@font-face{font-family:rawline;font-style:normal;font-weight:400;src:local('Rawline'),url(./fonts/rawline-400.woff)}
+@font-face{font-family:rawline-italic;font-style:italic;font-weight:400;src:local('Rawline'),url(./fonts/rawline-500i.woff)}
+@font-face{font-family:rawline-bold;font-weight:bold;font-weight:400;src:local('Rawline'),url(./fonts/rawline-700.woff)}
+body{
+    margin: 0px;
+    background-color: "white";
+    font-family: rawline;
+    color: #383838;
+}
+h1, h2, h3, h4, h5, dt, strong, .bold{
+    font-family: rawline-bold;
+}
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.form-control:focus {
+    outline: none !important;
+    border: solid 2px #c2850c !important;
+}
