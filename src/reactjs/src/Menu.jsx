@@ -78,6 +78,7 @@ function Menu() {
       paddingTop: 10,
       paddingBottom: 10,
       lineHeight: "2rem",
+      color: "#1351b4",
     };
     const iconStyle = { padding: 5, fontSize: "1.2rem" };
     if (item.url) {

@@ -408,7 +408,7 @@ class Icons(PublicEndpoint):
 class Search(Endpoint):
     def get(self):
         key = '_options_'
-        options = self.cache.get(key)
+        options = self.cache.get(key, [])
         term = self.request.GET.get('term')
         if options is None and APPLICATON['dashboard']['search']:
             options = []

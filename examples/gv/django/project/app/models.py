@@ -45,6 +45,7 @@ class Prioridade(models.Model):
     def __str__(self):
         return self.descricao
 
+    @meta('Prazo para Resposta')
     def get_prazo_resposta(self):
         if self.prazo_resposta > 1:
             return '{} horas'.format(self.prazo_resposta)
@@ -189,7 +190,7 @@ class Arquivo(models.Model):
 class PerguntaFrequenteQuerySet(models.QuerySet):
 
     def all(self):
-        return self.search('pergunta').filters('topico__assunto', 'topico')
+        return self.search('pergunta').filters('topico__assunto', 'topico').rows()
 
 class PerguntaFrequente(models.Model):
     topico = models.ForeignKey(Topico, verbose_name='Tópico', related_name='perguntas_frequentes')

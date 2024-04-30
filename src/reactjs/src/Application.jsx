@@ -199,9 +199,23 @@ function Application(props) {
       )
     );
   }
+
+  function renderBreadcrumbs() {
+    const style = { margin: 15 };
+    const icon = { color: "#1351b4" };
+    return (
+      props.data.navbar && (
+        <div style={style}>
+          <Icon icon="home" style={icon} /> Área Administrativa
+        </div>
+      )
+    );
+  }
+
   function renderMain() {
     return (
       <main style={{ flexGrow: 6, minWidth: "400px" }}>
+        {renderBreadcrumbs()}
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>
         <Floating />

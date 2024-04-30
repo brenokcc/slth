@@ -212,6 +212,15 @@ function Fieldset(props) {
     return <Subtitle data={content} />;
   }
 
+  function renderContainer() {
+    const style = {
+      backgroundColor: "white",
+      padding: 15,
+      marginBottom: 15,
+    };
+    return <div style={style}>{renderContent()}</div>;
+  }
+
   function renderContent() {
     if (Array.isArray(content.data)) {
       if (content.data.length == 0) {
@@ -255,14 +264,14 @@ function Fieldset(props) {
       return (
         <div className={props.data.url && "reloadable"} id={id}>
           {renderTitle()}
-          {renderContent()}
+          {renderContainer()}
         </div>
       );
     } else {
       return (
         <div>
           {renderTitle()}
-          {renderContent()}
+          {renderContainer()}
         </div>
       );
     }

@@ -7,11 +7,11 @@ function Message(props) {
     const style = {
       position: "fixed",
       color: "white",
-      backgroundColor: props.isError ? "#e52207" : "black",
+      backgroundColor: props.isError ? "#e52207" : "#1151b3",
       width: 300,
       top: 10,
       left: (window.innerWidth - 320) / 2,
-      padding: 10,
+      padding: 15,
     };
     return (
       <div style={style}>

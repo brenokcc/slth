@@ -29,7 +29,11 @@ const INPUT_TYPES = [
   "hidden",
   "color",
 ];
-const INPUT_STYLE = { padding: 15, border: "solid 1px #CCC", borderRadius: 5 };
+const INPUT_STYLE = {
+  padding: 15,
+  border: "solid 1px #d9d9d9",
+  borderRadius: 5,
+};
 
 function isImage(url) {
   if (url) {
@@ -487,6 +491,7 @@ function Selector(props) {
   const [seaching, setSearching] = useState(false);
   const [options, setOptions] = useState(null);
   var choosing = false;
+  let timeout;
 
   useEffect(() => {
     select(initial);
@@ -549,7 +554,7 @@ function Selector(props) {
     const ul = {
       padding: 0,
       margin: 0,
-      border: "solid 1px #CCC",
+      border: "solid 1px #d9d9d9",
       marginTop: -1,
       borderRadius: 5,
       maxHeight: 150,
@@ -665,15 +670,18 @@ function Selector(props) {
   }
 
   function search(e) {
-    const sep = props.data.choices.indexOf("?") < 0 ? "?" : "&";
-    setSearching(true);
-    request(
-      "GET",
-      props.data.choices + sep + "term=" + e.target.value,
-      function callback(options) {
-        setOptions(options);
-      }
-    );
+    clearTimeout(timeout);
+    timeout = setTimeout(function () {
+      const sep = props.data.choices.indexOf("?") < 0 ? "?" : "&";
+      setSearching(true);
+      request(
+        "GET",
+        props.data.choices + sep + "term=" + e.target.value,
+        function callback(options) {
+          setOptions(options);
+        }
+      );
+    }, 1000);
   }
 
   function select(value) {
@@ -1233,7 +1241,7 @@ function Form(props) {
         }}
       >
         <div>{false && JSON.stringify(props.data)}</div>
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: 5 }}>
           {getTitle()}
           {renderInstruction()}
           {getDisplay()}

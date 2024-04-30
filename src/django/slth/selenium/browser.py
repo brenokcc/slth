@@ -144,6 +144,7 @@ class Browser(Remote if REMOTE else Firefox):
         if self.headless:
             raise e
         else:
+            breakpoint()
             raise e
 
     def print(self, message):
@@ -208,8 +209,8 @@ class Browser(Remote if REMOTE else Firefox):
                     select.select_by_visible_text(value)
                 elif widgets[0].tag_name.lower() == "input":
                     widgets[0].send_keys(value)
-                    for i in range(0, 6):
-                        # print('Trying ({}) click at "{}"...'.format(i, value))
+                    for i in range(0, 10):
+                        print('Trying ({}) click at "{}"...'.format(i, value))
                         self.wait(0.5)
                         try:
                             super().find_element(By.CSS_SELECTOR, f'.autocomplete-item[data-label*="{to_label_case(value)}"]').click()

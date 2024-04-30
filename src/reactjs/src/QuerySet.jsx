@@ -11,6 +11,26 @@ import { Icon, IconButton } from "./Icon";
 import toLabelCase from "./Utils";
 import ComponentFactory from "./Root";
 
+function Counter(props) {
+  function render() {
+    const style = {
+      backgroundColor: "#1351b4",
+      color: "white",
+      borderRadius: "50%",
+      minWidth: 13,
+      marginLeft: 2,
+      padding: 4,
+      fontSize: "70%",
+      display: "inline-block",
+      verticalAlign: "bottom",
+      marginBottom: 10,
+      lineHeight: 1,
+    };
+    return <div style={style}>{props.total}</div>;
+  }
+  return render();
+}
+
 function QuerySet(props) {
   if (props.data.id == null) props.data.id = Math.random();
   const [data, setData] = useState(props.data);
@@ -61,7 +81,6 @@ function QuerySet(props) {
       data.subsets && (
         <div
           style={{
-            display: "inline-block",
             textAlign: "center",
             width: "100%",
             margin: "auto",
@@ -81,7 +100,7 @@ function QuerySet(props) {
                   paddingLeft: 15,
                   paddingRight: 15,
                   fontWeight: active ? "bold" : "normal",
-                  borderBottom: active ? "solid 3px #2670e8" : "solid 3px #DDD",
+                  borderBottom: active ? "solid 3px #2670e8" : 0,
                   textDecoration: "none",
                   color: "#0c326f",
                 }}
@@ -91,9 +110,7 @@ function QuerySet(props) {
                 }}
                 dataLabel={toLabelCase(subset.label)}
               >
-                <div style={{ display: "inline-block" }}>
-                  {subset.label} ({subset.count})
-                </div>
+                {subset.label} <Counter total={subset.count + 1} />
               </Link>
             );
           })}
@@ -322,8 +339,9 @@ function QuerySet(props) {
     const style = {
       textAlign: "left",
       verticalAlign: "top",
-      //backgroundColor: "#f0f0f0",
-      //lineHeight: "3rem",
+      backgroundColor: "#f0f0f0",
+      lineHeight: "3rem",
+      color: "#1351b4",
       //borderBottom: "solid 1px #1351b4",
       padding: 5,
     };
@@ -334,7 +352,7 @@ function QuerySet(props) {
           {data.map(function (item) {
             return (
               item.label != "ID" && (
-                <th key={Math.random()} style={style} className="bold">
+                <th key={Math.random()} style={style}>
                   {item.label}
                 </th>
               )
@@ -348,7 +366,11 @@ function QuerySet(props) {
 
   function renderRow(row) {
     const td = { borderBottom: "solid 1px #DDD", padding: 5 };
-    const actions = { borderBottom: "solid 1px #DDD", lineHeight: "3rem" };
+    const actions = {
+      borderBottom: "solid 1px #DDD",
+      lineHeight: "3rem",
+      textAlign: "right",
+    };
     if (window.innerWidth < 800) {
       return (
         <tr key={Math.random()}>
@@ -356,7 +378,7 @@ function QuerySet(props) {
             {row.title}
           </td>
           <td style={actions}>
-            <div style={{ verticalAlign: "center", textAlign: "right" }}>
+            <div style={{ verticalAlign: "center" }}>
               {row.actions.map(function (action) {
                 return (
                   <Action key={Math.random()} data={action} default compact />
@@ -396,12 +418,12 @@ function QuerySet(props) {
     if (data.data.length > 0) {
       if (data.renderer) {
         return (
-          <>
+          <div style={{ marginBottom: 15 }}>
             {data.data.map(function (item) {
               item.type = data.renderer;
               return <ComponentFactory data={item} key={Math.random()} />;
             })}
-          </>
+          </div>
         );
       } else {
         return renderTable();
@@ -555,7 +577,12 @@ function QuerySet(props) {
   }
 
   function renderSearchFilterPanel() {
-    const style = {};
+    const style = {
+      backgroundColor: "#f8f8f8",
+      borderBottom: "solid 1px #DDD",
+      marginBottom: 10,
+      padding: 10,
+    };
     const searching = data.search.length > 0;
     const filtering = data.filters.length > 0;
     if (searching || filtering) {
@@ -567,10 +594,10 @@ function QuerySet(props) {
         label: "Palavras-chaves",
       };
       return (
-        <>
+        <div style={style}>
           <GridLayout width={250}>
             {searching && (
-              <div style={style}>
+              <div>
                 <Field data={field} />
               </div>
             )}
@@ -578,27 +605,27 @@ function QuerySet(props) {
               data.filters.map(function (field) {
                 return (
                   field.type != "hidden" && (
-                    <div key={Math.random()} style={style}>
+                    <div key={Math.random()}>
                       <Field data={field} />
                     </div>
                   )
                 );
               })}
-            <div style={style}>
-              <Button onClick={reload} label="Filtrar" default />
+            <div>
+              <Button onClick={reload} label="Filtrar" icon="filter" primary />
             </div>
           </GridLayout>
           {filtering &&
             data.filters.map(function (field) {
               return (
                 field.type == "hidden" && (
-                  <div key={Math.random()} style={style}>
+                  <div key={Math.random()}>
                     <Field data={field} />
                   </div>
                 )
               );
             })}
-        </>
+        </div>
       );
     }
   }

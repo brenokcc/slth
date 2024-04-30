@@ -56,12 +56,12 @@ function Steps(props) {
   function renderIcon(step) {
     if (props.data.icon) {
       return step.done ? (
-        <Icon style={{ marginTop: 12 }} icon={props.data.icon} />
+        <Icon style={{ marginTop: 6 }} icon={props.data.icon} />
       ) : (
         <span>&nbsp;</span>
       );
     } else {
-      return <div style={{ marginTop: 12 }}>{step.number}</div>;
+      return <div style={{ marginTop: 6 }}>{step.number}</div>;
     }
   }
 
@@ -190,7 +190,7 @@ function Boxes(props) {
       marginLeft: -20,
       marginRight: -20,
       textAlign: "center",
-      //backgroundColor: "#f8f8f8",
+      backgroundColor: "#f8f8f8",
     };
     const h2 = {
       color: "blue",
