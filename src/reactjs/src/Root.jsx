@@ -38,8 +38,8 @@ function ComponentFactory(props) {
     <div>{JSON.stringify(props.data)}</div>
   );
 }
-ComponentFactory.register = function (func) {
-  COMPONENT_REGISTRY[func.name.toLowerCase()] = func;
+ComponentFactory.register = function (func, name) {
+  COMPONENT_REGISTRY[name.toLowerCase()] = func;
 };
 ComponentFactory.render = function (element) {
   root = element;
@@ -59,34 +59,34 @@ ComponentFactory.render = function (element) {
   }
 };
 
-ComponentFactory.register(Counter);
-ComponentFactory.register(Form);
-ComponentFactory.register(QuerySet);
-ComponentFactory.register(Fieldset);
-ComponentFactory.register(Field);
-ComponentFactory.register(Object2);
-ComponentFactory.register(Section);
-ComponentFactory.register(Group);
-ComponentFactory.register(Statistics);
-ComponentFactory.register(Image);
-ComponentFactory.register(Banner);
-ComponentFactory.register(Map);
-ComponentFactory.register(Steps);
-ComponentFactory.register(QrCode);
-ComponentFactory.register(Badge);
-ComponentFactory.register(Status);
-ComponentFactory.register(Progress);
-ComponentFactory.register(Color);
-ComponentFactory.register(Boxes);
-ComponentFactory.register(Shell);
-ComponentFactory.register(FileLink);
-ComponentFactory.register(FilePreview);
-ComponentFactory.register(Response);
-ComponentFactory.register(Application);
-ComponentFactory.register(IconSet);
-ComponentFactory.register(Grid);
-ComponentFactory.register(Rows);
-ComponentFactory.register(Timeline);
+ComponentFactory.register(Counter, "Counter");
+ComponentFactory.register(Form, "Form");
+ComponentFactory.register(QuerySet, "QuerySet");
+ComponentFactory.register(Fieldset, "Fieldset");
+ComponentFactory.register(Field, "Field");
+ComponentFactory.register(Object2, "Object");
+ComponentFactory.register(Section, "Section");
+ComponentFactory.register(Group, "Group");
+ComponentFactory.register(Statistics, "Statistics");
+ComponentFactory.register(Image, "Image");
+ComponentFactory.register(Banner, "Banner");
+ComponentFactory.register(Map, "Map");
+ComponentFactory.register(Steps, "Steps");
+ComponentFactory.register(QrCode, "QrCode");
+ComponentFactory.register(Badge, "Badge");
+ComponentFactory.register(Status, "Status");
+ComponentFactory.register(Progress, "Progress");
+ComponentFactory.register(Color, "Color");
+ComponentFactory.register(Boxes, "Boxes");
+ComponentFactory.register(Shell, "Shell");
+ComponentFactory.register(FileLink, "FileLink");
+ComponentFactory.register(FilePreview, "FilePreview");
+ComponentFactory.register(Response, "Response");
+ComponentFactory.register(Application, "Application");
+ComponentFactory.register(IconSet, "IconSet");
+ComponentFactory.register(Grid, "Grid");
+ComponentFactory.register(Rows, "Rows");
+ComponentFactory.register(Timeline, "Timeline");
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);

@@ -8,7 +8,7 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) return "react";
-          if (id.includes("slth/src/reactjs/src/")) return "lib";
+          if (id.includes("slth/src/reactjs/src/")) return "slth";
           if (id.includes("service-worker")) return "service-worker";
         },
         dir: "tmp",

@@ -58,7 +58,6 @@ slth/static/js/peerjs.min.js
 slth/static/js/qrcode.min.js
 slth/static/js/react-trigger-change.js
 slth/static/js/react.min.js
-slth/static/js/slth.js
 slth/static/js/vanilla-masker.js
 slth/static/js/vanilla-masker.min.js
 slth/templates/index.html
