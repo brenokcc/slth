@@ -15,7 +15,12 @@ a {
     text-decoration: none;
 }
 
+.form-control{
+    font-family: rawline;
+    font-size: 15px;
+}
+
 .form-control:focus {
     outline: none !important;
-    border: solid 2px #c2850c !important;
+    border: solid 1px #c2850c !important;
 }

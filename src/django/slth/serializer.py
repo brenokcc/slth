@@ -61,7 +61,7 @@ def getfield(obj, name_or_names, request=None):
         else:
             value = attr
             label = getattr(type(obj), name_or_names).field.verbose_name
-        label = label.title() if label and label.islower() else label
+        label = label.title().replace('_', ' ') if label and label.islower() else label
         field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True, request=request))
         return field
     elif isinstance(name_or_names, LinkField):

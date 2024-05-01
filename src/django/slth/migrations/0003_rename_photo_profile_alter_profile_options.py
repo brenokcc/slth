@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RenameModel(
-            old_name='Photo',
+            old_name='Foto',
             new_name='Profile',
         ),
         migrations.AlterModelOptions(

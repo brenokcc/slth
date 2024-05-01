@@ -745,6 +745,7 @@ function Textarea(props) {
         data-label={toLabelCase(props.data.label)}
         style={style}
         defaultValue={props.data.value || ""}
+        className="form-control"
       ></textarea>
     );
   }

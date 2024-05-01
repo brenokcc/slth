@@ -110,7 +110,7 @@ function QuerySet(props) {
                 }}
                 dataLabel={toLabelCase(subset.label)}
               >
-                {subset.label} <Counter total={subset.count + 1} />
+                {subset.label} <Counter total={subset.count} />
               </Link>
             );
           })}
@@ -585,7 +585,7 @@ function QuerySet(props) {
     };
     const searching = data.search.length > 0;
     const filtering = data.filters.length > 0;
-    if (searching || filtering) {
+    if ((data.bi || data.data.length > 0) && (searching || filtering)) {
       const field = {
         name: "q",
         value: "",

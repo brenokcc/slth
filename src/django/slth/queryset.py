@@ -127,16 +127,6 @@ class QuerySet(models.QuerySet):
             self.metadata['lookups'] = {}
         self.metadata['lookups'][role_name] = lookups
         return self
-    
-    def only(self, **kwargs):
-        if 'only' not in self.metadata:
-            self.metadata['only'] = {}
-        for field_name, group_name in kwargs.items():
-            if field_name not in self.metadata['only']:
-                self.metadata['only'][field_name] = []
-            group_names = (group_name,) if isinstance(group_name, str) else group_name
-            self.metadata['only'][field_name].extend(group_names)
-        return self
 
     def apply_lookups(self, user):
         from . import permissions

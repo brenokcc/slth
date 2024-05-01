@@ -12,8 +12,12 @@ class FormFactory:
         self._empty = False
 
     def fields(self, *names, **values) -> 'FormFactory':
-        self._fieldlist.extend(names)
-        for k, v in values.items():
+        not_str = {name for name in names if not isinstance(name, str)}
+        if not_str:
+            self.fieldset('Dados Gerais', names)
+        else:
+            self._fieldlist.extend(names)
+        for k in values:
             self._fieldlist.append(k)
             self.setvalue(**values)
         self._empty = not self._fieldlist

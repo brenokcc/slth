@@ -28,7 +28,10 @@ function Statistics(props) {
               <tr key={Math.random()}>
                 {row.map((v, i) =>
                   i == 0 ? (
-                    <th key={Math.random()} style={{ textAlign: "left" }}>
+                    <th
+                      key={Math.random()}
+                      style={{ textAlign: "left", lineHeight: "2rem" }}
+                    >
                       {v}
                     </th>
                   ) : (

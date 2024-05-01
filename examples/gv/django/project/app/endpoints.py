@@ -42,13 +42,13 @@ class Consultas(endpoints.AdminEndpoint[Consulta]):
 class MinhasConsultas(endpoints.ListEndpoint[Consulta]):
     def get(self):
         return (
-            super().get().fields('get_prioridade', 'topico', 'pergunta')
+            super().get().fields(('get_prioridade', 'topico', 'data_pergunta'), 'pergunta')
             .search('pergunta')
             .filters('prioridade', 'topico')
             .actions('consultar', 'visualizarminhaconsulta')
             .subsets('nao_respondidas', 'respondidas')
             .filter(consultante__cpf=self.request.user.username)
-        )
+        ).rows()
     
     def check_permission(self):
         return self.check_role('consultante', superuser=False)
@@ -95,17 +95,28 @@ class Estatisticas(endpoints.Endpoint):
     @meta('Consultas por Tópico')
     def consultas_por_topico(self):
         return Consulta.objects.counter('topico', chart='donut')
+
+
+class EstatisticaConsultoria(endpoints.Endpoint):
+    class Meta:
+        verbose_name = 'Estatísticas'
     
-class Bi(endpoints.Endpoint):
     def get(self):
         return (
-            Consulta.objects.filters('consultante', 'consultante__cliente')
+            Consulta.objects
+            .filters(
+                'prioridade', 'topico', 'topico__assunto',
+                'consultante', 'consultante__cliente', 'especialista', 'consultante__cliente__estado'
+            )
             .bi(
-                ('quantidade_geral', 'total_por_cliente'),
-                ('total_por_prioridade', 'total_por_topico'),
-                ('total_por_mes',)
+                ('quantidade_geral', 'total_clientes', 'total_consultantes'),
+                ('total_especialistas', 'total_por_estado', 'total_por_especialista'),
+                ('total_por_prioridade', 'total_por_assunto', 'total_por_topico'),
+                ('total_por_mes', 'total_por_cliente'),
             )
         )
+    def check_permission(self):
+        return self.check_role('administrador')
 
 class VisualizarConsulta(endpoints.ViewEndpoint[Consulta]):
     
@@ -116,7 +127,7 @@ class ConsultasAguardandoEspecialista(endpoints.ListEndpoint[Consulta]):
     def get(self):
         especialista=Especialista.objects.get(cpf=self.request.user.username)
         return (
-            super().get().aguardando_especialista()
+            super().get().aguardando_especialista().filters('topico', 'prioridade', 'consultante__cliente')
             .filter(topico__assunto__in=especialista.assuntos.values_list('pk', flat=True))
             .filter(consultante__cliente__estado__in=especialista.estados.values_list('pk', flat=True))
             .fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'get_limite_resposta')
@@ -128,7 +139,7 @@ class ConsultasAguardandoEspecialista(endpoints.ListEndpoint[Consulta]):
 class ConsultasEmAtendimento(endpoints.ListEndpoint[Consulta]):
     def get(self):
         especialista=Especialista.objects.get(cpf=self.request.user.username)
-        return super().get().filter(especialista=especialista, data_resposta__isnull=True).fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'get_limite_resposta').actions('visualizarconsulta')
+        return super().get().filters('topico', 'prioridade', 'consultante__cliente').filter(especialista=especialista, data_resposta__isnull=True).fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'get_limite_resposta').actions('visualizarconsulta')
     
     def check_permission(self):
         return self.check_role('especialista', superuser=False)
@@ -136,7 +147,7 @@ class ConsultasEmAtendimento(endpoints.ListEndpoint[Consulta]):
 class ConsultasAtendidas(endpoints.ListEndpoint[Consulta]):
     def get(self):
         especialista=Especialista.objects.get(cpf=self.request.user.username)
-        return super().get().filter(especialista=especialista, data_resposta__isnull=False).fields('prioridade', 'topico', 'pergunta', 'data_pergunta', 'data_resposta').actions('visualizarconsulta')
+        return super().get().filters('topico', 'prioridade', 'consultante__cliente').filter(especialista=especialista, data_resposta__isnull=False).fields(('prioridade', 'topico'), ('data_pergunta', 'data_resposta'), 'pergunta', 'resposta').actions('visualizarconsulta').rows()
     
     def check_permission(self):
         return self.check_role('especialista', superuser=False)
@@ -157,7 +168,10 @@ class AssumirConsulta(endpoints.ChildInstanceEndpoint):
         verbose_name = 'Assumir Consulta'
     
     def get(self):
-        return super().formfactory().fields(
+        observacao = '''Ao assumir a consulta, ela ficará bloqueada para os demais especialistas. Portanto,
+        'realize essa ação quando for respondê-la. Caso não esteja apto para concluir a resposta depois de
+        'assumi-la, libere-a para que outro especialista possa respondê-la.'''
+        return super().formfactory().info(observacao).fields(
             especialista=Especialista.objects.get(cpf=self.request.user.username)
         )
     

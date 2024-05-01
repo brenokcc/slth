@@ -1,13 +1,11 @@
 import os
-import sys
 import time
 import datetime
-from openai import OpenAI
 from slth.db import models, meta, role
-from slth.components import Badge, Steps, FileLink
+from slth.components import Badge, Steps, FileLink, Progress
 from slth.models import PushSubscription
-
-OPENAI_KEY = os.getenv('OPENAI_KEY') if 'integration_test' not in sys.argv else None
+from .services import OpenAIService
+from difflib import SequenceMatcher
 
 @role('administrador', 'cpf')
 class Administrador(models.Model):
@@ -98,34 +96,16 @@ class Topico(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if OPENAI_KEY and self.codigo_openai is None:
-            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
-            assistant = client.beta.assistants.create(
-                name='AnalisaRN {} - {}'.format(self.assunto, self.descricao),
-                instructions="",
-                #tools=[{'type': 'file_search'}],
-                model="gpt-4-1106-preview"
+        if self.codigo_openai is None:
+            Topico.objects.filter(pk=self.pk).update(
+                codigo_openai=OpenAIService().create_assistant(
+                    'AnalisaRN {} - {}'.format(self.assunto, self.descricao)
+                )
             )
-            Topico.objects.filter(pk=self.pk).update(codigo_openai=assistant.id)
 
     def perguntar_inteligencia_artificial(self, pergunta):
-        if OPENAI_KEY:
-            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
-            attachments = []
-            for arquivo in self.arquivo_set.filter(codigo_openai__isnull=False):
-                attachments.append({ "file_id": arquivo.codigo_openai, "tools": [{"type": "file_search"}] })
-            thread = client.beta.threads.create(messages=[{"role": "user", "content": pergunta, "attachments": attachments,}])
-            run = client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=self.codigo_openai)
-            for i in range(1, 5):
-                print('Waiting for the response...')
-                time.sleep(2)
-                if client.beta.threads.runs.retrieve(run.id, thread_id=thread.id).status == 'completed':
-                    break
-            messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
-            message_content = messages[0].content[0].text.value
-        else:
-            message_content = 'Resposta teste.'
-        return message_content
+        file_ids = self.arquivo_set.filter(codigo_openai__isnull=False).values_list('codigo_openai', flat=True)
+        return OpenAIService().ask_question(pergunta, self.codigo_openai, file_ids)
     
     def formfactory(self):
         return super().formfactory().fields('assunto', 'descricao')
@@ -149,6 +129,7 @@ class Arquivo(models.Model):
     nome = models.CharField('Nome')
     arquivo = models.FileField('Arquivo', upload_to='arquivos', null=True, extensions=('txt',))
     codigo_openai = models.CharField('Código', null=True, blank=True)
+    ativo = models.BooleanField(verbose_name='Ativo', default=True)
 
     class Meta:
         verbose_name = 'Arquivo'
@@ -156,27 +137,20 @@ class Arquivo(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if OPENAI_KEY and self.codigo_openai is None:
-            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
-            with open(self.arquivo.path, 'rb') as file:
-                vector_store = client.beta.vector_stores.create(name="{} - {}".format(self.topico, self.nome))
-                file_paths = [self.arquivo.path]
-                file_streams = [open(path, "rb") for path in file_paths]
-                file_batch = client.beta.vector_stores.file_batches.upload_and_poll(vector_store_id=vector_store.id, files=file_streams)
-                print(file_batch.status)
-                print(file_batch.file_counts)
-                time.sleep(5)
-                client.beta.assistants.update(self.topico.codigo_openai, tools=[{'type': 'file_search'}], tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}})
-                Arquivo.objects.filter(pk=self.pk).update(codigo_openai=client.beta.vector_stores.files.list(vector_store.id).data[0].id)
+        if self.codigo_openai is None:
+            Arquivo.objects.filter(pk=self.pk).update(
+                codigo_openai=OpenAIService().create_file(
+                    "{} - {}".format(self.topico, self.nome),
+                    self.topico.codigo_openai, self.arquivo.path
+                )
+            )
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
-        if OPENAI_KEY and self.codigo_openai:
-            client = OpenAI(api_key=os.getenv('OPENAI_KEY'))
-            client.beta.assistants.files.delete(
-                file_id=self.codigo_openai, assistant_id=self.topico.codigo_openai
+        if self.codigo_openai:
+            OpenAIService().delte_file(
+                self.topico.codigo_openai, self.codigo_openai
             )
-            client.files.delete(self.codigo_openai)
 
     def get_arquivo(self):
         return FileLink(self.arquivo, icon='file', modal=True)
@@ -194,7 +168,7 @@ class PerguntaFrequenteQuerySet(models.QuerySet):
 
 class PerguntaFrequente(models.Model):
     topico = models.ForeignKey(Topico, verbose_name='Tópico', related_name='perguntas_frequentes')
-    pergunta = models.CharField('Pergunta')
+    pergunta = models.TextField('Pergunta')
     resposta = models.TextField('Resposta', blank=True)
 
     class Meta:
@@ -243,7 +217,7 @@ class Especialista(models.Model):
     objects = EspecialistaQuerySet()
 
     def __str__(self):
-     return '{} ({})'.format(self.nome, self.cpf)
+     return self.nome
     
     def formfactory(self):
         return (
@@ -288,7 +262,7 @@ class Cliente(models.Model):
     objects = ClienteQuerySet()
 
     def __str__(self):
-        return '{} ({})'.format(self.nome, self.cpf_cnpj)
+        return self.nome
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -320,10 +294,14 @@ class Cliente(models.Model):
                     .fieldset('Controle', ('ativo',))
                     .parent()
                 .queryset('Consultantes', 'get_consultantes')
+                .queryset('Arquivos', 'get_arquivos')
                 .queryset('Consultas', 'get_consultas')
                 .fieldset('Estatística', (('get_consultas_por_prioridade', 'get_consultas_por_topico', 'get_consultas_por_consultante'),))
                 .parent()
         )
+    
+    def get_arquivos(self):
+        return self.arquivocliente_set.fields('nome', 'get_arquivo', 'codigo_openai').actions('edit', 'delete', 'add').related_values(cliente=self)
     
     def get_consultantes(self):
         return self.consultante_set.actions('edit', 'delete', 'add').related_values(cliente=self)
@@ -343,6 +321,22 @@ class Cliente(models.Model):
     def get_consultas_por_consultante(self):
         return self.get_consultas().counter('consultante', chart='bar')
 
+class ArquivoCliente(Arquivo):
+    cliente = models.ForeignKey(Cliente, verbose_name='Cliente')
+
+    class Meta:
+        verbose_name = 'Arquivo de Cliente'
+        verbose_name_plural = 'Arquivos de Cliente'
+
+    def formfactory(self):
+        return super().formfactory().fields('cliente', ('topico', 'nome'), 'arquivo', 'ativo')
+    
+    def get_topico_queryset(self, queryset, values):
+        if 'cliente' in values:
+            queryset = queryset.filter(
+                assunto__in=values['cliente'].assuntos.values_list('pk', flat=True)
+            )
+        return queryset
 
 @role('consultante', 'cpf', cliente='cliente')
 class Consultante(models.Model):
@@ -407,6 +401,10 @@ class ConsultaQuerySet(models.QuerySet):
     def total_por_topico(self):
         return self.counter('topico')
     
+    @meta('Total por Assunto')
+    def total_por_assunto(self):
+        return self.counter('topico__assunto')
+    
     @meta('Total por Cliente')
     def total_por_cliente(self):
         return self.counter('consultante__cliente', chart='bar')
@@ -418,6 +416,26 @@ class ConsultaQuerySet(models.QuerySet):
     @meta('Total de Consultas')
     def quantidade_geral(self):
         return self.count()
+    
+    @meta('Clientes Atendidos')
+    def total_clientes(self):
+        return self.values_list('consultante__cliente').distinct().count()
+    
+    @meta('Consultantes Atendidos')
+    def total_consultantes(self):
+        return self.values_list('consultante').distinct().count()
+    
+    @meta('Especialistas Envolvidos')
+    def total_especialistas(self):
+        return self.values_list('especialista').distinct().count()
+
+    @meta('Total por Especialista')
+    def total_por_especialista(self):
+        return self.counter('especialista')
+    
+    @meta('Total por Estado')
+    def total_por_estado(self):
+        return self.counter('consultante__cliente__estado', chart='pizza')
     
 
 class Consulta(models.Model):
@@ -440,6 +458,8 @@ class Consulta(models.Model):
 
     anexos = models.OneToManyField(Anexo, verbose_name='Anexos')
     pergunta_frequente = models.ForeignKey(PerguntaFrequente, verbose_name='Pergunta Frequente', null=True, blank=True)
+
+    percentual_similaridade_resposta = models.IntegerField('Percentual de Simiralidade da Resposta', null=True)
 
     objects = ConsultaQuerySet()
 
@@ -466,7 +486,7 @@ class Consulta(models.Model):
             .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta'),), reload=False)
             .queryset('Anexos', 'get_anexos')
             .queryset('Interações', 'get_interacoes')
-            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta'), actions=('assumirconsulta', 'liberarconsulta', 'consultaria','enviarresposta'))
+            .fieldset('Resposta', ('especialista', 'pergunta_ia', 'resposta_ia', 'resposta', 'get_percentual_similaridade_resposta'), actions=('assumirconsulta', 'liberarconsulta', 'consultaria','enviarresposta'))
         )
     
     @meta('Anexos')
@@ -508,7 +528,14 @@ class Consulta(models.Model):
             texto = 'Nova pergunta sobre "{}" cadastrada pelo cliente "{}".'.format(self.topico, self.consultante.cliente)
             for subscription in PushSubscription.objects.filter(user__username__in=cpfs):
                 subscription.notify(texto)
+        if self.percentual_similaridade_resposta is None and self.resposta_ia and self.resposta:
+            self.percentual_similaridade_resposta = int(SequenceMatcher(None, self.resposta_ia, self.resposta).ratio()*100)
+            super().save(*args, **kwargs)
 
+    @meta('Percentual de Similaridade da Resposta')
+    def get_percentual_similaridade_resposta(self):
+        return Progress(self.percentual_similaridade_resposta) if self.percentual_similaridade_resposta else None
+    
     def get_minutos_resposta(self):
         limite = self.data_pergunta + datetime.timedelta(seconds=3600 * self.prioridade.prazo_resposta)
         print(self.data_pergunta, str(self.prioridade.prazo_resposta)+'h', limite)

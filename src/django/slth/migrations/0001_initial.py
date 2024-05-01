@@ -27,15 +27,15 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Photo',
+            name='Foto',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('photo', models.ImageField(upload_to='', verbose_name='Photo')),
+                ('photo', models.ImageField(upload_to='', verbose_name='Foto')),
                 ('user', models.OneToOneField(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'verbose_name': 'Photo',
-                'verbose_name_plural': 'Photos',
+                'verbose_name': 'Foto',
+                'verbose_name_plural': 'Fotos',
             },
         ),
     ]

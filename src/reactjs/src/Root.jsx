@@ -93,28 +93,35 @@ window.addEventListener("popstate", (e) => {
 });
 
 window.reload = function (url) {
-  if (url != document.location.href) {
-    window.history.pushState({ url: url }, "", url);
-  }
-  if (APPLICATION_DATA) {
-    window.application = JSON.parse(APPLICATION_DATA);
-    request("GET", apiurl(url), function (content) {
-      window.application.content = content;
-      root.render(
-        <ComponentFactory key={Math.random()} data={window.application} />
-      );
+  const name = url.split("/app/")[1].split("/")[0];
+  if (COMPONENT_REGISTRY[name]) {
+    request("GET", apiurl(url), function (data) {
+      root.render(<ComponentFactory data={{ type: name, data: data }} />);
     });
   } else {
-    request("GET", APPLICATION_URL, function callback(data) {
-      window.application = data;
-      localStorage.setItem("application", JSON.stringify(window.application));
+    if (url != document.location.href) {
+      window.history.pushState({ url: url }, "", url);
+    }
+    if (APPLICATION_DATA) {
+      window.application = JSON.parse(APPLICATION_DATA);
       request("GET", apiurl(url), function (content) {
         window.application.content = content;
         root.render(
           <ComponentFactory key={Math.random()} data={window.application} />
         );
       });
-    });
+    } else {
+      request("GET", APPLICATION_URL, function callback(data) {
+        window.application = data;
+        localStorage.setItem("application", JSON.stringify(window.application));
+        request("GET", apiurl(url), function (content) {
+          window.application.content = content;
+          root.render(
+            <ComponentFactory key={Math.random()} data={window.application} />
+          );
+        });
+      });
+    }
   }
 };
 

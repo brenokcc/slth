@@ -11,7 +11,7 @@ from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .factory import FormFactory
-from .forms import LoginForm, ModelForm, Form, SendPushNotificationForm, EditProfileForm
+from .forms import LoginForm, ModelForm, Form, SendPushNotificationForm, EditProfileForm, ChangePasswordForm
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
@@ -435,10 +435,16 @@ class Users(ListEndpoint[User]):
 
     def get(self):
         return (
-            super().get()
+            super().get().search('username', 'email')
+            .filters('is_superuser', 'is_active')
             .fields('username', 'email', 'is_superuser')
-            .actions('add', 'view', 'edit', 'delete', 'sendpushnotification')
+            .actions('add', 'view', 'edit', 'delete', 'sendpushnotification', 'changepassword')
         )
+    
+class ChangePassword(ChildInstanceFormEndpoint[ChangePasswordForm]):
+    class Meta:
+        icon = 'user-lock'
+        verbose_name = 'Alterar Senha'
 
 class Dashboard(Endpoint):
     class Meta:
@@ -587,5 +593,4 @@ class EditProfile(Endpoint):
 
     def check_permission(self):
         return self.request.user.is_authenticated
-
 

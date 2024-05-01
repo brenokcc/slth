@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='profile',
             name='photo',
-            field=slth.db.models.ImageField(blank=True, null=True, upload_to='', verbose_name='Photo'),
+            field=slth.db.models.ImageField(blank=True, null=True, upload_to='', verbose_name='Foto'),
         ),
     ]

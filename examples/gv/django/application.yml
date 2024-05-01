@@ -17,7 +17,6 @@ application:
       - minhasconsultas
       - consultasaguardandoespecialista
       - consultasematendimento
-      - consultasatendidas
     boxes:
       - consultas
     search:
@@ -39,6 +38,8 @@ application:
       Especialistas: especialistas
       Perguntas Frequêntes: perguntasfrequentes
     people-line:Clientes: clientes
-    file-signature:Consultas: consultas
-    chart-area:Monitoramento: bi
+    file-signature:Consultoria:
+      Consultas: consultas
+      Estatísticas: estatisticaconsultoria
+    file-signature:Consultas: consultasatendidas
     door-closed:Sair: logout

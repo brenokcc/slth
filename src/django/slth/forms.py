@@ -5,6 +5,7 @@ import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from django.db.models.fields.files import FieldFile, ImageFieldFile
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.db.models import Model, QuerySet, Manager
@@ -174,10 +175,10 @@ class FormMixin:
                 elif value and (isinstance(field, ModelChoiceField) or isinstance(field, DjangoModelChoiceField)):
                     obj = field.queryset.get(pk=value)
                     value = dict(id=obj.id, label=str(obj))
-                elif isinstance(value, ImageFieldFile):
+                elif isinstance(field, DjangoImageField):
                     value = build_url(self.request, value.url) if value else None
                     extra.update(extensions=field.extensions, width=field.width, height=field.height)
-                elif isinstance(value, FieldFile):
+                elif isinstance(field, DjangoFileField):
                     value = build_url(self.request, value.url) if value else None
                     extra.update(extensions=field.extensions, max_size=field.max_size)
             
@@ -543,6 +544,18 @@ class LoginForm(Form):
         
     def submit(self):
         return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key, application=None))
+
+class ChangePasswordForm(ModelForm):
+    password = CharField(label=_('Senha'), required=False)
+    class Meta:
+        title = 'Alterar Senha'
+        model = User
+        fields = ()
+
+    def submit(self):
+        self.instance.set_password(self.cleaned_data['password'])
+        return super().submit()
+
 
 class EditProfileForm(ModelForm):
     password = CharField(label=_('Senha'), required=False)

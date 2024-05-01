@@ -91,10 +91,11 @@ function Dialog(props) {
   }
 
   function content() {
+    const style = { maxWidth: 800 };
     const close = { textAlign: "right", cursor: "pointer" };
     if (data) {
       return (
-        <div>
+        <div style={style}>
           <div style={close}>
             <Icon icon="x" onClick={() => closeDialog()} />
           </div>
