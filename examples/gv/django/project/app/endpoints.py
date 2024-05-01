@@ -1,5 +1,6 @@
 from .models import *
 from slth import endpoints, meta
+from slth.components import WebConf
 from .forms import ConsultarIAForm, EnviarRespostaForm, AdicionarABaseConhecimentoForm
 
 
@@ -70,6 +71,7 @@ class VisualizarMinhaConsulta(endpoints.InstanceEndpoint[Consulta]):
     def get(self):
         return (
             self.serializer()
+            .actions('videochamada')
             .field('get_passos')
             .fieldset('Dados Gerais', ('consultante', ('get_prioridade', 'topico'), 'pergunta', 'observacao'))
             .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta'),))
@@ -207,3 +209,23 @@ class LiberarConsulta(endpoints.ChildInstanceEndpoint):
     def check_permission(self):
         return self.check_role('especialista', 'administrador') and self.get_instance().especialista_id and not self.get_instance().data_resposta
 
+
+class VideoChamada(endpoints.InstanceEndpoint[Consulta]):
+
+    class Meta:
+        icon = 'video'
+        title = 'Video Chamada'
+        modal = False
+
+    def get(self):
+        consulta = self.get_instance()
+        if self.request.user.username == consulta.consultante.cpf:
+            receiver = consulta.especialista.cpf
+        if self.request.user.username == consulta.especialista.cpf:
+            receiver = consulta.consultante.cpf
+        return WebConf(self.request.user.username, receiver)
+
+    def check_permission(self):
+        consulta = self.get_instance()
+        usernames = [consulta.consultante.cpf, consulta.especialista and consulta.especialista.cpf]
+        return consulta.especialista_id and self.request.user.username in usernames

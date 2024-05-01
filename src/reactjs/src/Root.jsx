@@ -8,6 +8,7 @@ import { Color } from "./Theme";
 import { Application } from "./Application";
 import { Response, request, apiurl } from "./Request";
 import { IconSet } from "./Icon";
+import { WebConf } from "./Media";
 import {
   Image,
   Banner,
@@ -87,6 +88,7 @@ ComponentFactory.register(IconSet, "IconSet");
 ComponentFactory.register(Grid, "Grid");
 ComponentFactory.register(Rows, "Rows");
 ComponentFactory.register(Timeline, "Timeline");
+ComponentFactory.register(WebConf, "WebConf");
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);

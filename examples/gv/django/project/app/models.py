@@ -480,7 +480,7 @@ class Consulta(models.Model):
     def serializer(self):
         return (
             super().serializer()
-            .actions('adicionarabaseconhecimento')
+            .actions('adicionarabaseconhecimento', 'videochamada')
             .field('get_passos')
             .fieldset('Dados Gerais', ('consultante', ('get_prioridade', 'topico'), 'pergunta', 'observacao'))
             .fieldset('Datas', (('data_pergunta', 'data_consulta', 'data_resposta'),), reload=False)
@@ -588,3 +588,4 @@ class Mensalidade(models.Model):
 
     def __str__(self):
      return '{} ({}/{})'.format(self.cliente, self.data_vencimento.month, self.data_vencimento.year)
+
