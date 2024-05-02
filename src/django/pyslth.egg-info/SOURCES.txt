@@ -53,6 +53,7 @@ slth/static/images/logo.svg
 slth/static/images/user.png
 slth/static/js/echarts.min.js
 slth/static/js/index.min.js
+slth/static/js/ios-splash.min.js
 slth/static/js/peerjs.min.js
 slth/static/js/qrcode.min.js
 slth/static/js/react-trigger-change.js
