@@ -788,7 +788,7 @@ function Radio(props) {
   }
 
   function render() {
-    return (
+    return field.choices.length > 0 ? (
       <div className="radio-group">
         {field.choices.map((choice, i) => (
           <div key={key + i} style={{ paddingTop: 10 }}>
@@ -810,6 +810,8 @@ function Radio(props) {
           </div>
         ))}
       </div>
+    ) : (
+      <i>Nenhuma opção disponível para seleção.</i>
     );
   }
   return render();
@@ -834,7 +836,7 @@ function Checkbox(props) {
   }
 
   function render() {
-    return (
+    return field.choices.length > 0 ? (
       <div className="checkbox-group">
         {field.choices.map((choice, i) => (
           <div key={key + i} style={{ paddingTop: 10 }}>
@@ -850,6 +852,8 @@ function Checkbox(props) {
           </div>
         ))}
       </div>
+    ) : (
+      <i>Nenhuma opção disponível para seleção.</i>
     );
   }
   return render();

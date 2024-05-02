@@ -103,8 +103,10 @@ class Topico(models.Model):
                 )
             )
 
-    def perguntar_inteligencia_artificial(self, pergunta):
-        file_ids = self.arquivo_set.filter(codigo_openai__isnull=False).values_list('codigo_openai', flat=True)
+    def perguntar_inteligencia_artificial(self, pergunta, arquivos=None):
+        if arquivos is None:
+            arquivos = self.arquivo_set
+        file_ids = arquivos.filter(codigo_openai__isnull=False).values_list('codigo_openai', flat=True)
         return OpenAIService().ask_question(pergunta, self.codigo_openai, file_ids)
     
     def formfactory(self):

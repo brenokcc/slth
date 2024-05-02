@@ -207,7 +207,8 @@ class FormMixin:
                 if name in self.request.GET:
                     data.update(type='hidden', value=self.request.GET[name])
                 else:
-                    if isinstance(field.choices, ModelChoiceIterator):
+                    pick = getattr(field, 'pick', False)
+                    if isinstance(field.choices, ModelChoiceIterator) and not pick:
                         if choices_field_name == fname:
                             qs = field.choices.queryset
                             
@@ -233,8 +234,8 @@ class FormMixin:
                         else:
                             data['choices'] = absolute_url(self.request, f'choices={fname}')
                     else:
-                        data['choices'] = [dict(id=k, value=v) for k, v in field.choices]
-                    if getattr(field, 'pick', False):
+                        data['choices'] = [dict(id=str(k), value=v) for k, v in field.choices]
+                    if pick:
                         data.update(pick=True)
                     
         attr_name = f'on_{name}_change'

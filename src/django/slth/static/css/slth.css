@@ -24,3 +24,37 @@ a {
     outline: none !important;
     border: solid 1px #c2850c !important;
 }
+input[type="checkbox"], input[type="radio"]{
+    appearance: none;
+    background-color: #fff;
+    margin: 0;
+    font: inherit;
+    width: 1.5em;
+    height: 1.5em;
+    border: solid 1px #CCC;
+    transform: translateY(-0.075em);
+    display: inline-grid;
+    place-content: center;
+    margin-right: 10px;
+  }
+  input[type="checkbox"]{
+      border-radius: 0.15em;
+  }
+  input[type="radio"]{
+      border-radius: 50%;
+  }
+  input[type="checkbox"]::before, input[type="radio"]::before {
+    content: "";
+    width: 0.65em;
+    height: 0.65em;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em #383838;
+  }
+  input[type="checkbox"]:checked::before {
+    transform: scale(1);
+  }
+  input[type="radio"]:checked::before {
+    transform: scale(1);
+    border-radius: 50%;
+  }
