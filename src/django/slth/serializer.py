@@ -267,7 +267,7 @@ class Serializer:
                         endpoint = cls.instantiate(self.request, self.obj)
                         if endpoint.check_permission():
                             if not lazy:
-                                returned = endpoint.getdata()
+                                returned = endpoint.process()
                             path = self.path + [key]
                             if wrap:
                                 data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))

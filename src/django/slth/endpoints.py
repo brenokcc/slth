@@ -2,6 +2,7 @@
 import json
 import types
 import inspect
+from .models import Token
 from django.apps import apps
 from typing import TypeVar, Generic
 from django.core.cache import cache
@@ -11,13 +12,17 @@ from django.db import transaction, models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .factory import FormFactory
-from .forms import LoginForm, ModelForm, Form, SendPushNotificationForm, EditProfileForm, ChangePasswordForm
+from django.core.exceptions import ValidationError
+from slth import forms
+from django.contrib.auth import authenticate
+from .forms import ModelForm, Form
 from .serializer import serialize, Serializer
 from .components import Application as Application_, Navbar, Menu, Footer, Response, Boxes, IconSet
 from .exceptions import JsonResponseException
 from .utils import build_url, append_url
 from .models import PushSubscription, Profile, User
 from slth.queryset import QuerySet
+from .notifications import send_push_web_notification
 from slth import APPLICATON, ENDPOINTS
 
 
@@ -77,6 +82,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         self.request = None
         self.source = None
         self.instantiator = None
+        self.cleaned_data = {}
         super().__init__()
 
     def configure(self, source, instantiator=None):
@@ -95,15 +101,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         return {}
     
     def post(self):
-        data = self.get()
-        if isinstance(data, FormFactory):
-            data = data.form(self.request).post()
-        if isinstance(data, Form) or isinstance(data, ModelForm):
-            data = data.post()
-        return data
-    
-    def save(self, data):
-        pass
+        return Response(message='Ação realizada com sucesso')
     
     def check_permission(self):
         return self.request.user.is_superuser
@@ -119,32 +117,36 @@ class Endpoint(metaclass=EnpointMetaclass):
     def redirect(self, url):
         raise JsonResponseException(dict(type='redirect', url=url))
     
-    def getdata(self):
-        if self.request.method == 'GET':
-            data = self.get()
-        elif self.request.method == 'POST':
-            data = self.post()
-        else:
-            data = {}
+    def getform(self, form):
+        return form
+    
+    def process(self):
+        data = self.get()
         title = self.get_metadata('verbose_name')
         if isinstance(data, models.QuerySet):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, Serializer):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):
-            data = data.settitle(title).form(self.request)
+            data = self.getform(data.settitle(title).form(self))
+            if self.request.method == 'POST':
+                try:
+                    self.cleaned_data = data.submit()
+                    return self.post()
+                except ValidationError as e:
+                    raise JsonResponseException(dict(type='error', text='\n'.join(e.messages), errors={}))
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
-        return {} if data is None else data
+        return data
     
     def serialize(self):
-        return serialize(self.getdata())
+        return serialize(self.process())
     
     def to_response(self):
         return ApiResponse(self.serialize(), safe=False)
     
-    def formfactory(self, instance, delete=False) -> FormFactory:
-        return FormFactory(instance, delete=delete)
+    def formfactory(self, instance=None) -> FormFactory:
+        return FormFactory(instance)
     
     def serializer(self, instance=None) -> Serializer:
         return Serializer(instance or self).contextualize(self.request)
@@ -258,8 +260,8 @@ class ModelInstanceEndpoint(ModelEndpoint):
 
 class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
 
-    def formfactory(self, delete=False) -> FormFactory:
-        return FormFactory(self.get_instance(), delete=delete)
+    def formfactory(self) -> FormFactory:
+        return FormFactory(self.get_instance())
 
     def serializer(self) -> Serializer:
         return Serializer(self.get_instance()).contextualize(self.request)
@@ -281,7 +283,11 @@ class EditEndpoint(Generic[T], ModelInstanceEndpoint):
     
 class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self) -> FormFactory:
-        return self.formfactory(self.get_instance(), delete=True)
+        return self.formfactory(self.get_instance()).fields()
+    
+    def post(self):
+        self.get_instance().delete()
+        return super().post()
     
 
 class FormEndpoint(Generic[T], Endpoint):
@@ -331,8 +337,8 @@ class ChildInstanceEndpoint(ChildEndpoint):
     def get_instance(self):
         return self.instance
     
-    def formfactory(self, delete=False) -> FormFactory:
-        return FormFactory(self.get_instance(), delete=delete)
+    def formfactory(self) -> FormFactory:
+        return FormFactory(self.get_instance())
     
     def serializer(self) -> Serializer:
         return Serializer(self.get_instance()).contextualize(self.request)
@@ -381,12 +387,28 @@ class Delete(ChildInstanceEndpoint):
     class Meta:
         icon = 'trash'
         verbose_name = 'Excluir'
+    
     def get(self):
-        return self.formfactory(delete=True)
+        return self.formfactory().fields()
+    
+    def post(self):
+        self.get_instance().delete()
+        return super().post()
 
 class Login(Endpoint):
+    username = forms.CharField(label='Username')
+    password = forms.CharField(label='Senha')
+
     def get(self):
-        return LoginForm(request=self.request)
+        return self.formfactory().fields('username', 'password')
+    
+    def post(self):
+        user = authenticate(self.request, username=self.cleaned_data.get('username'), password=self.cleaned_data.get('password'))
+        if user:
+            token = Token.objects.create(user=user)
+            return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=token.key, application=None))
+        else:
+            raise ValidationError('Login e senha não conferem')
 
 class Logout(PublicEndpoint):
     class Meta:
@@ -441,10 +463,16 @@ class Users(ListEndpoint[User]):
             .actions('add', 'view', 'edit', 'delete', 'sendpushnotification', 'changepassword')
         )
     
-class ChangePassword(ChildInstanceFormEndpoint[ChangePasswordForm]):
+class ChangePassword(ChildInstanceEndpoint):
+
     class Meta:
         icon = 'user-lock'
         verbose_name = 'Alterar Senha'
+
+    def post(self):
+        self.instance.set_password(self.cleaned_data['password'])
+        self.instance.save()
+        super().post()
 
 class Dashboard(Endpoint):
     class Meta:
@@ -578,18 +606,44 @@ class PushSubscriptions(ListEndpoint[PushSubscription]):
     class Meta:
         verbose_name = 'Notificações'
 
-class SendPushNotification(ChildInstanceFormEndpoint[SendPushNotificationForm]):
+class SendPushNotification(ChildInstanceEndpoint):
+    message = forms.CharField(label='Texto', widget=forms.Textarea())
     class Meta:
         icon = 'mail-bulk'
         verbose_name = 'Enviar Notificação'
 
+    def get(self):
+        return self.formfactory().fields('message')
+
+    def post(self):
+        send_push_web_notification(self.instance, self.cleaned_data['message'])
+        return Response(message='Notificação enviada com sucesso.')
+
 class EditProfile(Endpoint):
+    password = forms.CharField(label='Senha', required=False)
+    password2 = forms.CharField(label='Confirmação', required=False)
+
     class Meta:
         verbose_name = 'Editar Perfil'
 
+    def __init__(self, *args, **kwargs):
+        self.instance = None
+        super().__init__(*args, **kwargs)
+       
     def get(self):
-        profile = Profile.objects.filter(user=self.request.user).first() or Profile(user=self.request.user)
-        return EditProfileForm(instance=profile, request=self.request)
+        self.instance = Profile.objects.filter(user=self.request.user).first() or Profile(user=self.request.user)
+        return (
+            self.formfactory(self.instance)
+            .fieldset('Dados Gerais', ('photo',))
+            .fieldset('Dados de Acesso', (('password', 'password2'),))
+        )
+    
+    def post(self):
+        self.instance.save()
+        if self.cleaned_data.get('password'):
+            self.instance.user.set_password(self.cleaned_data.get('password'))
+            self.instance.user.save()
+        return Response(message='Ação realizada com sucesso.', redirect='/api/dashboard/', store=dict(application=None))
 
     def check_permission(self):
         return self.request.user.is_authenticated

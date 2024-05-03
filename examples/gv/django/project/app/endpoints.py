@@ -1,7 +1,7 @@
 from .models import *
 from slth import endpoints, meta
+from slth import forms
 from slth.components import WebConf
-from .forms import ConsultarIAForm, EnviarRespostaForm, AdicionarABaseConhecimentoForm
 
 
 class Administradores(endpoints.AdminEndpoint[Administrador]):
@@ -155,10 +155,22 @@ class ConsultasAtendidas(endpoints.ListEndpoint[Consulta]):
         return self.check_role('especialista', superuser=False)
 
 
-class AdicionarABaseConhecimento(endpoints.ChildInstanceFormEndpoint[AdicionarABaseConhecimentoForm]):
+class AdicionarABaseConhecimento(endpoints.ChildInstanceEndpoint):
     class Meta:
         icon = 'file-circle-plus'
         verbose_name = 'Adicionar a Base de Conhecimento'
+
+    def get(self):
+        return self.formfactory().fields()
+
+    def post(self):
+        pergunta_frequente = PerguntaFrequente.objects.create(
+            topico=self.instance.topico,
+            pergunta=self.instance.pergunta_ia,
+            resposta=self.instance.resposta
+        )
+        self.instance.pergunta_frequente = pergunta_frequente
+        return super().post()
 
     def check_permission(self):
         instance = self.get_instance()
@@ -180,20 +192,46 @@ class AssumirConsulta(endpoints.ChildInstanceEndpoint):
     def check_permission(self):
         return self.check_role('especialista') and not self.get_instance().especialista_id
 
-class ConsultarIA(endpoints.ChildInstanceFormEndpoint[ConsultarIAForm]):
+class ConsultarIA(endpoints.ChildInstanceEndpoint):
+    arquivos = forms.ModelMultipleChoiceField(Arquivo.objects, label='Arquivos', pick=True, required=False)
     class Meta:
         icon = 'robot'
         modal = True
         verbose_name = 'Consultar I.A.'
 
+    def get(self):
+        return (
+            self.formfactory()
+            .info('Abaixo serão listados os arquivos específicos do cliente. Para realizar a consulta com base neles ao invés dos arquivos da base de conhecimento, selecione uma ou mais opção.')
+            .initial(pergunta_ia=self.instance.pergunta)
+            .choices(arquivos=self.instance.consultante.cliente.arquivocliente_set.all())
+            .fields('pergunta_ia', 'arquivos')
+        )
+
+    def post(self):
+        self.instance.data_consulta = datetime.datetime.now()
+        self.instance.resposta_ia = self.instance.topico.perguntar_inteligencia_artificial(
+            self.cleaned_data['pergunta_ia'], self.cleaned_data['arquivos']
+        )
+        self.instance.save()
+        return super().post()
+
     def check_permission(self):
         return self.check_role('especialista') and self.get_instance().especialista_id and not self.get_instance().data_resposta
 
-class EnviarResposta(endpoints.InstanceFormEndpoint[EnviarRespostaForm]):
+class EnviarResposta(endpoints.ChildInstanceEndpoint):
     class Meta:
         icon = 'location-arrow'
         modal = True
         verbose_name = 'Enviar Resposta'
+
+    def get(self):
+        return self.formfactory().initial(resposta=self.instance.resposta_ia).fields('resposta')
+
+    def post(self):
+        self.instance.data_resposta = datetime.datetime.now()
+        self.instance.save()
+        return super().post()
 
     def check_permission(self):
         return self.check_role('especialista') and self.get_instance().data_consulta and not self.get_instance().data_resposta

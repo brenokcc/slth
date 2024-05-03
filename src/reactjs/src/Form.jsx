@@ -132,7 +132,7 @@ function Error(props) {
       padding: 8,
     };
     return (
-      <div style={style} id={props.id}>
+      <div style={style} id={props.id} className="error">
         <Icon icon="xmark-circle" style={{ marginRight: 5 }} />
         <span></span>
       </div>
@@ -374,7 +374,7 @@ function InputField(props) {
     if (type == "file") {
       const style = {
         alignContent: "center",
-        height: 75,
+        minHeight: 75,
         padding: 5,
         maxWidth: "100%",
         margin: "auto",
@@ -1269,6 +1269,9 @@ function Form(props) {
       "POST",
       props.data.url,
       function callback(data) {
+        form
+          .querySelectorAll(".error")
+          .forEach((el) => (el.style.display = "none"));
         if (e.target.dataset.spinning) {
           e.target.querySelector("i.fa-spin").style.display = "none";
           e.target.querySelector(

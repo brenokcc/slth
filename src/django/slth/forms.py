@@ -4,9 +4,6 @@ from typing import Any
 import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
-from django.db.models.fields.files import FieldFile, ImageFieldFile
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.db.models import Model, QuerySet, Manager
 from .models import Token, Profile
@@ -15,8 +12,6 @@ from django.db.models import Manager
 from .exceptions import JsonResponseException
 from .utils import absolute_url, build_url
 from .serializer import Serializer
-from .components import Response
-from .notifications import send_push_web_notification
 from slth import ENDPOINTS
 
 
@@ -247,7 +242,7 @@ class FormMixin:
                 data.update(action=cls.get_api_metadata(self.request, absolute_url(self.request)))
         return data
     
-    def post(self):
+    def submit(self):
         field_name = self.request.GET.get('on_change')
         if field_name:
             return self.on_change(field_name)
@@ -287,7 +282,7 @@ class FormMixin:
                         else:
                             errors.update({f'{prefix}__{name}': error for name, error in inline_form.errors.items()}) 
         if errors:
-            return dict(type='error', text='Please correct the errors.', errors=errors)
+            raise JsonResponseException(dict(type='error', text='Por favor, corrija os erros.', errors=errors))
         else:
             data.update({field_name: self.cleaned_data.get(field_name) for field_name in self.fields if field_name not in inline_fields})
             with transaction.atomic():
@@ -302,14 +297,12 @@ class FormMixin:
                                     setattr(self.instance, inline_field_name, None)
                                 else:
                                     setattr(self.instance, inline_field_name, obj)
-                    response = self.submit()
+                    self.save()
                     for inline_field_name in inline_fields:
                         for obj in self.cleaned_data[inline_field_name]:
                             if hasattr(obj, 'deleting'):
                                 obj.delete()
-                else:
-                    response = self.submit()
-            return response
+                return self.cleaned_data
                 
     def hide(self, *names):
         self.controls['hide'].extend(names)
@@ -378,9 +371,6 @@ class Form(DjangoForm, FormMixin):
             kwargs.update(files=self.request.FILES or None)
         super().__init__(*args, **kwargs)
 
-    def submit(self):
-        pass
-
     def get_fieldsets(self):
         return self.fieldsets
     
@@ -421,10 +411,6 @@ class ModelForm(DjangoModelForm, FormMixin):
         if self.request:
             kwargs.update(files=self.request.FILES or None)
         super().__init__(instance=instance, **kwargs)
-
-    def submit(self):
-        self.instance.delete() if self.delete else self.save()
-        return Response(message='Ação realizada com sucesso')
 
     def get_fieldsets(self):
         return self.fieldsets
@@ -522,41 +508,6 @@ class ModelMultipleChoiceField(ModelMultipleChoiceField):
         self.pick = kwargs.pop('pick', False)
         super().__init__(*args, **kwargs)
 
-class LoginForm(Form):
-    username = CharField(label=_('Username'))
-    password = CharField(label=_('Password'))
-
-    class Meta:
-        title = 'Acesso ao Sistema'
-        width = 350
-
-    def __init__(self, *args, **kwargs):
-        self.token = None
-        super().__init__(*args, **kwargs)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        user = authenticate(self.request, username=cleaned_data.get('username'), password=cleaned_data.get('password'))
-        if user is None:
-            raise ValidationError(_('Username or password are incorect'))
-        else:
-            self.token = Token.objects.create(user=user)
-            return cleaned_data
-        
-    def submit(self):
-        return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=self.token.key, application=None))
-
-class ChangePasswordForm(ModelForm):
-    password = CharField(label=_('Senha'), required=False)
-    class Meta:
-        title = 'Alterar Senha'
-        model = User
-        fields = ()
-
-    def submit(self):
-        self.instance.set_password(self.cleaned_data['password'])
-        return super().submit()
-
 
 class EditProfileForm(ModelForm):
     password = CharField(label=_('Senha'), required=False)
@@ -580,19 +531,6 @@ class EditProfileForm(ModelForm):
             raise ValidationError('As senhas devem ser iguais.')
         return password
         
-    def submit(self):
-        self.save()
-        self.instance.user.set_password(self.cleaned_data.get('password'))
-        self.instance.user.save()
-        return Response(message='Ação realizada com sucesso.', redirect='/api/dashboard/', store=dict(application=None))
-
-class SendPushNotificationForm(Form):
-    message = CharField(label='Text', widget=Textarea())
-
-    def submit(self):
-        send_push_web_notification(self.instance, self.cleaned_data['message'])
-        return Response(message='Notificação enviada com sucesso.')
-
 
 FIELD_TYPES = {
     'CharField': 'text',

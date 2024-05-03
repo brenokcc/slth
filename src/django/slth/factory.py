@@ -1,5 +1,6 @@
+from django.db.models import Model
 class FormFactory:
-    def __init__(self, instance, delete=False):
+    def __init__(self, instance, endpoint=None):
         self._instance = instance
         self._fieldsets = {}
         self._values = {}
@@ -8,7 +9,8 @@ class FormFactory:
         self._title = None
         self._info = None
         self._actions = {}
-        self._delete = delete
+        self._initial = {}
+        self._choices = {}
         self._empty = False
 
     def fields(self, *names, **values) -> 'FormFactory':
@@ -40,6 +42,14 @@ class FormFactory:
         self._info = message
         return self
     
+    def initial(self, **kwargs) -> 'FormFactory':
+        self._initial.update(kwargs)
+        return self
+    
+    def choices(self, **kwargs) -> 'FormFactory':
+        self._choices.update(kwargs)
+        return self
+    
     def actions(self, **kwargs) -> 'FormFactory':
         self._actions.update(kwargs)
         return self
@@ -52,18 +62,23 @@ class FormFactory:
         self._title = title
         return self
 
-    def form(self, request):
-        from .forms import ModelForm, HiddenInput
-        class Form(ModelForm):
-            class Meta:
-                title = self._title or '{} {}'.format(
-                    'Excluir' if self._delete else ('Editar' if self._instance.pk else 'Cadastrar'),
-                    type(self._instance)._meta.verbose_name
-                )
-                model = type(self._instance)
-                fields = () if self._delete or self._empty else (self._fieldlist or '__all__')
-    
-        form = Form(instance=self._instance, request=request, delete=self._delete)
+    def form(self, endpoint):
+        from .forms import ModelForm, Form
+        
+        if isinstance(self._instance, Model):
+            fieldlist = [field.name for field in type(self._instance)._meta.get_fields() if field.name in self._fieldlist]
+            class Form(ModelForm):
+                class Meta:
+                    title = self._title
+                    model = type(self._instance)
+                    fields = () if self._empty else (fieldlist if self._fieldlist else '__all__')
+                
+        form = Form(instance=self._instance, request=endpoint.request, initial=self._initial)
+        for name in self._fieldlist:
+            if name not in form.fields:
+                form.fields[name] = getattr(endpoint, name)
+        for name, queryset in self._choices.items():
+            form.fields[name].queryset = queryset
         form.fieldsets = self._fieldsets
         if self._serializer:
             form.display(self._serializer)
