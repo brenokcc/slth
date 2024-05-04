@@ -24,6 +24,7 @@ import {
   Grid,
   FilePreview,
   Counter,
+  Indicators,
 } from "./Library";
 
 var root;
@@ -79,6 +80,7 @@ ComponentFactory.register(Status, "Status");
 ComponentFactory.register(Progress, "Progress");
 ComponentFactory.register(Color, "Color");
 ComponentFactory.register(Boxes, "Boxes");
+ComponentFactory.register(Indicators, "Indicators");
 ComponentFactory.register(Shell, "Shell");
 ComponentFactory.register(FileLink, "FileLink");
 ComponentFactory.register(FilePreview, "FilePreview");

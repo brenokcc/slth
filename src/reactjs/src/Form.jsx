@@ -1233,6 +1233,10 @@ function Form(props) {
     );
   }
 
+  function getOutput() {
+    return <div id="output"></div>;
+  }
+
   function render() {
     //<Icons />
     return (
@@ -1252,6 +1256,7 @@ function Form(props) {
           {getDisplay()}
           {getFields()}
           {getButtons()}
+          {getOutput()}
         </div>
       </form>
     );
@@ -1282,7 +1287,7 @@ function Form(props) {
           closeDialog();
           reloadState();
           return response(data);
-        } else {
+        } else if (data.type == "error") {
           var message = data.text;
           console.log(data);
           Object.keys(data.errors).map(function (k) {
@@ -1295,6 +1300,12 @@ function Form(props) {
             }
           });
           showMessage(message, true);
+        } else {
+          const output = document.querySelector("#output");
+          output.innerHTML = "";
+          ReactDOM.createRoot(
+            output.appendChild(document.createElement("div"))
+          ).render(<ComponentFactory data={data} />);
         }
       },
       data

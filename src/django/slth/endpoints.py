@@ -8,7 +8,7 @@ from typing import TypeVar, Generic
 from django.core.cache import cache
 from django.conf import settings
 from django.utils.text import slugify
-from django.db import transaction, models
+from django.db import models
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .factory import FormFactory
@@ -24,9 +24,6 @@ from .models import PushSubscription, Profile, User
 from slth.queryset import QuerySet
 from .notifications import send_push_web_notification
 from slth import APPLICATON, ENDPOINTS
-
-
-import slth
 
 
 T = TypeVar("T")
@@ -288,29 +285,7 @@ class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
     def post(self):
         self.get_instance().delete()
         return super().post()
-    
 
-class FormEndpoint(Generic[T], Endpoint):
-
-    def get_form_cls(self):
-        return self.__orig_bases__[0].__args__[0]
-
-    def get(self):
-        return self.get_form_cls()(request=self.request)
-    
-class InstanceFormEndpoint(Generic[T], Endpoint):
-    def __init__(self, pk):
-        self.pk = pk
-        super().__init__()
-
-    def get_form_cls(self):
-        return self.__orig_bases__[0].__args__[0]
-
-    def get_instance(self):
-        return self.get_form_cls().Meta.model.objects.get(pk=self.pk)
-
-    def get(self):
-        return self.get_form_cls()(self.get_instance(), request=self.request)
     
 class ChildEndpoint(Endpoint):
 
@@ -343,30 +318,6 @@ class ChildInstanceEndpoint(ChildEndpoint):
     def serializer(self) -> Serializer:
         return Serializer(self.get_instance()).contextualize(self.request)
     
-class ChildFormEndpoint(Generic[T], Endpoint):
-
-    def get_form_cls(self):
-        return self.__orig_bases__[0].__args__[0]
-
-    def get(self):
-        return self.get_form_cls()(request=self.request, endpoint=self)
-    
-
-class ChildInstanceFormEndpoint(Generic[T], ChildEndpoint):
-
-    def __init__(self, source):
-        self.source = source
-        super().__init__()
-
-    def get_form_cls(self):
-        return self.__orig_bases__[0].__args__[0]
-    
-    def get_instance(self):
-        return self.source
-
-    def get(self):
-        return self.get_form_cls()(instance=self.get_instance(), request=self.request, endpoint=self)
-
 class View(ChildInstanceEndpoint):
     class Meta:
         icon = 'eye'
@@ -529,33 +480,34 @@ class Application(PublicEndpoint):
                             url = build_url(self.request, cls.get_api_url())
                             modal = cls.get_metadata('modal', False)
                             navbar.add_action(entrypoint, label, url, modal)
-            items = []
-            def get_item(k, v):
-                if isinstance(v, dict):
-                    icon, label = k.split(':') if ':' in k else (None, k)
-                    subitems = []
-                    for k1, v1 in v.items():
-                        subitem = get_item(k1, v1)
-                        if subitem:
-                            subitems.append(subitem)
-                    if subitems:
-                        return dict(dict(icon=icon, label=label, items=subitems))
-                else:
-                    cls = ENDPOINTS.get(v)
-                    if cls:
-                        if cls().instantiate(self.request, self).check_permission():
-                            icon, label = k.split(':') if ':' in k else (None, k)
-                            url = build_url(self.request, cls.get_api_url())
-                            return dict(dict(label=label, url=url, icon=icon))
+            if APPLICATON['menu']:
+                items = []
+                def get_item(k, v):
+                    if isinstance(v, dict):
+                        icon, label = k.split(':') if ':' in k else (None, k)
+                        subitems = []
+                        for k1, v1 in v.items():
+                            subitem = get_item(k1, v1)
+                            if subitem:
+                                subitems.append(subitem)
+                        if subitems:
+                            return dict(dict(icon=icon, label=label, items=subitems))
                     else:
-                        print(v)
-            for k, v in APPLICATON['menu'].items():
-                item = get_item(k, v)
-                if item:
-                    items.append(item)
-            profile = Profile.objects.filter(user=self.request.user).first()
-            photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
-            menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
+                        cls = ENDPOINTS.get(v)
+                        if cls:
+                            if cls().instantiate(self.request, self).check_permission():
+                                icon, label = k.split(':') if ':' in k else (None, k)
+                                url = build_url(self.request, cls.get_api_url())
+                                return dict(dict(label=label, url=url, icon=icon))
+                        else:
+                            print(v)
+                for k, v in APPLICATON['menu'].items():
+                    item = get_item(k, v)
+                    if item:
+                        items.append(item)
+                profile = Profile.objects.filter(user=self.request.user).first()
+                photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
+                menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
         footer = Footer(APPLICATON['version'])
         return Application_(icon=icon, navbar=navbar, menu=menu, footer=footer)
     

@@ -6,6 +6,7 @@ import { ComponentFactory } from "./Root.jsx";
 import { GridLayout } from "./Layout";
 import { toLabelCase } from "./Utils";
 import { Link } from "./Link";
+import format from "./Formatter.jsx";
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -316,37 +317,54 @@ function QrCode(props) {
 }
 
 function Indicators(props) {
-  if (props.data) {
-    return (
-      <div className="indicators">
-        <h2 data-label={toLabelCase(props.data.title)}>
-          <TitleCase text={props.data.title} />
-        </h2>
-        <div>
-          {props.data.items.map((item) => (
-            <div key={Math.random()} className="item">
-              <div className="value">{Format(item.value)}</div>
-              <div className="text">
-                <TitleCase text={item.name} />
+  function render() {
+    const style = {
+      color: "white",
+      backgroundColor: "#1451b4",
+      margin: -20,
+      textAlign: "center",
+      paddingTop: 20,
+      paddingBottom: 70,
+    };
+    const number = {
+      fontSize: "4rem",
+      fontWeight: "bold",
+      marginTop: 25,
+    };
+    const text = {
+      fontSize: "1.2rem",
+      maxWidth: 200,
+      margin: "auto",
+    };
+    if (props.data) {
+      return (
+        <div className="indicators" style={style}>
+          <h1 data-label={toLabelCase(props.data.title)}>{props.data.title}</h1>
+          <GridLayout key={Math.random()} width={300}>
+            {props.data.items.map((item) => (
+              <div>
+                <div style={number}>{format(item.value)}</div>
+                <div style={text}>{item.name}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </GridLayout>
+          <div className="actions">
+            {props.data.actions.map((action) => (
+              <Link
+                key={Math.random()}
+                href={apiurl(action.url)}
+                label={action.label}
+                modal={action.modal}
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
         </div>
-        <div className="actions">
-          {props.data.actions.map((action) => (
-            <Link
-              key={Math.random()}
-              href={apiurl(action.url)}
-              label={action.label}
-              modal={action.modal}
-            >
-              {action.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-    );
+      );
+    }
   }
+  return render();
 }
 
 function Grid(props) {
