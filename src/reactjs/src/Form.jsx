@@ -1248,6 +1248,7 @@ function Form(props) {
           width: props.data.width,
           backgroundColor: "white",
         }}
+        method={props.data.method}
       >
         <div>{false && JSON.stringify(props.data)}</div>
         <div style={{ padding: 5 }}>
@@ -1268,11 +1269,21 @@ function Form(props) {
 
   function submit(e) {
     e.preventDefault();
+    var url = props.data.url;
     var form = document.getElementById(id);
     var data = new FormData(form);
+    if (form.method.toUpperCase() == "GET") {
+      url =
+        url +
+        "?form=" +
+        props.data.title +
+        "&" +
+        new URLSearchParams(data).toString();
+      data = null;
+    }
     request(
-      "POST",
-      props.data.url,
+      form.method.toUpperCase(),
+      url,
       function callback(data) {
         form
           .querySelectorAll(".error")

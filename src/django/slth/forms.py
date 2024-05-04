@@ -93,7 +93,7 @@ class FormMixin:
 
     def to_dict(self, prefix=None):
         data = dict(
-            type='form', title=self.get_metadata('title', self._title), icon=self.get_metadata('icon'),
+            type='form', method=self._method, title=self.get_metadata('title', self._title), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request), info=self._info
         )
         data.update(controls=self.controls, width=self.get_metadata('width', '100%'))
@@ -342,6 +342,11 @@ class FormMixin:
     
     def setvalue(self, **kwargs):
         self._values.update(**kwargs)
+        return self
+
+    def method(self, value):
+        self._method = value
+        return self
     
 
 class Form(DjangoForm, FormMixin):
@@ -358,6 +363,7 @@ class Form(DjangoForm, FormMixin):
         self._values = {}
         self._title = type(self).__name__
         self._actions = {}
+        self._method = 'POST'
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
@@ -397,6 +403,7 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._values = {}
         self._title = type(self).__name__
         self._actions = {}
+        self._method = 'POST'
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':

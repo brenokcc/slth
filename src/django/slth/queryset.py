@@ -239,6 +239,8 @@ class QuerySet(models.QuerySet):
         queryset_actions = []
 
         base_url = append_url(build_url(self.request), 'only={}'.format(attrname) if attrname else '')
+        if self.request.GET.urlencode():
+            base_url = append_url(base_url, self.request.GET.urlencode())
 
         for qualified_name in self.metadata.get('actions', ()):
             cls = slth.ENDPOINTS[qualified_name]

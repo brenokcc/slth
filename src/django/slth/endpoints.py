@@ -125,13 +125,15 @@ class Endpoint(metaclass=EnpointMetaclass):
         elif isinstance(data, Serializer):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):
-            data = self.getform(data.settitle(title).form(self))
-            if self.request.method == 'POST':
+            form = self.getform(data.settitle(title).form(self))
+            if self.request.method == 'POST' or self.request.GET.get('form') == title:
                 try:
-                    self.cleaned_data = data.submit()
+                    self.cleaned_data = form.submit()
                     return self.post()
                 except ValidationError as e:
                     raise JsonResponseException(dict(type='error', text='\n'.join(e.messages), errors={}))
+            else:
+                data = form
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
         return data
@@ -142,8 +144,8 @@ class Endpoint(metaclass=EnpointMetaclass):
     def to_response(self):
         return ApiResponse(self.serialize(), safe=False)
     
-    def formfactory(self, instance=None) -> FormFactory:
-        return FormFactory(instance)
+    def formfactory(self, instance=None, method='POST') -> FormFactory:
+        return FormFactory(instance, method=method)
     
     def serializer(self, instance=None) -> Serializer:
         return Serializer(instance or self).contextualize(self.request)
