@@ -29,7 +29,75 @@ MASKS = dict(
     cnpj='99.999.999/9999-99',
     telefone='(99) 99999-9999',
 )
+
+class FormController:
+
+    def __init__(self, form):
+        super().__init__()
+        self.form = form
+        self.controls = dict(hide=[], show=[], set={})
     
+    def hide(self, *names):
+        self.controls['hide'].extend(names)
+
+    def show(self, *names):
+        self.controls['show'].extend(names)
+
+    def set(self, **kwargs):
+        for k, v in kwargs.items():
+            if isinstance(v, Model):
+                v = dict(id=v.id, value=str(v))
+            elif isinstance(v, QuerySet) or isinstance(v, Manager):
+                v = [dict(id=v.id, value=str(v)) for v in v]
+            elif isinstance(v, bool):
+                v = str(v).lower()
+            elif isinstance(v, datetime.datetime):
+                v = v.strftime('%Y-%m-%d %H:%M')
+            elif isinstance(v, datetime.date):
+                v = v.strftime('%Y-%m-%d')
+            self.controls['set'][k] = v
+
+    def get(self, name, value, default=None):
+        if value is None:
+            return default
+        else:
+            try:
+                value = self.form.fields[name].to_python(value)
+            except KeyError:
+                pass
+            except ValidationError:
+                pass
+            return default if value is None else value
+        
+    def clear(self):
+        self.controls['show'].clear()
+        self.controls['hide'].clear()
+        self.controls['set'].clear()
+
+    def on_change(self, field_name):
+        self.clear()
+        getattr(self.form._endpoint, f'on_{field_name}_change')(self, self.values())
+        return self.controls
+    
+    def get_field_queryset(self, fname, qs):
+        method_attr = None
+        method_name = f'get_{fname}_queryset'
+        if hasattr(self.form._endpoint, method_name):
+            method_attr = getattr(self.form._endpoint, method_name)
+        elif hasattr(self.form, 'instance') and hasattr(self.form.instance, method_name):
+            method_attr = getattr(self.form.instance, method_name)
+
+        if method_attr:
+            qs = method_attr(qs, self.values())
+        return qs
+    
+    def values(self):
+        data = dict(**self.controls['set'])
+        for name in self.form.fields:
+            value = self.get(name, self.form.request.GET.get(name))
+            if value:
+                data[name] = value
+        return data
 
 class FormMixin:
 
@@ -40,7 +108,6 @@ class FormMixin:
     def parse_json(self):
         content_type = self.request.META.get('CONTENT_TYPE')
         method = self.request.method.lower()
-        # 'application/x-www-form-urlencoded'
         if content_type and content_type.lower() in 'application/json':
             if method == 'get' or method == 'post':
                 d1 = json.loads(self.request.body.decode()) if self.request.body else {}
@@ -67,45 +134,32 @@ class FormMixin:
     def get_metadata(cls, name, default=None):
         metaclass = getattr(cls, 'Meta', None)
         return getattr(metaclass, name, default) if metaclass else default
-    
-    def on_change(self, field_name):
-        self.controls['show'].clear()
-        self.controls['hide'].clear()
-        self.controls['set'].clear()
-        values = {}
-        for name2 in self.fields:
-            value2 = self.getdata(name2, self.request.POST.get(name2))
-            if value2:
-                values[name2] = value2
-        getattr(self, f'on_{field_name}_change')(values)
-        return self.controls
 
     def serialize(self):
         return self.to_dict()
-        # try:
-        #     return self.to_dict()
-        # except JsonResponseException as e:
-        #     return e.data
         
     def display(self, serializable):
-        self.display_data = serializable
+        self._display = serializable
         return self
 
     def to_dict(self, prefix=None):
+        field_name = self.request.GET.get('on_change')
+        if field_name:
+            raise JsonResponseException(self.controller.on_change(field_name))
+        
         data = dict(
             type='form', method=self._method, title=self.get_metadata('title', self._title), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request), info=self._info
         )
-        data.update(controls=self.controls, width=self.get_metadata('width', '100%'))
-        if self.display_data:
-            if isinstance(self.display_data, Serializer):
-                # self.display_data.request = self.request
-                data.update(display=self.display_data.serialize(forward_exception=True)['data'])
+        data.update(controls=self.controller.controls, width=self.get_metadata('width', '100%'))
+        if self._display:
+            if isinstance(self._display, Serializer):
+                # self._display.request = self.request
+                data.update(display=self._display.serialize(forward_exception=True)['data'])
         choices_field_name = self.request.GET.get('choices')
-        fieldsets = self.get_fieldsets()
-        if fieldsets:
+        if self.fieldsets:
             fieldsetlist = []
-            for title, names in fieldsets.items():
+            for title, names in self.fieldsets.items():
                 fields = []
                 if prefix:
                     value = self.instance.pk if isinstance(self, ModelForm) else ''
@@ -145,10 +199,10 @@ class FormMixin:
                     instances.extend(getattr(self.instance, name).all() if self.instance.id else ())
             for i, instance in enumerate(instances):
                 prefix = name if is_one_to_one else f'{name}__{i}'
-                kwargs = dict(instance=instance, request=self.request) if isinstance(field, InlineModelField) else dict(request=self.request)
+                kwargs = dict(instance=instance, request=self.request) if isinstance(field, InlineModelField) else dict(endpoint=self._endpoint)
                 value.append(field.form(**kwargs).to_dict(prefix=prefix))
             if not is_one_to_one:
-                value.append(field.form(request=self.request).to_dict(prefix=f'{name}__n'))
+                value.append(field.form(endpoint=self._endpoint).to_dict(prefix=f'{name}__n'))
             required = getattr(field, 'required2', field.required)
             data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
         else:
@@ -206,23 +260,7 @@ class FormMixin:
                     if isinstance(field.choices, ModelChoiceIterator) and not pick:
                         if choices_field_name == fname:
                             qs = field.choices.queryset
-                            
-                            method_attr = None
-                            method_name = f'get_{fname}_queryset'
-                            if hasattr(self, method_name):
-                                method_attr = getattr(self, method_name)
-                            elif hasattr(self, 'instance') and hasattr(self.instance, method_name):
-                                method_attr = getattr(self.instance, method_name)
-
-                            if method_attr:
-                                values = dict(user=self.request.user)
-                                values.update(**self._values)
-                                for name2 in self.fields:
-                                    value2 = self.getdata(name2, self.request.GET.get(name2))
-                                    if value2:
-                                        values[name2] = value2
-                                qs = method_attr(qs, values)
-                            
+                            qs = self.controller.get_field_queryset(fname, qs)
                             if 'term' in self.request.GET:
                                 qs = qs.apply_search(self.request.GET['term'])
                             raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in qs[0:10]])
@@ -234,7 +272,7 @@ class FormMixin:
                         data.update(pick=True)
                     
         attr_name = f'on_{name}_change'
-        if hasattr(self, attr_name):
+        if hasattr(self._endpoint, attr_name):
             data['onchange'] = absolute_url(self.request, f'on_change={name}')
         if name in self._actions:
             cls = ENDPOINTS[self._actions[name]]
@@ -243,10 +281,6 @@ class FormMixin:
         return data
     
     def submit(self):
-        field_name = self.request.GET.get('on_change')
-        if field_name:
-            return self.on_change(field_name)
-
         data = {}
         errors = {}
         inline_fields = {name: field for name, field in self.fields.items() if isinstance(field, InlineFormField) or isinstance(field, InlineModelField)}
@@ -303,38 +337,6 @@ class FormMixin:
                             if hasattr(obj, 'deleting'):
                                 obj.delete()
                 return self.cleaned_data
-                
-    def hide(self, *names):
-        self.controls['hide'].extend(names)
-
-    def show(self, *names):
-        self.controls['show'].extend(names)
-
-    def setdata(self, **kwargs):
-        for k, v in kwargs.items():
-            if isinstance(v, Model):
-                v = dict(id=v.id, value=str(v))
-            elif isinstance(v, QuerySet) or isinstance(v, Manager):
-                v = [dict(id=v.id, value=str(v)) for v in v]
-            elif isinstance(v, bool):
-                v = str(v).lower()
-            elif isinstance(v, datetime.datetime):
-                v = v.strftime('%Y-%m-%d %H:%M')
-            elif isinstance(v, datetime.date):
-                v = v.strftime('%Y-%m-%d')
-            self.controls['set'][k] = v
-
-    def getdata(self, name, value, default=None):
-        if value is None:
-            return default
-        else:
-            try:
-                value = self.fields[name].to_python(value)
-            except KeyError:
-                pass
-            except ValidationError:
-                pass
-            return default if value is None else value
 
     def settitle(self, title):
         self._title = title 
@@ -343,27 +345,29 @@ class FormMixin:
     def setvalue(self, **kwargs):
         self._values.update(**kwargs)
         return self
-
-    def method(self, value):
-        self._method = value
+    
+    def actions(self, **kwargs):
+        self._actions.update(kwargs)
         return self
     
 
 class Form(DjangoForm, FormMixin):
     
-    def __init__(self, *args, request=None, endpoint=None, **kwargs):
-        self.fieldsets = {}
-        self.fields = dict(self.fieldsets)
-        self.display_data = []
-        self.controls = dict(hide=[], show=[], set={})
-        self.instance = kwargs.pop('instance', None)
-        self.endpoint = endpoint
-        self.request = request
+    def __init__(self, *args, endpoint=None, **kwargs):
+        self._display = []
+        self._endpoint = endpoint
         self._info = None
         self._values = {}
         self._title = type(self).__name__
         self._actions = {}
         self._method = 'POST'
+
+        self.fieldsets = {}
+        self.fields = {}
+        self.request = endpoint.request
+        self.controller = FormController(self)
+        self.instance = kwargs.pop('instance', None)
+
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
@@ -377,33 +381,22 @@ class Form(DjangoForm, FormMixin):
             kwargs.update(files=self.request.FILES or None)
         super().__init__(*args, **kwargs)
 
-    def get_fieldsets(self):
-        return self.fieldsets
-    
-    def info(self, message):
-        self._info = message
-        return self
-    
-    def actions(self, **kwargs):
-        self._actions.update(kwargs)
-        return self
-
 
 class ModelForm(DjangoModelForm, FormMixin):
 
-    def __init__(self, instance=None, request=None, endpoint=None, delete=False, **kwargs):
-        self.fieldsets = {}
-        self.display_data = []
-        self.controls = dict(hide=[], show=[], set={})
-        self.request = request
-        self.endpoint = endpoint
-        self.endpoint = kwargs.pop('endpoint', None)
-        self.delete = delete
+    def __init__(self, instance=None, endpoint=None, **kwargs):
+        self._display = []
+        self._endpoint = endpoint
         self._info = None
         self._values = {}
         self._title = type(self).__name__
         self._actions = {}
         self._method = 'POST'
+
+        self.fieldsets = {}
+        self.request = endpoint.request
+        self.controller = FormController(self)
+        
         self.parse_json()
         if 'data' not in kwargs:
             if self.request.method.upper() == 'GET':
@@ -418,17 +411,6 @@ class ModelForm(DjangoModelForm, FormMixin):
         if self.request:
             kwargs.update(files=self.request.FILES or None)
         super().__init__(instance=instance, **kwargs)
-
-    def get_fieldsets(self):
-        return self.fieldsets
-    
-    def info(self, message):
-        self._info = message
-        return self
-    
-    def actions(self, **kwargs):
-        self._actions.update(kwargs)
-        return self
 
 class InlineFormField(Field):
     def __init__(self, *args, form=None, min=1, max=3, **kwargs):
@@ -451,7 +433,7 @@ class InlineModelField(Field):
                 else:
                     field_names.extend(field_name)
             self.form = modelform_factory(model, form=ModelForm, fields=field_names, exclude=exclude)
-            self.form.get_fieldsets = lambda _self: {None: fields}
+            self.form.fieldsets = {None: fields}
         self.max = max
         self.min = min
         super().__init__(*args,  **kwargs)
@@ -514,29 +496,6 @@ class ModelMultipleChoiceField(ModelMultipleChoiceField):
     def __init__(self, *args, **kwargs):
         self.pick = kwargs.pop('pick', False)
         super().__init__(*args, **kwargs)
-
-
-class EditProfileForm(ModelForm):
-    password = CharField(label=_('Senha'), required=False)
-    password2 = CharField(label=_('Confirmação'), required=False)
-
-    class Meta:
-        title = 'Editar Perfil'
-        model = Profile
-        fields = 'photo',
-
-    def get_fieldsets(self):
-        return {
-            'Dados Gerais': ('photo',),
-            'Dados de Acesso': (('password', 'password2'),)
-        }
-
-    def clean_password(self):
-        password = self.data.get('password')
-        password2 = self.data.get('password2')
-        if password and password != password2:
-            raise ValidationError('As senhas devem ser iguais.')
-        return password
         
 
 FIELD_TYPES = {

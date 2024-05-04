@@ -1,11 +1,12 @@
 from django.db.models import Model
+from .serializer import Serializer
 class FormFactory:
     def __init__(self, instance, endpoint=None, method='POST'):
         self._instance = instance
         self._fieldsets = {}
         self._values = {}
         self._fieldlist = []
-        self._serializer = None
+        self._display = {}
         self._title = None
         self._info = None
         self._actions = {}
@@ -35,8 +36,8 @@ class FormFactory:
                 self._fieldlist.extend(field)
         return self
     
-    def display(self, serializer) -> 'FormFactory':
-        self._serializer = serializer
+    def display(self, title, fields) -> 'FormFactory':
+        self._display[title] = fields
         return self
     
     def info(self, message) -> 'FormFactory':
@@ -73,21 +74,21 @@ class FormFactory:
                     model = type(self._instance)
                     fields = () if self._empty else (fieldlist if self._fieldlist else '__all__')
                 
-        form = Form(instance=self._instance, request=endpoint.request, initial=self._initial)
-        form.settitle(self._title)
-        form.method(self._method)
+        form = Form(instance=self._instance, endpoint=endpoint, initial=self._initial)
+        form._title = self._title
+        form._method = self._method
+        form._info = self._info
+        form._actions = self._actions
         for name in self._fieldlist:
             if name not in form.fields:
                 form.fields[name] = getattr(endpoint, name)
         for name, queryset in self._choices.items():
             form.fields[name].queryset = queryset
         form.fieldsets = self._fieldsets
-        if self._serializer:
-            form.display(self._serializer)
-        if self._info:
-            form.info(self._info)
-        if self._actions:
-            form.actions(**self._actions)
-        if self._values:
-            form.setvalue(**self._values)
+        form.setvalue(**self._values)
+        if self._display:
+            serializer = Serializer(self._instance, request=endpoint.request)
+            for title, fields in self._display.items():
+                serializer.fieldset(title, fields)
+            form._display = serializer
         return form

@@ -56,7 +56,7 @@ class MinhasConsultas(endpoints.ListEndpoint[Consulta]):
 
 class Consultar(endpoints.AddEndpoint[Consulta]):
     def get(self):
-        return super().get().setvalue(
+        return super().get().fields(
             consultante=Consultante.objects.get(cpf=self.request.user.username)
         )
     
@@ -202,6 +202,7 @@ class ConsultarIA(endpoints.ChildInstanceEndpoint):
     def get(self):
         return (
             self.formfactory()
+            .display('Dados Gerais', (('topico', 'get_limite_resposta'),))
             .info('Abaixo serão listados os arquivos específicos do cliente. Para realizar a consulta com base neles ao invés dos arquivos da base de conhecimento, selecione uma ou mais opção.')
             .initial(pergunta_ia=self.instance.pergunta)
             .choices(arquivos=self.instance.consultante.cliente.arquivocliente_set.all())
@@ -218,6 +219,13 @@ class ConsultarIA(endpoints.ChildInstanceEndpoint):
 
     def check_permission(self):
         return self.check_role('especialista') and self.get_instance().especialista_id and not self.get_instance().data_resposta
+    
+    def get_arquivos_queryset(self, queryset, values):
+        return queryset
+    
+    def on_consultante_change(self, controller, values):
+        if values.get('pergunta_ia'): controller.show('pergunta_ia')
+        else: controller.show('pergunta_ia')
 
 class EnviarResposta(endpoints.ChildInstanceEndpoint):
     class Meta:

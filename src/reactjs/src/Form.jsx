@@ -44,9 +44,13 @@ function isImage(url) {
   }
 }
 
-function formChange(form, url) {
-  var data = new FormData(form);
-  request("POST", url, formControl, data);
+function formChange(input, url) {
+  console.log(input);
+  const form = input.closest("form");
+  const data = new FormData(form);
+  const sep = url.indexOf("?") >= 0 ? "&" : "?";
+  url += sep + new URLSearchParams(data).toString();
+  request("GET", url, formControl);
 }
 function formHide(name) {
   if (name) {
@@ -61,7 +65,7 @@ function formShow(name) {
     var fieldset = document.querySelector(".form-fieldset." + name);
     if (fieldset) fieldset.style.display = "block";
     var field = document.querySelector(".form-group." + name);
-    if (field) field.style.display = "inline-block";
+    if (field) field.style.display = "flex";
   }
 }
 function formValue(name, value) {
@@ -87,6 +91,7 @@ function formValue(name, value) {
   }
 }
 function formControl(controls) {
+  console.log(controls);
   if (controls) {
     for (var i = 0; i < controls.hide.length; i++) formHide(controls.hide[i]);
     for (var i = 0; i < controls.show.length; i++) formShow(controls.show[i]);
@@ -285,7 +290,7 @@ function InputField(props) {
   }, []);
 
   function onBlur(e) {
-    formChange(e.target.closest("form"), props.data.onchange);
+    formChange(e.target, props.data.onchange);
   }
 
   function onChange(e) {
@@ -494,7 +499,7 @@ function Selector(props) {
   let timeout;
 
   useEffect(() => {
-    select(initial);
+    select(initial, true);
     document.getElementById(id).addEventListener("customchange", function (e) {
       select(e.detail.value);
       reactTriggerChange(document.getElementById(props.data.name));
@@ -532,14 +537,9 @@ function Selector(props) {
     }
   }
 
-  function onChange(e) {
-    setOptions([]);
-  }
-
   function getSelect() {
     return (
       <select
-        onChange={onChange}
         id={id}
         name={props.data.name}
         multiple={multiple}
@@ -645,27 +645,30 @@ function Selector(props) {
   function onLeaveInput(e) {
     choosing = false;
     setTimeout(function () {
-      hide(e);
+      if (!choosing) hide(e);
     }, 250);
   }
 
   function hide(e) {
     const widget = document.getElementById(id);
-    const input = document.getElementById(id2);
-    if (!multiple) {
-      if (
-        widget.options.length > 0 &&
-        input.value != widget.options[0].innerHTML
-      ) {
-        widget.innerHTML = "";
-        input.value = "";
-        setSearching(false);
+    if (widget) {
+      const input = document.getElementById(id2);
+      if (!multiple) {
+        if (
+          widget.options.length > 0 &&
+          input.value != widget.options[0].innerHTML
+        ) {
+          widget.innerHTML = "";
+          input.value = "";
+          setSearching(false);
+          if (props.data.onchange) formChange(input, props.data.onchange);
+        }
       }
-    }
-    if (e.target.tagName == "UL") {
-      setSearching(false);
-    } else {
-      if (!choosing) setSearching(false);
+      if (e.target.tagName == "UL") {
+        setSearching(false);
+      } else {
+        if (!choosing) setSearching(false);
+      }
     }
   }
 
@@ -684,7 +687,7 @@ function Selector(props) {
     }, 1000);
   }
 
-  function select(value) {
+  function select(value, initializing = false) {
     const widget = document.getElementById(id);
     const input = document.getElementById(id2);
     if (widget.innerHTML == undefined) widget.innerHTML = "";
@@ -703,8 +706,9 @@ function Selector(props) {
         input.value = value.value;
       }
     }
-    if (props.data.onchange)
-      formChange(input.closest("form"), props.data.onchange);
+    if (props.data.onchange && !initializing) {
+      formChange(input, props.data.onchange);
+    }
   }
 
   function remove(i) {
