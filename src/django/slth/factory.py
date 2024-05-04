@@ -14,6 +14,7 @@ class FormFactory:
         self._choices = {}
         self._empty = False
         self._method = method
+        self._hidden= []
 
     def fields(self, *names, **values) -> 'FormFactory':
         not_str = {name for name in names if not isinstance(name, str)}
@@ -63,6 +64,10 @@ class FormFactory:
     def settitle(self, title) -> 'FormFactory':
         self._title = title
         return self
+    
+    def hidden(self, *names):
+        self._hidden.extend(names)
+        return self
 
     def form(self, endpoint):
         from .forms import ModelForm, Form
@@ -91,4 +96,6 @@ class FormFactory:
             for title, fields in self._display.items():
                 serializer.fieldset(title, fields)
             form._display = serializer
+        if self._hidden:
+            form.controller.hide(*self._hidden)
         return form

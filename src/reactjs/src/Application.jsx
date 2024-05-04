@@ -72,7 +72,9 @@ function Application(props) {
     }
     window.addEventListener("resize", () => {
       const menu = document.querySelector("aside");
-      menu.style.display = window.innerWidth < SMALL_WIDTH ? "none" : "block";
+      if (menu) {
+        menu.style.display = window.innerWidth < SMALL_WIDTH ? "none" : "block";
+      }
     });
   }, []);
 

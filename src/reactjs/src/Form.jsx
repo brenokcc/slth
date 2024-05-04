@@ -45,7 +45,6 @@ function isImage(url) {
 }
 
 function formChange(input, url) {
-  console.log(input);
   const form = input.closest("form");
   const data = new FormData(form);
   const sep = url.indexOf("?") >= 0 ? "&" : "?";
@@ -91,7 +90,6 @@ function formValue(name, value) {
   }
 }
 function formControl(controls) {
-  console.log(controls);
   if (controls) {
     for (var i = 0; i < controls.hide.length; i++) formHide(controls.hide[i]);
     for (var i = 0; i < controls.show.length; i++) formShow(controls.show[i]);
@@ -233,9 +231,10 @@ function Field(props) {
       display: props.data.type == "hidden" ? "none" : "flex",
       flexDirection: "column",
       padding: 5,
+      width: "100%",
     };
     return (
-      <div id={id} className={"form-group " + props.data.name} style={style}>
+      <div id={id} style={style}>
         {renderLabel()}
         {renderInput()}
         {renderHelpText()}
@@ -784,6 +783,9 @@ function Radio(props) {
   function toogle(id) {
     var radio = document.getElementById(id);
     if (field["checked"]) radio.checked = false;
+    if (props.data.onchange) {
+      formChange(radio, props.data.onchange);
+    }
   }
 
   function ischecked(id) {
@@ -794,25 +796,35 @@ function Radio(props) {
   function render() {
     return field.choices.length > 0 ? (
       <div className="radio-group">
-        {field.choices.map((choice, i) => (
-          <div key={key + i} style={{ paddingTop: 10 }}>
-            <input
-              id={field.name + key + i}
-              type="radio"
-              name={field.name}
-              defaultValue={choice.id}
-              defaultChecked={checked(choice)}
-              data-label={toLabelCase(choice.value)}
-              onClick={function () {
-                toogle(field.name + key + i);
-              }}
-              onMouseEnter={function () {
-                ischecked(field.name + key + i);
-              }}
-            />
-            <label htmlFor={field.name + key + i}>{choice.value}</label>
-          </div>
-        ))}
+        {field.choices.map(
+          (choice, i) =>
+            choice.id && (
+              <div
+                key={key + i}
+                style={{
+                  paddingTop: 10,
+                  display: "inline-block",
+                  marginRight: 25,
+                }}
+              >
+                <input
+                  id={field.name + key + i}
+                  type="radio"
+                  name={field.name}
+                  defaultValue={choice.id}
+                  defaultChecked={checked(choice)}
+                  data-label={toLabelCase(choice.value)}
+                  onClick={function () {
+                    toogle(field.name + key + i);
+                  }}
+                  onMouseEnter={function () {
+                    ischecked(field.name + key + i);
+                  }}
+                />
+                <label htmlFor={field.name + key + i}>{choice.value}</label>
+              </div>
+            )
+        )}
       </div>
     ) : (
       <i>Nenhuma opção disponível para seleção.</i>
@@ -843,7 +855,10 @@ function Checkbox(props) {
     return field.choices.length > 0 ? (
       <div className="checkbox-group">
         {field.choices.map((choice, i) => (
-          <div key={key + i} style={{ paddingTop: 10 }}>
+          <div
+            key={key + i}
+            style={{ paddingTop: 10, display: "inline-block", marginRight: 25 }}
+          >
             <input
               id={field.name + key + i}
               type="checkbox"
@@ -1134,6 +1149,13 @@ function OneToMany(props) {
 }
 
 function FormContent(props) {
+  useEffect(() => {
+    if (props.data.controls) {
+      console.log(props.data.controls);
+      formControl(props.data.controls);
+    }
+  }, []);
+
   function renderField(field) {
     return field.type == "inline" ? (
       (field.max == field.min) == 1 ? (
@@ -1165,24 +1187,23 @@ function FormContent(props) {
               >
                 {fieldset.title}
               </h2>
-              <div className="fieldset-fields">
-                {fieldset.fields.map((list) => (
-                  <div key={Math.random()}>
-                    {list.map((field) => (
-                      <div
-                        key={Math.random()}
-                        style={{
-                          width: 100 / list.length + "%",
-                          display:
-                            field.type == "hidden" ? "none" : "inline-block",
-                        }}
-                      >
-                        {renderField(field)}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+              {fieldset.fields.map((list) => (
+                <div key={Math.random()}>
+                  {list.map((field) => (
+                    <div
+                      className={"form-group " + field.name}
+                      key={Math.random()}
+                      style={{
+                        width: 100 / list.length + "%",
+                        display:
+                          field.type == "hidden" ? "none" : "inline-block",
+                      }}
+                    >
+                      {renderField(field)}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </>
           )}
         </div>
