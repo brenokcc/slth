@@ -425,7 +425,7 @@ class QuerySet(models.QuerySet):
                 choices = [{'id': '', 'value':''}]
                 choices.extend([{'id': k, 'value': v} for k, v in field.choices])
                 choices.append({'id': 'null', 'value':'Nulo'})
-            data = dict(name=name, type=field_type, value=value, label=str(field.verbose_name), required=False, mask=None)
+            data = dict(name=name, type=field_type, value=value, label=str(field.verbose_name).title(), required=False, mask=None)
             if choices:
                 data.update(choices=choices)
             return data

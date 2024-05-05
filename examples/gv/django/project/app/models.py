@@ -466,6 +466,7 @@ class Consulta(models.Model):
     objects = ConsultaQuerySet()
 
     class Meta:
+        icon = 'file-signature'
         verbose_name = 'Consulta'
         verbose_name_plural = 'Consultas'
 

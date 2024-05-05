@@ -119,7 +119,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     
     def process(self):
         data = self.get()
-        title = self.get_metadata('verbose_name')
+        title = self.get_verbose_name()
         if isinstance(data, models.QuerySet):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, Serializer):
@@ -223,6 +223,9 @@ class Endpoint(metaclass=EnpointMetaclass):
             if key == 'modal':
                 value = issubclass(cls, EditEndpoint) or issubclass(cls, DeleteEndpoint) or issubclass(cls, Endpoint) or issubclass(cls, ChildEndpoint)
         return default if value is None else value
+    
+    def get_verbose_name(self):
+        return self.get_metadata('verbose_name')
 
 class PublicEndpoint(Endpoint):
     def check_permission(self):
@@ -275,6 +278,9 @@ class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
 
     def get(self) -> Serializer:
         return self.get_instance().serializer().contextualize(self.request)
+    
+    def get_verbose_name(self):
+        return str(self.get_instance())
         
 class EditEndpoint(Generic[T], ModelInstanceEndpoint):
     def get(self) -> FormFactory:
@@ -426,6 +432,15 @@ class ChangePassword(ChildInstanceEndpoint):
         self.instance.set_password(self.cleaned_data['password'])
         self.instance.save()
         super().post()
+
+class Home(PublicEndpoint):
+    class Meta:
+        verbose_name = ''
+
+    def get(self):
+        cls = ENDPOINTS[APPLICATON['index']]
+        self.redirect(cls.get_api_url())
+
 
 class Dashboard(Endpoint):
     class Meta:

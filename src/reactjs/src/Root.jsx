@@ -48,7 +48,7 @@ ComponentFactory.render = function (element) {
   if (document.location.pathname == "/") {
     localStorage.getItem("token")
       ? window.reload("/app/dashboard/")
-      : window.reload("/app/login/");
+      : window.reload("/app/home/");
   } else if (
     document.location.pathname == "/app/login/" &&
     (localStorage.getItem("token") || localStorage.getItem("application"))

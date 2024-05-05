@@ -58,3 +58,10 @@ input[type="checkbox"], input[type="radio"]{
     transform: scale(1);
     border-radius: 50%;
   }
+
+  form.login {
+    width: 300px;
+  }
+  form.login h1{
+    text-align: center;
+  }

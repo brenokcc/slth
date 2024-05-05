@@ -320,7 +320,7 @@ function Indicators(props) {
   function render() {
     const style = {
       color: "white",
-      backgroundColor: "#1451b4",
+      backgroundColor: "#071e41",
       margin: -20,
       textAlign: "center",
       paddingTop: 20,

@@ -231,7 +231,7 @@ function Field(props) {
       display: props.data.type == "hidden" ? "none" : "flex",
       flexDirection: "column",
       padding: 5,
-      width: "100%",
+      width: "calc(100%-5px)",
     };
     return (
       <div id={id} style={style}>
@@ -505,7 +505,7 @@ function Selector(props) {
     });
   }, []);
 
-  function getSelections() {
+  function renderSelections() {
     const select = document.getElementById(id);
     if (multiple) {
       const style1 = { padding: 5, display: "inline" };
@@ -536,7 +536,7 @@ function Selector(props) {
     }
   }
 
-  function getSelect() {
+  function renderSelect() {
     return (
       <select
         id={id}
@@ -548,7 +548,7 @@ function Selector(props) {
     );
   }
 
-  function getSelector() {
+  function renderSelector() {
     const style = { ...INPUT_STYLE, ...(props.style || {}) };
     const ul = {
       padding: 0,
@@ -562,6 +562,7 @@ function Selector(props) {
     ul.position = "absolute";
     ul.backgroundColor = "white";
     const widget = document.getElementById(id2);
+    if (props.data.icon) style.paddingLeft = 30;
     if (widget) {
       let dialog = null;
       let element = widget;
@@ -594,6 +595,12 @@ function Selector(props) {
       (!multiple && initial.length > 0 && initial[0]["value"]) || "";
     return (
       <>
+        {props.data.icon && (
+          <Icon
+            icon={props.data.icon}
+            style={{ position: "absolute", marginLeft: 40, color: "#d9d9d9" }}
+          />
+        )}
         <input
           id={id2}
           name={props.data.name + "__autocomplete"}
@@ -727,9 +734,9 @@ function Selector(props) {
   function render() {
     return (
       <>
-        {getSelections()}
-        {getSelect()}
-        {getSelector()}
+        {renderSelections()}
+        {renderSelect()}
+        {renderSelector()}
       </>
     );
   }
@@ -899,20 +906,6 @@ function Select(props) {
       </select>
     </>
   );
-}
-
-function Separator(props) {
-  function render() {
-    const style = {
-      width: "50%",
-      margin: "auto",
-      border: "solid 0.5px #DDD",
-      marginTop: 30,
-      marginBottom: 30,
-    };
-    return <div style={style}></div>;
-  }
-  return render();
 }
 
 function OneToOne(props) {
@@ -1216,8 +1209,8 @@ function FormContent(props) {
 function Form(props) {
   const id = Math.random();
 
-  function getTitle() {
-    const style = { margin: 0, textAlign: "left" };
+  function renderTitle() {
+    const style = { margin: 0 };
     return <h1 style={style}>{props.data.title}</h1>;
   }
 
@@ -1225,7 +1218,7 @@ function Form(props) {
     return props.data.info && <Instruction data={{ text: props.data.info }} />;
   }
 
-  function getDisplay() {
+  function renderDisplay() {
     if (props.data.display) {
       return (
         <>
@@ -1238,11 +1231,11 @@ function Form(props) {
     }
   }
 
-  function getFields() {
+  function renderFields() {
     return <FormContent data={props.data} />;
   }
 
-  function getButtons() {
+  function renderButtons() {
     return (
       <div style={{ marginTop: 20, textAlign: "right" }}>
         <Button onClick={cancel} label="Cancelar" default display="inline" />
@@ -1258,7 +1251,7 @@ function Form(props) {
     );
   }
 
-  function getOutput() {
+  function renderOutput() {
     return <div id="output"></div>;
   }
 
@@ -1267,22 +1260,22 @@ function Form(props) {
     return (
       <form
         id={id}
+        className={toLabelCase(props.data.title)}
         action={props.data.url}
         style={{
           margin: "auto",
-          width: props.data.width,
           backgroundColor: "white",
         }}
         method={props.data.method}
       >
         <div>{false && JSON.stringify(props.data)}</div>
         <div style={{ padding: 5 }}>
-          {getTitle()}
+          {renderTitle()}
           {renderInstruction()}
-          {getDisplay()}
-          {getFields()}
-          {getButtons()}
-          {getOutput()}
+          {renderDisplay()}
+          {renderFields()}
+          {renderButtons()}
+          {renderOutput()}
         </div>
       </form>
     );

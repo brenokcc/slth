@@ -204,7 +204,8 @@ class FormMixin:
             if not is_one_to_one:
                 value.append(field.form(endpoint=self._endpoint).to_dict(prefix=f'{name}__n'))
             required = getattr(field, 'required2', field.required)
-            data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=field.label, required=required, value=value)
+            label = field.label.title() if field.label else field.label
+            data = dict(type='inline', min=field.min, max=field.max, name=name, count=len(instances), label=label, required=required, value=value)
         else:
             extra = {}
             ftype = FIELD_TYPES.get(type(field).__name__, 'text')

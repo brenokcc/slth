@@ -8,6 +8,7 @@ import { Menu } from "./Menu.jsx";
 import { Icon } from "./Icon.jsx";
 import { PushWebNotification } from "./Notification.jsx";
 import toLabelCase from "./Utils.jsx";
+import Link from "./Link.jsx";
 
 function Floating(props) {
   function render() {
@@ -104,15 +105,18 @@ function Application(props) {
       name: "search",
       required: false,
       type: "choice",
+      icon: "search",
     };
     return props.data.navbar ? (
       <div style={style}>
         <div style={{ padding: 20 }}>
-          <Icon
-            icon="navicon"
-            style={{ fontSize: "1.5rem", marginRight: 10, cursor: "pointer" }}
-            onClick={toggleMenu}
-          />
+          {props.data.menu && (
+            <Icon
+              icon="navicon"
+              style={{ fontSize: "1.5rem", marginRight: 10, cursor: "pointer" }}
+              onClick={toggleMenu}
+            />
+          )}
           <a
             href="/app/dashboard/"
             onClick={onLogoClick}
@@ -123,6 +127,7 @@ function Application(props) {
             )}
             {props.data.navbar.title}
           </a>
+          <div>{props.data.navbar.subtitle}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center" }}>
           {props.data.navbar.adder.length > 0 && (
@@ -208,7 +213,10 @@ function Application(props) {
     return (
       props.data.navbar && (
         <div style={style}>
-          <Icon icon="home" style={icon} /> Área Administrativa
+          <Link href="/app/dashboard/" style={{ marginRight: 10 }}>
+            <Icon icon="home" style={icon} />
+          </Link>
+          Área Administrativa
         </div>
       )
     );
