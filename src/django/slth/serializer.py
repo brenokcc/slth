@@ -51,6 +51,10 @@ def serialize(obj, primitive=False, request=None):
 
 def getfield(obj, name_or_names, request=None):
     if isinstance(name_or_names, str):
+        if ':' in name_or_names:
+            name_or_names, action_name = name_or_names.split(':')
+        else:
+            name_or_names, action_name = name_or_names, None
         attr = getattr(obj, name_or_names)
         if type(attr) == types.MethodType:
             value = attr()
@@ -63,24 +67,17 @@ def getfield(obj, name_or_names, request=None):
             label = getattr(type(obj), name_or_names).field.verbose_name
         label = label.title().replace('_', ' ') if label and label.islower() else label
         field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True, request=request))
-        return field
-    elif isinstance(name_or_names, LinkField):
-        value = getattr(obj, name_or_names.name) if obj else None
-        field = dict(type='field', name=name_or_names.name, value=serialize(value, primitive=True))
-        if value:
-            if name_or_names.endpoint(value.id).contextualize(request).check_permission():
-                field.update(url=name_or_names.endpoint.get_api_url(value.id))
+        if action_name:
+            cls = slth.ENDPOINTS[action_name]
+            endpoint = cls.instantiate(request, obj)
+            if endpoint.check_permission():
+                field.update(url=endpoint.get_api_url(obj.id))
         return field
     else:
         fields = []
         for name in name_or_names:
             fields.append(getfield(obj, name, request))
         return fields
-
-class LinkField:
-    def __init__(self, name, endpoint):
-        self.name = name
-        self.endpoint = endpoint
 
 
 class Serializer:

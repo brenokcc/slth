@@ -2,7 +2,6 @@ from slth.endpoints import Endpoint, ViewEndpoint, EditEndpoint, AdminEndpoint, 
 from .forms import RegisterForm, UserForm, CadastrarCidadeForm, ResponderQuestionarioForm
 from django.contrib.auth.models import User, Group
 from .models import *
-from slth.serializer import LinkField
 from slth.components import Grid
 
 
@@ -158,7 +157,7 @@ class VisualizarCidade(ViewEndpoint[Cidade]):
     def get(self):
         return  (
             super().get()
-            .fieldset('Dados Gerais', (('id', 'nome'), LinkField('prefeito', VisualizarPessoa), 'get_imagem'))
+            .fieldset('Dados Gerais', (('id', 'nome'), 'prefeito', 'get_imagem'))
             # .fields('get_mapa')
             .fields('get_banner', 'get_steps', 'get_qrcode', 'get_badge', 'get_status', 'get_progresso', 'get_boxes', 'get_shell', 'get_link')
             .fieldset('Prefeito', [('id', 'nome')], attr='prefeito')

@@ -169,7 +169,10 @@ function Field(props) {
       justifyContent: "space-between",
       alignItems: "baseline",
     };
-    if (props.data.action) props.data.action.modal = true;
+    if (props.data.action) {
+      props.data.action.icon = null;
+      props.data.action.modal = true;
+    }
     return (
       <div style={style}>
         <label className={props.data.required ? "bold" : ""}>

@@ -6,7 +6,7 @@ import { Action } from "./Action.jsx";
 import { Link } from "./Link.jsx";
 import { GridLayout } from "./Layout";
 import toLabelCase from "./Utils";
-import { Info } from "./Message.jsx";
+import { Icon } from "./Icon.jsx";
 
 function Field(props) {
   function render() {
@@ -20,6 +20,20 @@ function Field(props) {
 }
 
 function StaticField(props) {
+  function renderValue() {
+    if (props.data.url) {
+      return (
+        <Link href={props.data.url}>
+          <>
+            {format(props.data.value)}
+            <Icon icon="external-link" style={{ marginLeft: 10 }} />
+          </>
+        </Link>
+      );
+    } else {
+      return format(props.data.value);
+    }
+  }
   function render() {
     const style = {
       minWidth: props.width + "%",
@@ -29,7 +43,7 @@ function StaticField(props) {
     return (
       <div style={style}>
         <strong>{props.data.label}</strong>:<br></br>
-        {format(props.data.value)}
+        {renderValue()}
       </div>
     );
   }

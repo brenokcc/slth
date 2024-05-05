@@ -16,25 +16,36 @@ class FormFactory:
         self._method = method
         self._hidden= []
 
+    def _append_field(self, field_name):
+        if ':' in field_name:
+            field_name, action_name = field_name.split(':')
+            self._actions[field_name] = action_name
+        self._fieldlist.append(field_name)
+        return field_name
+
     def fields(self, *names, **values) -> 'FormFactory':
         not_str = {name for name in names if not isinstance(name, str)}
         if not_str:
             self.fieldset('Dados Gerais', names)
         else:
-            self._fieldlist.extend(names)
+            for field_name in names:
+                self._append_field(field_name)
         for k in values:
-            self._fieldlist.append(k)
+            self._append_field(k)
             self.setvalue(**values)
         self._empty = not self._fieldlist
         return self
 
     def fieldset(self, title, fields) -> 'FormFactory':
-        self._fieldsets[title] = fields
+        self._fieldsets[title] = []
         for field in fields:
             if isinstance(field, str):
-                self._fieldlist.append(field)
+                self._fieldsets[title].append(self._append_field(field))
             else:
-                self._fieldlist.extend(field)
+                names = []
+                for field_name in field:
+                    names.append(self._append_field(field_name))
+                self._fieldsets[title].append(names)
         return self
     
     def display(self, title, fields) -> 'FormFactory':

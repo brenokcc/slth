@@ -92,7 +92,7 @@ function Dialog(props) {
 
   function content() {
     const style = { maxWidth: 800 };
-    const close = { textAlign: "right", cursor: "pointer" };
+    const close = { textAlign: "right", cursor: "pointer", marginTop: -15 };
     if (data) {
       return (
         <div style={style}>
