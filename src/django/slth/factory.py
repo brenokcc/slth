@@ -91,6 +91,7 @@ class FormFactory:
                     fields = () if self._empty else (fieldlist if self._fieldlist else '__all__')
                 
         form = Form(instance=self._instance, endpoint=endpoint, initial=self._initial)
+        form._key = endpoint.get_api_name()
         form._title = self._title
         form._method = self._method
         form._info = self._info

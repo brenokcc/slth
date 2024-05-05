@@ -1263,7 +1263,7 @@ function Form(props) {
     return (
       <form
         id={id}
-        className={toLabelCase(props.data.title)}
+        className={props.data.key}
         action={props.data.url}
         style={{
           margin: "auto",
@@ -1294,9 +1294,11 @@ function Form(props) {
     var form = document.getElementById(id);
     var data = new FormData(form);
     if (form.method.toUpperCase() == "GET") {
+      const sep = url.indexOf("?") >= 0 ? "&" : "?";
       url =
         url +
-        "?form=" +
+        sep +
+        "form=" +
         props.data.title +
         "&" +
         new URLSearchParams(data).toString();

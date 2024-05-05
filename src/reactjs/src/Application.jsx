@@ -166,7 +166,7 @@ function Application(props) {
               </Dropdown>
             </div>
           )}
-          {window.innerWidth > 800 && (
+          {window.innerWidth > 800 && props.data.navbar.user && (
             <Selector
               data={selector}
               style={{ padding: 10 }}
@@ -211,7 +211,8 @@ function Application(props) {
     const style = { margin: 15 };
     const icon = { color: "#1351b4" };
     return (
-      props.data.navbar && (
+      props.data.navbar &&
+      props.data.navbar.user && (
         <div style={style}>
           <Link href="/app/dashboard/" style={{ marginRight: 10 }}>
             <Icon icon="home" style={icon} />

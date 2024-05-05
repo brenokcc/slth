@@ -148,7 +148,7 @@ class FormMixin:
             raise JsonResponseException(self.controller.on_change(field_name))
         
         data = dict(
-            type='form', method=self._method, title=self.get_metadata('title', self._title), icon=self.get_metadata('icon'),
+            type='form', key=self._key, method=self._method, title=self.get_metadata('title', self._title), icon=self.get_metadata('icon'),
             style=self.get_metadata('style'), url=absolute_url(self.request), info=self._info
         )
         data.update(controls=self.controller.controls, width=self.get_metadata('width', '100%'))
@@ -362,6 +362,7 @@ class Form(DjangoForm, FormMixin):
         self._title = type(self).__name__
         self._actions = {}
         self._method = 'POST'
+        self._key = self._title.lower()
 
         self.fieldsets = {}
         self.fields = {}
@@ -393,6 +394,7 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._title = type(self).__name__
         self._actions = {}
         self._method = 'POST'
+        self._key = self._title.lower()
 
         self.fieldsets = {}
         self.request = endpoint.request

@@ -60,7 +60,7 @@ input[type="checkbox"], input[type="radio"]{
   }
 
   form.login {
-    width: 300px;
+    width: 350px;
   }
   form.login h1{
     text-align: center;

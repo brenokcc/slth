@@ -359,7 +359,7 @@ function Subtitle(props) {
             {props.data.title}
           </h2>
         )}
-        {props.data.actions.length > 0 && (
+        {props.data.actions && props.data.actions.length > 0 && (
           <div>
             {props.data.actions.map(function (action) {
               return <Action key={Math.random()} data={action} default />;

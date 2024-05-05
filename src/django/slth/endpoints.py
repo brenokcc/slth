@@ -358,6 +358,9 @@ class Login(Endpoint):
     username = forms.CharField(label='Username')
     password = forms.CharField(label='Senha')
 
+    class Meta:
+        verbose_name = 'Acesso ao Sistema'
+
     def get(self):
         return self.formfactory().fields('username', 'password')
     
@@ -375,7 +378,7 @@ class Logout(PublicEndpoint):
         verbose_name = 'Sair'
         
     def get(self):
-        return Response(message='Logout realizado com sucesso.', redirect='/api/login/', store=dict(token=None, application=None))
+        return Response(message='Logout realizado com sucesso.', redirect='/api/home/', store=dict(token=None, application=None))
 
 class Icons(PublicEndpoint):
     class Meta:
@@ -482,8 +485,8 @@ class Application(PublicEndpoint):
         navbar = None
         menu = None
         icon = build_url(self.request, APPLICATON['logo'])
+        logo = build_url(self.request, APPLICATON['logo'])
         if self.request.user.is_authenticated:
-            logo = build_url(self.request, APPLICATON['logo'])
             navbar = Navbar(
                 title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
                 logo=logo, user=self.request.user.username.split()[0].split('@')[0]
@@ -525,6 +528,11 @@ class Application(PublicEndpoint):
                 profile = Profile.objects.filter(user=self.request.user).first()
                 photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
                 menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
+        else:
+            navbar = Navbar(
+                title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
+                logo=logo, user=None
+            )
         footer = Footer(APPLICATON['version'])
         return Application_(icon=icon, navbar=navbar, menu=menu, footer=footer)
     

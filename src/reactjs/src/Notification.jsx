@@ -67,7 +67,11 @@ function PushWebNotification(props) {
     }
   }
   function render() {
-    return <Icon onClick={onClick} icon="bell" style={{ cursor: "pointer" }} />;
+    if (Notification.permission !== "granted") {
+      return (
+        <Icon onClick={onClick} icon="bell" style={{ cursor: "pointer" }} />
+      );
+    }
   }
   return render();
 }
