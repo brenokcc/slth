@@ -149,20 +149,31 @@ function Application(props) {
           <div style={{ padding: 10 }}>
             <PushWebNotification />
           </div>
-          <div>
-            {props.data.navbar.actions.length > 0 &&
-              props.data.navbar.actions.map(function (action) {
-                if (
-                  action.url == "/api/login/" &&
-                  (props.data.navbar.user ||
-                    document.location.pathname == "/app/login/")
-                ) {
-                  return null;
-                } else {
-                  return <Action key={Math.random()} data={action} primary />;
-                }
-              })}
-          </div>
+
+          {props.data.navbar.actions.length > 0 &&
+            props.data.navbar.actions.map(function (action) {
+              if (
+                action.url == "/api/login/" &&
+                (props.data.navbar.user ||
+                  document.location.pathname == "/app/login/")
+              ) {
+                return null;
+              } else {
+                return (
+                  <div>
+                    <Action key={Math.random()} data={action} primary />
+                  </div>
+                );
+              }
+            })}
+
+          {props.data.oauth &&
+            props.data.oauth.length > 0 &&
+            props.data.navbar.user == null &&
+            props.data.oauth.map(function (oauth) {
+              return <Link href={oauth.url}>{oauth.label}</Link>;
+            })}
+
           {props.data.navbar.tools.length > 0 && (
             <div style={{ padding: 10 }}>
               <Dropdown

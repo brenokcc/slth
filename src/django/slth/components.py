@@ -218,12 +218,13 @@ class Footer(dict):
         self['version'] = version
 
 class Application(dict):
-    def __init__(self, icon=None, navbar=None, menu=None, footer=None):
+    def __init__(self, icon=None, navbar=None, menu=None, footer=None, oauth=()):
         self['type'] = 'application'
         self['icon'] = icon
         self['navbar'] = navbar
         self['menu'] = menu
         self['footer'] = footer
+        self['oauth'] = oauth
 
 class Response(dict):
 

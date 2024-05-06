@@ -15,10 +15,14 @@ function Link({
   const url = href && href.indexOf("/media/") < 0 ? appurl(href) : href;
 
   function onClickDefault(e) {
-    e.preventDefault();
-    if (modal) openDialog(url);
-    else if (imodal) openIFrameDialog(url);
-    else window.load(url);
+    if (url.indexOf("http") == 0) {
+      document.location.href = url;
+    } else {
+      e.preventDefault();
+      if (modal) openDialog(url);
+      else if (imodal) openIFrameDialog(url);
+      else window.load(url);
+    }
   }
 
   function render() {

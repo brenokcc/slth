@@ -59,3 +59,18 @@ application:
       radius: 100em"
     background:
       info: "#d4e5ff"
+  oauth:
+    suap:
+      name: SUAP
+      client_id: 8v5c0USoi6JatNOCfcti8im1elMfmp7BNHOGEcIZ
+      client_secret: $SUAP_SECRET_KEY
+      redirect_uri: /app/login/
+      authorize_url: https://suap.ifrn.edu.br/o/authorize/
+      access_token_url: https://suap.ifrn.edu.br/o/token/
+      user_data_url: https://suap.ifrn.edu.br/api/eu/
+      user_logout_url:
+      user_scope:
+      user_data:
+        create: true
+        username: email
+        email: email

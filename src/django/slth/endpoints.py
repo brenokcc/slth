@@ -24,6 +24,7 @@ from .models import PushSubscription, Profile, User
 from slth.queryset import QuerySet
 from .notifications import send_push_web_notification
 from slth import APPLICATON, ENDPOINTS
+from . import oauth
 
 
 T = TypeVar("T")
@@ -371,6 +372,12 @@ class Login(PublicEndpoint):
         verbose_name = 'Login'
 
     def get(self):
+        code = self.request.GET.get('code')
+        if code:
+            user = oauth.authenticate(code)
+            if user:
+                token = Token.objects.create(user=user)
+                return Response(message='Bem-vindo!', redirect='/api/dashboard/', store=dict(token=token.key, application=None))
         return self.formfactory().fields('username', 'password')
     
     def post(self):
@@ -547,8 +554,9 @@ class Application(PublicEndpoint):
             profile = Profile.objects.filter(user=self.request.user).first() if user else None
             photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
             menu = Menu(items, user=user, image=build_url(self.request, photo_url))
+
         footer = Footer(APPLICATON['version'])
-        return Application_(icon=icon, navbar=navbar, menu=menu, footer=footer)
+        return Application_(icon=icon, navbar=navbar, menu=menu, footer=footer, oauth=oauth.providers())
     
 class Manifest(PublicEndpoint):
 
