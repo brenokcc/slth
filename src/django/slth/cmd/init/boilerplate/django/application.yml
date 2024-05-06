@@ -41,3 +41,17 @@ application:
       Item 1.1:
         Sair: logout
     Sair: logout
+  theme:
+    colors:
+      primary: "#1351b4"
+      secondary: "#071e41"
+      auxiliary: "#2670e8"
+      highlight: "#0c326f"
+      info: "#1351b4"
+      success: "#1351b4"
+      warning: "#fff5c2"
+      danger: "#e52207"
+    border:
+      radius: 100em"
+    background:
+      info: "#d4e5ff"

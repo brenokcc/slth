@@ -1,5 +1,6 @@
 import { Icon, Spin } from "./Icon";
 import toLabelCase from "./Utils";
+import { Theme } from "./Theme";
 
 function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
   function renderContent() {
@@ -33,11 +34,11 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
       textWrap: "nowrap",
     };
     if (primary) {
-      style.backgroundColor = "#1351b4";
+      style.backgroundColor = Theme.colors.primary;
       style.color = "white";
     } else {
-      style.border = "solid 1px #1351b4";
-      style.color = "#1351b4";
+      style.border = "solid 1px " + Theme.colors.primary;
+      style.color = Theme.colors.primary;
     }
     return (
       <a

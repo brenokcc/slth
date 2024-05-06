@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Icon } from "./Icon";
-import { apiurl, appurl } from "./Request";
-import { COLORS } from "./Theme";
+import { apiurl } from "./Request";
+import { Theme } from "./Theme";
 import { ComponentFactory } from "./Root.jsx";
 import { GridLayout } from "./Layout";
 import { toLabelCase } from "./Utils";
@@ -68,10 +68,10 @@ function Steps(props) {
 
   function circleStyle(step) {
     return {
-      border: "3px solid " + (step.done ? "#1351b4" : "#1151b3"),
+      border: "3px solid " + Theme.colors.primary,
       borderRadius: "50%",
-      background: step.done ? "#1351b4" : "white",
-      color: step.done ? "white" : "#1151b3",
+      background: step.done ? Theme.colors.primary : "white",
+      color: step.done ? "white" : Theme.colors.primary,
       textAlign: "center",
       width: 50,
       height: 50,
@@ -147,7 +147,7 @@ function Progress(props) {
       color: "white",
       borderRadius: 5,
       width: props.data.value + "%",
-      backgroundColor: COLORS[props.data.style],
+      backgroundColor: Theme.colors[props.data.style],
     };
     return (
       <span style={progress}>
@@ -162,7 +162,7 @@ function Progress(props) {
 
 function Status(props) {
   function render() {
-    props.data.color = COLORS[props.data.style];
+    props.data.color = Theme.colors[props.data.style];
     return <Badge data={props.data} />;
   }
   return render();
@@ -212,7 +212,7 @@ function Boxes(props) {
     const i = {
       marginTop: 30,
       fontSize: "3rem",
-      color: "#2670e8",
+      color: Theme.colors.auxiliary,
     };
     const text = {
       marginTop: 40,
@@ -320,7 +320,7 @@ function Indicators(props) {
   function render() {
     const style = {
       color: "white",
-      backgroundColor: "#071e41",
+      backgroundColor: Theme.colors.highlight,
       margin: -20,
       textAlign: "center",
       paddingTop: 20,

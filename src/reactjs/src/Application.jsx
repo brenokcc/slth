@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Root";
 import { appurl } from "./Request.jsx";
 import { showMessage } from "./Message";
-import { Dropdown } from "./Action.jsx";
+import { Dropdown, Action } from "./Action.jsx";
 import { Selector } from "./Form.jsx";
 import { Menu } from "./Menu.jsx";
 import { Icon } from "./Icon.jsx";
 import { PushWebNotification } from "./Notification.jsx";
 import toLabelCase from "./Utils.jsx";
 import Link from "./Link.jsx";
+import { Theme } from "./Theme";
 
 function Floating(props) {
   function render() {
@@ -118,12 +119,16 @@ function Application(props) {
             />
           )}
           <a
-            href="/app/dashboard/"
+            href="/app/home/"
             onClick={onLogoClick}
             style={{ fontSize: "1.5rem", textDecoration: "none" }}
           >
             {props.data.navbar.logo && (
-              <img src={props.data.navbar.logo} height={20} />
+              <img
+                src={props.data.navbar.logo}
+                height={20}
+                style={{ marginRight: 10 }}
+              />
             )}
             {props.data.navbar.title}
           </a>
@@ -143,6 +148,20 @@ function Application(props) {
           )}
           <div style={{ padding: 10 }}>
             <PushWebNotification />
+          </div>
+          <div>
+            {props.data.navbar.actions.length > 0 &&
+              props.data.navbar.actions.map(function (action) {
+                if (
+                  action.url == "/api/login/" &&
+                  (props.data.navbar.user ||
+                    document.location.pathname == "/app/login/")
+                ) {
+                  return null;
+                } else {
+                  return <Action key={Math.random()} data={action} primary />;
+                }
+              })}
           </div>
           {props.data.navbar.tools.length > 0 && (
             <div style={{ padding: 10 }}>
@@ -167,13 +186,15 @@ function Application(props) {
             </div>
           )}
           {window.innerWidth > 800 && props.data.navbar.user && (
-            <Selector
-              data={selector}
-              style={{ padding: 10 }}
-              onSelect={(option) =>
-                (document.location.href = appurl(option.id))
-              }
-            />
+            <div>
+              <Selector
+                data={selector}
+                style={{ padding: 10 }}
+                onSelect={(option) =>
+                  (document.location.href = appurl(option.id))
+                }
+              />
+            </div>
           )}
           {props.data.navbar.usermenu.length > 0 && (
             <div style={{ padding: 10 }}>
@@ -192,7 +213,8 @@ function Application(props) {
   }
   function renderAside() {
     return (
-      window.application.menu && (
+      window.application.menu &&
+      window.application.menu.items.length > 0 && (
         <aside
           style={{
             flexGrow: 2,
@@ -209,7 +231,7 @@ function Application(props) {
 
   function renderBreadcrumbs() {
     const style = { margin: 15 };
-    const icon = { color: "#1351b4" };
+    const icon = { color: Theme.colors.primary };
     return (
       props.data.navbar &&
       props.data.navbar.user && (

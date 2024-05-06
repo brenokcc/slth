@@ -3,6 +3,7 @@ import { format } from "./Formatter";
 import { Action } from "./Action";
 import { Field } from "./Form";
 import { request } from "./Request";
+import { Theme } from "./Theme";
 import { Info } from "./Message";
 import { GridLayout } from "./Layout";
 import { Button } from "./Button";
@@ -14,7 +15,7 @@ import ComponentFactory from "./Root";
 function Counter(props) {
   function render() {
     const style = {
-      backgroundColor: "#1351b4",
+      backgroundColor: Theme.colors.primary,
       color: "white",
       borderRadius: "50%",
       minWidth: 13,
@@ -177,7 +178,7 @@ function QuerySet(props) {
       };
 
       const number = {
-        backgroundColor: "#1351b4",
+        backgroundColor: Theme.colors.primary,
         borderRadius: "50%",
         color: "white",
         display: "block",
@@ -341,8 +342,7 @@ function QuerySet(props) {
       verticalAlign: "top",
       backgroundColor: "#f0f0f0",
       lineHeight: "3rem",
-      color: "#1351b4",
-      //borderBottom: "solid 1px #1351b4",
+      color: Theme.colors.primary,
       padding: 5,
     };
     if (window.innerWidth < 800) {
@@ -585,7 +585,7 @@ function QuerySet(props) {
     };
     const searching = data.search.length > 0;
     const filtering = data.filters.length > 0;
-    if ((data.bi || data.data.length > 0) && (searching || filtering)) {
+    if ((data.bi || data.data.length >= 0) && (searching || filtering)) {
       const field = {
         name: "q",
         value: "",

@@ -1,9 +1,20 @@
-const COLORS = {
-  primary: "#1351b4",
-  success: "green",
-  warning: "orange",
-  info: "blue",
-  danger: "red",
+const Theme = {
+  colors: {
+    primary: "var(--primary-color)",
+    success: "var(--success-color)",
+    warning: "var(--warning-color)",
+    info: "var(--info-color)",
+    danger: "var(--danger-color)",
+    highlight: "var(--highlight-color)",
+    seconday: "var(--seconday-color)",
+    auxiliary: "var(--auxiliary-color)",
+  },
+  border: {
+    radius: "var(--border-radius)",
+  },
+  background: {
+    info: "var(--info-background)",
+  },
 };
 
 function Color(props) {
@@ -19,5 +30,5 @@ function Color(props) {
   return render();
 }
 
-export { COLORS, Color };
-export default COLORS;
+export { Theme, Color };
+export default Theme;

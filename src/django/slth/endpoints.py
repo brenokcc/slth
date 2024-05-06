@@ -249,16 +249,23 @@ class ListEndpoint(Generic[T], ModelEndpoint):
         return self.model.objects
 
 class AddEndpoint(Generic[T], ModelEndpoint):
+    def __init__(self):
+        super().__init__()
+        self.instance = self.model()
+
     def get(self) -> FormFactory:
         return self.model().formfactory()
+    
+    def get_instance(self):
+        return self.instance
 
 class ModelInstanceEndpoint(ModelEndpoint):
     def __init__(self, pk):
-        self.pk = pk
         super().__init__()
+        self.instance = self.model.objects.get(pk=pk)
 
     def get_instance(self):
-        return self.model.objects.get(pk=self.pk)
+        return self.instance
 
 class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
 
@@ -354,12 +361,14 @@ class Delete(ChildInstanceEndpoint):
         self.get_instance().delete()
         return super().post()
 
-class Login(Endpoint):
+class Login(PublicEndpoint):
     username = forms.CharField(label='Username')
     password = forms.CharField(label='Senha')
 
     class Meta:
-        verbose_name = 'Acesso ao Sistema'
+        modal = False
+        icon = 'sign-in'
+        verbose_name = 'Login'
 
     def get(self):
         return self.formfactory().fields('username', 'password')
@@ -372,13 +381,16 @@ class Login(Endpoint):
         else:
             raise ValidationError('Login e senha não conferem')
 
-class Logout(PublicEndpoint):
+class Logout(Endpoint):
     class Meta:
         modal = False
         verbose_name = 'Sair'
         
     def get(self):
         return Response(message='Logout realizado com sucesso.', redirect='/api/home/', store=dict(token=None, application=None))
+
+    def check_permission(self):
+        return self.request.user.is_authenticated
 
 class Icons(PublicEndpoint):
     class Meta:
@@ -421,20 +433,24 @@ class Users(ListEndpoint[User]):
         return (
             super().get().search('username', 'email')
             .filters('is_superuser', 'is_active')
-            .fields('username', 'email', 'is_superuser')
+            .fields('username', 'email', 'is_superuser', 'get_roles')
             .actions('add', 'view', 'edit', 'delete', 'sendpushnotification', 'changepassword')
         )
     
 class ChangePassword(ChildInstanceEndpoint):
+    password = forms.CharField(label='Senha', required=False)
 
     class Meta:
         icon = 'user-lock'
         verbose_name = 'Alterar Senha'
 
+    def get(self):
+        return self.formfactory().fields('password')
+
     def post(self):
         self.instance.set_password(self.cleaned_data['password'])
         self.instance.save()
-        super().post()
+        return super().post()
 
 class Home(PublicEndpoint):
     class Meta:
@@ -482,57 +498,55 @@ class Dashboard(Endpoint):
     
 class Application(PublicEndpoint):
     def get(self):
+        user = None
         navbar = None
         menu = None
         icon = build_url(self.request, APPLICATON['logo'])
         logo = build_url(self.request, APPLICATON['logo'])
         if self.request.user.is_authenticated:
-            navbar = Navbar(
-                title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
-                logo=logo, user=self.request.user.username.split()[0].split('@')[0]
-            )
-            for entrypoint in ['usermenu', 'adder', 'settings', 'tools']:
-                if APPLICATON['dashboard'][entrypoint]:
-                    for endpoint in APPLICATON['dashboard'][entrypoint]:
-                        cls = ENDPOINTS[endpoint]
+            user = self.request.user.username.split()[0].split('@')[0]
+        navbar = Navbar(
+            title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
+            logo=logo, user=user
+        )
+        for entrypoint in ['actions', 'usermenu', 'adder', 'settings', 'tools']:
+            if APPLICATON['dashboard'][entrypoint]:
+                for endpoint in APPLICATON['dashboard'][entrypoint]:
+                    cls = ENDPOINTS[endpoint]
+                    if cls().instantiate(self.request, self).check_permission():
+                        label = cls.get_metadata('verbose_name')
+                        url = build_url(self.request, cls.get_api_url())
+                        modal = cls.get_metadata('modal', False)
+                        icon = cls.get_metadata('icon', None)
+                        navbar.add_action(entrypoint, label, url, modal, icon=icon)
+        if APPLICATON['menu']:
+            items = []
+            def get_item(k, v):
+                if isinstance(v, dict):
+                    icon, label = k.split(':') if ':' in k else (None, k)
+                    subitems = []
+                    for k1, v1 in v.items():
+                        subitem = get_item(k1, v1)
+                        if subitem:
+                            subitems.append(subitem)
+                    if subitems:
+                        return dict(dict(icon=icon, label=label, items=subitems))
+                else:
+                    cls = ENDPOINTS.get(v)
+                    if cls:
                         if cls().instantiate(self.request, self).check_permission():
-                            label = cls.get_metadata('verbose_name')
+                            icon, label = k.split(':') if ':' in k else (None, k)
                             url = build_url(self.request, cls.get_api_url())
-                            modal = cls.get_metadata('modal', False)
-                            navbar.add_action(entrypoint, label, url, modal)
-            if APPLICATON['menu']:
-                items = []
-                def get_item(k, v):
-                    if isinstance(v, dict):
-                        icon, label = k.split(':') if ':' in k else (None, k)
-                        subitems = []
-                        for k1, v1 in v.items():
-                            subitem = get_item(k1, v1)
-                            if subitem:
-                                subitems.append(subitem)
-                        if subitems:
-                            return dict(dict(icon=icon, label=label, items=subitems))
+                            return dict(dict(label=label, url=url, icon=icon))
                     else:
-                        cls = ENDPOINTS.get(v)
-                        if cls:
-                            if cls().instantiate(self.request, self).check_permission():
-                                icon, label = k.split(':') if ':' in k else (None, k)
-                                url = build_url(self.request, cls.get_api_url())
-                                return dict(dict(label=label, url=url, icon=icon))
-                        else:
-                            print(v)
-                for k, v in APPLICATON['menu'].items():
-                    item = get_item(k, v)
-                    if item:
-                        items.append(item)
-                profile = Profile.objects.filter(user=self.request.user).first()
-                photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
-                menu = Menu(items, user=self.request.user.username, image=build_url(self.request, photo_url))
-        else:
-            navbar = Navbar(
-                title=APPLICATON['title'], subtitle=APPLICATON['subtitle'],
-                logo=logo, user=None
-            )
+                        print(v)
+            for k, v in APPLICATON['menu'].items():
+                item = get_item(k, v)
+                if item:
+                    items.append(item)
+            profile = Profile.objects.filter(user=self.request.user).first() if user else None
+            photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
+            menu = Menu(items, user=user, image=build_url(self.request, photo_url))
         footer = Footer(APPLICATON['version'])
         return Application_(icon=icon, navbar=navbar, menu=menu, footer=footer)
     

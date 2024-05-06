@@ -1,0 +1,22 @@
+{
+  "name": "project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sloth": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.74",
+    "@types/react-dom": "^18.2.24",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.2.8"
+  }
+}

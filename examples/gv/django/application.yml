@@ -12,11 +12,13 @@ application:
     consultante: Consultante
   index: dashboard
   dashboard:
+    actions:
     top:
     center:
       - minhasconsultas
       - consultasaguardandoespecialista
       - consultasematendimento
+      - indicadorestopicos
     boxes:
       - consultas
     search:
@@ -43,3 +45,17 @@ application:
       Estatísticas: estatisticaconsultoria
     file-signature:Consultas: consultasatendidas
     door-closed:Sair: logout
+  theme:
+    colors:
+      primary: "#335ea9"
+      secondary: "#071e41"
+      auxiliary: "#2670e8"
+      highlight: "#0c326f"
+      info: "#335ea9"
+      success: "#335ea9"
+      warning: "#fff5c2"
+      danger: "#e52207"
+    border:
+      radius: 100em"
+    background:
+      info: "#d4e5ff"

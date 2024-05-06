@@ -48,6 +48,22 @@
     }
   </script>
   {% endif %}
+
+  <style>
+    :root{
+      --primary-color: {{ application.theme.colors.primary }};
+      --secondary-color: {{ application.theme.colors.secondary }};
+      --auxiliary-color: {{ application.theme.colors.auxiliary }};
+      --highlight-color: {{ application.theme.colors.highlight }};
+      --info-color: {{ application.theme.colors.info }};
+      --success-color: {{ application.theme.colors.success }};
+      --warning-color: {{ application.theme.colors.warning }};
+      --danger-color: {{ application.theme.colors.danger }};
+      --border-radius: {{ application.theme.border.radius }};
+      --info-background: {{ application.theme.background.info }};
+    }
+  </style>
+
 </head>
 
 <body>

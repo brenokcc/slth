@@ -1,13 +1,14 @@
 import { React } from "react";
 import ReactDOM from "react-dom/client";
 import Icon from "./Icon";
+import Theme from "./Theme";
 
 function Message(props) {
   function render() {
     const style = {
       position: "fixed",
       color: "white",
-      backgroundColor: props.isError ? "#e52207" : "#1151b3",
+      backgroundColor: props.isError ? "#e52207" : Theme.colors.primary,
       width: 300,
       top: 10,
       left: (window.innerWidth - 320) / 2,
@@ -46,8 +47,8 @@ function hideMessages() {
 function Info(props) {
   function render() {
     const style = {
-      color: "#155bcb",
-      backgroundColor: "#d4e5ff",
+      color: Theme.colors.info,
+      backgroundColor: Theme.background.info,
       padding: 20,
       display: "flex",
       justifyContent: "space-between",

@@ -1,7 +1,7 @@
 from .models import *
 from slth import endpoints, meta
 from slth import forms
-from slth.components import WebConf
+from slth.components import WebConf, Indicators
 
 
 class Administradores(endpoints.AdminEndpoint[Administrador]):
@@ -275,3 +275,16 @@ class VideoChamada(endpoints.InstanceEndpoint[Consulta]):
         consulta = self.get_instance()
         usernames = [consulta.consultante.cpf, consulta.especialista and consulta.especialista.cpf]
         return consulta.especialista_id and self.request.user.username in usernames
+
+class IndicadoresTopicos(endpoints.Endpoint):
+    class Meta:
+        verbose_name = 'Tópicos Cadastrados'
+
+    def get(self):
+        totais = Indicators('Legislação')
+        for assunto in Assunto.objects.all():
+            totais.append(assunto, assunto.topico_set.count())
+        return totais
+
+    def check_permission(self):
+        return self.check_role('especialista', 'administrador')

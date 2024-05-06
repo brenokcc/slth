@@ -10,6 +10,7 @@ import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
 import { Button } from "./Button.jsx";
 import { Action } from "./Action.jsx";
+import { Theme } from "./Theme";
 
 const INPUT_TYPES = [
   "text",
@@ -100,8 +101,8 @@ function formControl(controls) {
 function Instruction(props) {
   function render() {
     const style = {
-      color: "#155bcb",
-      backgroundColor: "#d4e5ff",
+      color: Theme.colors.info,
+      backgroundColor: Theme.background.info,
       padding: 20,
       display: "flex",
       justifyContent: "space-between",
@@ -113,7 +114,7 @@ function Instruction(props) {
         <div>
           <Icon
             icon="circle-check"
-            style={{ color: "#155bcb", marginRight: 20 }}
+            style={{ color: Theme.colors.info, marginRight: 20 }}
           />
           {props.data.text}
         </div>
@@ -407,7 +408,7 @@ function InputField(props) {
             <div style={style}>
               <Icon
                 icon="cloud-upload"
-                style={{ fontSize: "2.5rem", color: "#1351b4" }}
+                style={{ fontSize: "2.5rem", color: Theme.colors.primary }}
               />
             </div>
             <div style={style}>
@@ -601,7 +602,7 @@ function Selector(props) {
         {props.data.icon && (
           <Icon
             icon={props.data.icon}
-            style={{ position: "absolute", marginLeft: 40, color: "#d9d9d9" }}
+            style={{ position: "absolute", margin: 13, color: "#d9d9d9" }}
           />
         )}
         <input

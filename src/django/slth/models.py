@@ -169,21 +169,23 @@ class User(User):
         return (
             super().formfactory()
             .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
-            .fieldset('Dados de Acesso', (('is_superuser', 'is_active'),))
+            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
         )
     
     def serializer(self):
         return (
             super().serializer()
             .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
-            .fieldset('Dados de Acesso', (('is_superuser', 'is_active'),))
+            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
             .queryset('Notificação', 'get_push_subscriptions')
             .queryset('Papéis', 'get_roles')
         )
     
+    @meta('Inscrições de Notificação')
     def get_push_subscriptions(self):
         return self.pushsubscription_set.fields('device')
     
+    @meta('Papéis')
     def get_roles(self):
         return Role.objects.filter(username=self.username).fields('get_description')
 

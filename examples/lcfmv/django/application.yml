@@ -1,0 +1,42 @@
+application:
+  lang: pt-br
+  title: Legislação CFMV
+  subtitle: Conselho Federal de Medicina Veterinária
+  icon: /static/images/icon.png
+  logo: /static/images/logo.png
+  version: 1.0.0
+  groups:
+    adm: Administrador
+    opl: Operador de Legislação
+    opa: Operador de Acordão
+  index: consultar
+  dashboard:
+    actions:
+      - login
+    top:
+    center:
+      - acessorapido
+      - totais
+    boxes:
+    search:
+    usermenu:
+      - icons
+      - logout
+    adder:
+    tools:
+    settings:
+  menu:
+  theme:
+    colors:
+      primary: "#4e9a7d"
+      secondary: "#006940"
+      auxiliary: "#808083"
+      highlight: "#006940"
+      info: "#4e9a7d"
+      success: "#006940"
+      warning: "#fff5c2"
+      danger: "#e52207"
+    border:
+      radius: 100em"
+    background:
+      info: "#cae5c3"

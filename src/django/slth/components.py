@@ -200,9 +200,10 @@ class Navbar(dict):
         self['adder'] = []
         self['tools'] = []
         self['settings'] = []
+        self['actions'] = []
 
-    def add_action(self, entrypoint, name, url, modal=True):
-        self[entrypoint].append(dict(name=name, url=url, modal=modal))
+    def add_action(self, entrypoint, name, url, modal=True, icon=None):
+        self[entrypoint].append(dict(name=name, url=url, modal=modal, icon=icon))
 
 class Menu(dict):
     def __init__(self, items, user=None, image=None):

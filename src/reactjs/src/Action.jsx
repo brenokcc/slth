@@ -4,6 +4,7 @@ import { toLabelCase } from "./Utils";
 import { Icon } from "./Icon";
 import "./Root";
 import { appurl } from "./Request";
+import { Theme } from "./Theme";
 
 function Action(props) {
   const id = props.id || Math.random();
@@ -50,12 +51,12 @@ function Action(props) {
       margin: 5,
     };
     if (props.primary) {
-      style.backgroundColor = "#1351b4";
+      style.backgroundColor = Theme.colors.primary;
       style.color = "white";
     }
     if (props.default) {
-      style.border = "solid 1px #1351b4";
-      style.color = "#1351b4";
+      style.border = "solid 1px " + Theme.colors.primary;
+      style.color = Theme.colors.primary;
     }
     if (props.style) {
       Object.keys(props.style).map(function (k) {

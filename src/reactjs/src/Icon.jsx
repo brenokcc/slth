@@ -1,4 +1,5 @@
 import { showMessage } from "./Message";
+import { Theme } from "./Theme";
 
 function IconSet(props) {
   function click(icon) {
@@ -62,12 +63,12 @@ function IconButton(props) {
       display: props.display || "block",
     };
     if (props.primary) {
-      style.backgroundColor = "#1351b4";
+      style.backgroundColor = Theme.colors.primary;
       style.color = "white";
     }
     if (props.default) {
-      style.color = "#1351b4";
-      style.border = "solid 1px #1351b4";
+      style.color = Theme.colors.primary;
+      style.border = "solid 1px " + Theme.colors.primary;
     }
     return (
       <a
