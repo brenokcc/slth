@@ -7,5 +7,4 @@ function Hello(props) {
 }
 
 ComponentFactory.register(Hello, "Hello");
-
 ComponentFactory.render(ReactDOM.createRoot(document.getElementById("root")));

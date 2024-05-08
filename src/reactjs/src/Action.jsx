@@ -26,19 +26,23 @@ function Action(props) {
   }
 
   function renderContent() {
-    if (props.data.icon) {
-      if (props.compact || !props.data.name || window.innerWidth < 800) {
-        return <Icon icon={props.data.icon} />;
-      } else {
-        return (
-          <>
-            <Icon icon={props.data.icon} style={{ paddingRight: 10 }} />
-            {props.data.name || ""}
-          </>
-        );
-      }
-    } else {
+    if (props.strech) {
       return props.data.name;
+    } else {
+      if (props.data.icon) {
+        if (props.compact || !props.data.name || window.innerWidth < 800) {
+          return <Icon icon={props.data.icon} />;
+        } else {
+          return (
+            <>
+              <Icon icon={props.data.icon} style={{ paddingRight: 10 }} />
+              {props.data.name || ""}
+            </>
+          );
+        }
+      } else {
+        return props.data.name;
+      }
     }
   }
 
@@ -91,14 +95,18 @@ function Dropdown(props) {
     return dropdown;
   }
   function onClick(e) {
-    const rect = e.target.getBoundingClientRect();
-    // the user clicks in the icon
     const dropdown = getListElement(e);
-    document
-      .querySelectorAll(".dropdown")
-      .forEach((dropdown) => (dropdown.style.display = "none"));
-    dropdown.style.left = rect.left - 150 + rect.width + "px";
-    dropdown.style.display = "block";
+    if (dropdown.style.display == "block") {
+      dropdown.style.display = "none";
+    } else {
+      const rect = e.target.getBoundingClientRect();
+      // the user clicks in the icon
+      document
+        .querySelectorAll(".dropdown")
+        .forEach((dropdown) => (dropdown.style.display = "none"));
+      dropdown.style.left = rect.left - 150 + rect.width + "px";
+      dropdown.style.display = "block";
+    }
   }
   function onMouseLeave(e) {
     // the user leaves the LI or A tag

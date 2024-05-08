@@ -5,6 +5,7 @@ import { ComponentFactory } from "./Root.jsx";
 import { hideMessages } from "./Message";
 import { Icon } from "./Icon";
 import { request, apiurl } from "./Request.jsx";
+import { Action } from "./Action.jsx";
 
 function createLayer() {
   if (document.querySelector(".layer") == null) {
@@ -50,6 +51,14 @@ function closeDialog(message) {
       }
     }
   }
+}
+
+function openActionDialog(actions) {
+  hideMessages();
+  createLayer();
+  ReactDOM.createRoot(
+    document.body.appendChild(document.createElement("div"))
+  ).render(<ActionDialog actions={actions} />);
 }
 
 function Layer(props) {
@@ -108,8 +117,9 @@ function Dialog(props) {
   const style = {
     minWidth: "50%",
     display: data ? "block" : "none",
-    maxWidth: "90%",
+    maxWidth: 800,
     top: window.scrollY + 40,
+    border: 0,
   };
 
   return (
@@ -132,8 +142,9 @@ function IDialog(props) {
     const style = {
       minWidth: "50%",
       display: "block",
-      maxWidth: "90%",
+      maxWidth: 800,
       top: window.scrollY + 40,
+      border: 0,
     };
     const close = { float: "right", cursor: "pointer", marginTop: -20 };
     return (
@@ -154,5 +165,55 @@ function IDialog(props) {
   return render();
 }
 
-export { openDialog, openIFrameDialog, closeDialog, Layer };
+function ActionDialog(props) {
+  const key = Math.random();
+
+  useEffect(() => {
+    document.querySelector(".layer").style.display = "block";
+  }, []);
+
+  function content() {
+    const style = {
+      width: "100%",
+      borderBottom: "solid 1px #DDDD",
+      padding: 20,
+    };
+    return (
+      <div align="center" style={{}}>
+        {props.actions.map(function (action) {
+          return (
+            <div key={Math.random()} style={style} onClick={close}>
+              <Action data={action} strech />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function close() {
+    const dialog = document.getElementById(key);
+    dialog.close();
+    dialog.classList.remove("opened");
+    dialog.remove();
+    document.querySelector(".layer").style.display = "none";
+  }
+
+  const style = {
+    width: "auto",
+    display: "block",
+    position: "fixed",
+    bottom: 0,
+    border: 0,
+    padding: 0,
+  };
+
+  return (
+    <dialog id={key} style={style}>
+      {content()}
+    </dialog>
+  );
+}
+
+export { openDialog, openIFrameDialog, closeDialog, Layer, openActionDialog };
 export default Layer;

@@ -406,6 +406,9 @@ class Icons(PublicEndpoint):
 
     def get(self):
         return IconSet()
+    
+    def check_permission(self):
+        return settings.DEBUG
 
 
 class Search(Endpoint):
@@ -440,7 +443,7 @@ class Users(ListEndpoint[User]):
         return (
             super().get().search('username', 'email')
             .filters('is_superuser', 'is_active')
-            .fields('username', 'email', 'is_superuser', 'get_roles')
+            .fields('username', 'email', 'get_roles')
             .actions('add', 'view', 'edit', 'delete', 'sendpushnotification', 'changepassword')
         )
     
@@ -552,7 +555,7 @@ class Application(PublicEndpoint):
                 if item:
                     items.append(item)
             profile = Profile.objects.filter(user=self.request.user).first() if user else None
-            photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.png'
+            photo_url = profile.photo.url if profile and profile.photo else '/static/images/user.svg'
             menu = Menu(items, user=user, image=build_url(self.request, photo_url))
 
         footer = Footer(APPLICATON['version'])
@@ -569,7 +572,7 @@ class Manifest(PublicEndpoint):
                 "name": APPLICATON['title'],
                 "short_name": APPLICATON['title'],
                 "lang": 'pt-BR',
-                "start_url": build_url(self.request, "/app/dashboard/"),
+                "start_url": build_url(self.request, "/app/home/"),
                 "scope": build_url(self.request, "/app/"),
                 "display": "standalone",
                 "icons": [{

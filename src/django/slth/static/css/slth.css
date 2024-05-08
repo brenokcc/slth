@@ -18,6 +18,9 @@ a {
 .form-control{
     font-family: rawline;
     font-size: 15px;
+    -webkit-appearance: none;
+    color: inherit;
+    background-color: inherit;
 }
 
 .form-control:focus {

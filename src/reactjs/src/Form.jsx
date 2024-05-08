@@ -1148,7 +1148,6 @@ function OneToMany(props) {
 function FormContent(props) {
   useEffect(() => {
     if (props.data.controls) {
-      console.log(props.data.controls);
       formControl(props.data.controls);
     }
   }, []);
@@ -1256,7 +1255,7 @@ function Form(props) {
   }
 
   function renderOutput() {
-    return <div id="output"></div>;
+    return <div id="output" style={{ marginTop: 30 }}></div>;
   }
 
   function render() {

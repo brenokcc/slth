@@ -173,14 +173,14 @@ if os.environ.get('REDIS_HOST') and 'test' not in sys.argv:
     }
 
 
-if 0 and os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
+if os.environ.get('POSTGRES_HOST') and 'test' not in sys.argv:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': os.environ.get('DATABASE_NAME', 'database'),
-            'USER': os.environ.get('DATABASE_USER', 'postgres'),
-            'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'password'),
-            'HOST': os.environ.get('DATABASE_HOST', 'postgres'),
-            'PORT': os.environ.get('DATABASE_PORT', '5432'),
+            'NAME': os.environ.get('POSTGRES_DB', 'database'),
+            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'password'),
+            'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         }
     }

@@ -10,6 +10,7 @@ function Menu() {
       height: 150,
       borderRadius: "50%",
       objectFit: "cover",
+      backgroundColor: Theme.colors.primary,
     };
     return (
       window.application.menu.user && (

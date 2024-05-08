@@ -220,12 +220,17 @@ function Boxes(props) {
       fontSize: "1.2rem",
       textTransform: "uppercase",
       height: 70,
-      color: "#0c326f",
+      color: Theme.colors.primary,
     };
 
     return props.data.items.length ? (
       <div style={boxes}>
-        <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+        <h2
+          data-label={toLabelCase(props.data.title)}
+          style={{ color: Theme.colors.primary }}
+        >
+          {props.data.title}
+        </h2>
         <div>
           {props.data.items.map((item) => (
             <Link
@@ -342,7 +347,7 @@ function Indicators(props) {
           <h1 data-label={toLabelCase(props.data.title)}>{props.data.title}</h1>
           <GridLayout key={Math.random()} width={300}>
             {props.data.items.map((item) => (
-              <div>
+              <div key={Math.random()}>
                 <div style={number}>{format(item.value)}</div>
                 <div style={text}>{item.name}</div>
               </div>

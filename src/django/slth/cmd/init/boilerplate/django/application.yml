@@ -25,6 +25,7 @@ application:
     operador: Operador
   index: dashboard
   dashboard:
+    actions:
     top:
     center:
     boxes:

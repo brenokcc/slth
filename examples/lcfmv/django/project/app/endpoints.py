@@ -200,7 +200,7 @@ class Consultar(endpoints.PublicEndpoint):
         else:
             for campo in escopo_busca:
                 resultado = resultado | qs.filter(**{campo: palavas_chaves})
-        return resultado.fields('get_descricao', 'ementa', 'get_arquivo').contextualize(self.request).limit(5)
+        return resultado.fields('get_descricao', 'ementa', 'get_arquivo').contextualize(self.request).rows().limit(10)
     
     def on_tipo_documento_change(self, controller, values):
         if values.get('tipo_documento') == 'legislacao':

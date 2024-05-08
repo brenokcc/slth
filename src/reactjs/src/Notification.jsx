@@ -1,5 +1,6 @@
 import { Icon } from "./Icon.jsx";
 import { request } from "./Request.jsx";
+import Theme from "./Theme.jsx";
 
 function PushWebNotification(props) {
   var subscriptionJson;
@@ -67,9 +68,16 @@ function PushWebNotification(props) {
     }
   }
   function render() {
-    if (Notification.permission !== "granted") {
+    if (
+      window.Notification == null ||
+      window.Notification.permission !== "granted"
+    ) {
       return (
-        <Icon onClick={onClick} icon="bell" style={{ cursor: "pointer" }} />
+        <Icon
+          onClick={onClick}
+          icon="bell"
+          style={{ cursor: "pointer", color: Theme.colors.primary }}
+        />
       );
     }
   }

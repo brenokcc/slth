@@ -5,6 +5,7 @@ import { Field } from "./Form";
 import { request } from "./Request";
 import { Theme } from "./Theme";
 import { Info } from "./Message";
+import { openActionDialog } from "./Modal";
 import { GridLayout } from "./Layout";
 import { Button } from "./Button";
 import { Link } from "./Link";
@@ -340,7 +341,6 @@ function QuerySet(props) {
     const style = {
       textAlign: "left",
       verticalAlign: "top",
-      backgroundColor: "#f0f0f0",
       lineHeight: "3rem",
       color: Theme.colors.primary,
       padding: 5,
@@ -352,7 +352,7 @@ function QuerySet(props) {
           {data.map(function (item) {
             return (
               item.label != "ID" && (
-                <th key={Math.random()} style={style}>
+                <th key={Math.random()} style={style} className="bold">
                   {item.label}
                 </th>
               )
@@ -379,11 +379,11 @@ function QuerySet(props) {
           </td>
           <td style={actions}>
             <div style={{ verticalAlign: "center" }}>
-              {row.actions.map(function (action) {
-                return (
-                  <Action key={Math.random()} data={action} default compact />
-                );
-              })}
+              <Icon
+                icon="chevron-right"
+                onClick={() => openActionDialog(row.actions)}
+                style={{ cursor: "pointer", marginRight: 20 }}
+              />
             </div>
           </td>
         </tr>
@@ -498,20 +498,22 @@ function QuerySet(props) {
       data.pagination.page.total > 1 && (
         <div style={style}>
           <div>
-            <div style={inline}>
-              Exibir
-              <select
-                style={select}
-                name="page_size"
-                onChange={() => setPage(1)}
-                value={data.pagination.page.size}
-              >
-                {data.pagination.page.sizes.map(function (size) {
-                  return <option key={Math.random()}>{size}</option>;
-                })}
-              </select>
-            </div>
-            <div style={inline}>|</div>
+            {window.innerWidth > 800 && (
+              <div style={inline}>
+                Exibir
+                <select
+                  style={select}
+                  name="page_size"
+                  onChange={() => setPage(1)}
+                  value={data.pagination.page.size}
+                >
+                  {data.pagination.page.sizes.map(function (size) {
+                    return <option key={Math.random()}>{size}</option>;
+                  })}
+                </select>
+              </div>
+            )}
+            {window.innerWidth > 800 && <div style={inline}>|</div>}
 
             <div style={inline}>
               {data.pagination.start} - {data.pagination.end} de {data.total}

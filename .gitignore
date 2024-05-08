@@ -2,6 +2,8 @@
 **/django/static/
 src/django/slth/cmd/init/boilerplate/package-lock.json
 pyslth.egg-info
+PKG-INFO
+SOURCES.txt
 media
 src/django/slth/static/js/react.min.js
 src/django/slth/static/js/slth.min.js

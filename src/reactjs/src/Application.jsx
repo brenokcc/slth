@@ -19,7 +19,7 @@ function Floating(props) {
       display: "flex",
       width: 50,
       height: 50,
-      backgroundColor: "#1151b3",
+      backgroundColor: Theme.colors.primary,
       color: "white",
       right: 10,
       borderRadius: "50%",
@@ -119,6 +119,7 @@ function Application(props) {
             />
           )}
           <a
+            className="brand"
             href="/app/home/"
             onClick={onLogoClick}
             style={{ fontSize: "1.5rem", textDecoration: "none" }}
@@ -130,7 +131,7 @@ function Application(props) {
                 style={{ marginRight: 10 }}
               />
             )}
-            {props.data.navbar.title}
+            <span>{props.data.navbar.title}</span>
           </a>
           <div>{props.data.navbar.subtitle}</div>
         </div>
@@ -150,7 +151,8 @@ function Application(props) {
             <PushWebNotification />
           </div>
 
-          {props.data.navbar.actions.length > 0 &&
+          {props.data.navbar.actions &&
+            props.data.navbar.actions.length > 0 &&
             props.data.navbar.actions.map(function (action) {
               if (
                 action.url == "/api/login/" &&
@@ -207,14 +209,23 @@ function Application(props) {
               />
             </div>
           )}
-          {props.data.navbar.usermenu.length > 0 && (
+          {props.data.navbar.user && props.data.navbar.usermenu.length > 0 && (
             <div style={{ padding: 10 }}>
               <Dropdown
                 actions={props.data.navbar.usermenu}
                 position={{}}
                 dataLabel={toLabelCase(props.data.navbar.user)}
               >
-                {props.data.navbar.user}
+                <img
+                  src="/static/images/user.svg"
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    backgroundColor: Theme.colors.primary,
+                  }}
+                />
               </Dropdown>
             </div>
           )}
