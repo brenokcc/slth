@@ -1,0 +1,7 @@
+header, header ul, header input {
+    background-color: #265890 !important;
+    color: white;
+}
+header .brand span{
+    display: none;
+}

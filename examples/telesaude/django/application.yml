@@ -1,0 +1,73 @@
+application:
+  lang: pt-br
+  title: Telessaúde
+  subtitle: Sistema de Telessaúde de Campo Grande
+  icon: /static/images/logo.svg
+  logo: /static/images/logo.svg
+  version: 1.0.5
+  oauth:
+    govbr:
+      name: gov.br
+      client_id: $GOVBR_CLIENTE_ID
+      client_secret: $GOVBR_CLIENT_SECRET
+      redirect_uri: /app/login/govbr/
+      authorize_url: $GOVBR_AUTHORIZE_URL
+      access_token_url: $GOVBR_ACCESS_TOKEN_URL
+      user_data_url: $GOVBR_USER_DATA_URL
+      user_logout_url: $GOVBR_LOGOUT_URL
+      user_scope:
+      user_data:
+        create: false
+        username: sub
+        email: email
+  groups:
+    administrador: Administrador
+    operador: Operador
+  index: dashboard
+  dashboard:
+    actions:
+    top:
+    center:
+      - solicitacao
+    boxes:
+      - estabelecimentosaude
+      - profissionalsaude
+      - usuario
+    search:
+    usermenu:
+      - icons
+      - users
+      - logout
+    adder:
+    tools:
+    settings:
+  menu:
+    Cids: cid
+    Ciaps: ciap
+    Áreas Temáticas: areatematica
+    Tipos de Solicitacão: tiposolicitacao
+    Estados: unidadefederativa
+    Níveis de Formacão: nivelformacao
+    Sexos: sexo
+    Municípios: municipio
+    Estabelecimentos de Saude: estabelecimentosaude
+    Especialidades: especialidade
+    Pessoas Físicas: usuario
+    Profissionais de Saúde: profissionalsaude
+    Solicitações: solicitacao
+    Certificados Digitais: certificadodigital
+    Sair: logout
+  theme:
+    colors:
+      primary: "#265890"
+      secondary: "#071e41"
+      auxiliary: "#2670e8"
+      highlight: "#0c326f"
+      info: "#265890"
+      success: "#5ca05d"
+      warning: "#fff5c2"
+      danger: "#e52207"
+    border:
+      radius: 100em"
+    background:
+      info: "#d4e5ff"
