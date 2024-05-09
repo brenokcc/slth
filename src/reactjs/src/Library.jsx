@@ -411,7 +411,7 @@ function Scheduler(props) {
   const BLOCKED = "rgb(247, 208, 212)";
 
   function bgColor(value) {
-    if (value) return BLOCKED;
+    if (value != null) return SELECTED;
     return FREE;
   }
 
@@ -428,6 +428,7 @@ function Scheduler(props) {
   }
 
   function onMouseOver(e) {
+    if (props.data.readonly) return;
     if (
       props.data.single_selection &&
       getSelections().length > 0 &&
@@ -455,7 +456,7 @@ function Scheduler(props) {
 
   function render() {
     const style = {
-      overflowX: "scroll",
+      overflowX: "auto",
     };
     const table = {
       width: "100%",

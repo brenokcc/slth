@@ -336,7 +336,7 @@ class FormMixin:
             if ftype == "decimal":
                 data.update(mask="decimal")
             elif ftype == "scheduler":
-                data.update(scheduler=Scheduler())
+                data.update(scheduler=field.scheduler)
             elif ftype == "choice":
                 if name in self.request.GET:
                     data.update(type="hidden", value=self.request.GET[name])
@@ -652,10 +652,9 @@ class ModelMultipleChoiceField(ModelMultipleChoiceField):
         super().__init__(*args, **kwargs)
 
 
-class ShedulerField(CharField):
+class SchedulerField(CharField):
     def __init__(self, *args, scheduler=None, **kwargs):
-        self.scheduler = scheduler
-        # kwargs.update(widget=HiddenInput())
+        self.scheduler = scheduler or Scheduler()
         super().__init__(*args, **kwargs)
 
     def clean(self, value):
@@ -683,5 +682,5 @@ FIELD_TYPES = {
     "ColorField": "color",
     "FileField": "file",
     "ImageField": "file",
-    "ShedulerField": "scheduler",
+    "SchedulerField": "scheduler",
 }

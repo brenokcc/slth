@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from django.template.loader import render_to_string
 
 
@@ -276,10 +276,12 @@ class Scheduler(dict):
         initial=(),
         single_selection=False,
         input_name="schedule",
+        readonly=False,
     ):
         self["type"] = "scheduler"
         self["single_selection"] = single_selection
         self["input_name"] = input_name
+        self["readonly"] = readonly
         start_day = start_day or date.today()
         self.times = []
         for hour in range(start_time, end_time + 1):
@@ -292,7 +294,18 @@ class Scheduler(dict):
         self["slots"] = {}
         for day in self.days:
             self["slots"][day] = {k: None for k in self.times}
-        for day, time, value in initial:
+        for obj in initial:
+            if isinstance(obj, datetime):
+                day = obj.strftime("%d/%m/%Y")
+                time = obj.strftime("%H:%M")
+                value = ""
+            else:
+                if len(obj) == 3:
+                    day, time, value = obj
+                else:
+                    date_time, value = obj
+                    day = date_time.strftime("%d/%m/%Y")
+                    time = date_time.strftime("%H:%M")
             self["slots"][day][time] = value
 
         self["matrix"] = [[""] + self.days]

@@ -209,7 +209,7 @@ class Consultar(endpoints.PublicEndpoint):
         pick=True,
         initial=["conteudo"],
     )
-    horarios = forms.ShedulerField(label="Horários")
+    horarios = forms.SchedulerField(label="Horários")
 
     def get(self):
         return (

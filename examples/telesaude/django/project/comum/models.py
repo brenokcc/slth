@@ -1,5 +1,6 @@
 import binascii
 
+from slth.factory import FormFactory
 from slth.serializer import Serializer
 from . import signer
 from random import randint
@@ -10,8 +11,9 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.core.signing import Signer
-from slth.db import models
+from slth.db import models, meta
 from slth.models import User
+from slth.components import Scheduler
 
 
 class CategoriaProfissional(models.Model):
@@ -161,7 +163,11 @@ class Municipio(models.Model):
 
 class EstabelecimentoSaudeQuerySet(models.QuerySet):
     def all(self):
-        return self.fields("foto", "codigo_cnes", "nome")
+        return (
+            self.search("codigo_cnes", "nome")
+            .fields("foto", "codigo_cnes", "nome")
+            .filters("municipio")
+        )
 
 
 class EstabelecimentoSaude(models.Model):
@@ -189,7 +195,7 @@ class EstabelecimentoSaude(models.Model):
 
     operadores = models.ManyToManyField(
         "comum.Usuario",
-        verbose_name="Gestores",
+        verbose_name="Operadores",
         blank=True,
         related_name="estabelecimentos_operados",
     )
@@ -201,8 +207,39 @@ class EstabelecimentoSaude(models.Model):
         verbose_name = "Estabelecimento de Saúde"
         verbose_name_plural = "Estabelecimentos de Saúde"
 
+    def serializer(self):
+        return (
+            super()
+            .serializer()
+            .fieldset("Dados Gerais", ("nome", ("codigo_cnes", "municipio")))
+            .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
+            .fieldset("Geolocalização", (("latitude", "longitude")))
+            .queryset("Gestores", "gestores")
+            .queryset("Operadores", "operadores")
+            .field("get_horarios")
+        )
+
+    def formfactory(self):
+        return (
+            super()
+            .serializer()
+            .fieldset("Dados Gerais", ("nome", ("codigo_cnes", "municipio")))
+            .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
+            .fieldset("Geolocalização", (("latitude", "longitude")))
+            .fieldset("Recursos Humanos", ("gestores", "operadores"))
+        )
+
     def __str__(self):
         return "%s - %s" % (self.codigo_cnes, self.nome)
+
+    @meta("Horários de Atendimento dos Próximos Dias")
+    def get_horarios(self, readonly=True):
+        return Scheduler(
+            readonly=readonly,
+            initial=HorarioProfissionalSaude.objects.filter(
+                profissional_saude__estabelecimento=self
+            ).values_list("data_hora", "profissional_saude__usuario__nome"),
+        )
 
 
 class Especialidade(models.Model):
@@ -219,7 +256,7 @@ class Especialidade(models.Model):
 
 class UsuarioQueryset(models.QuerySet):
     def all(self):
-        return self.fiesearchlds("nome", "cpf").fields("nome", "cpf")
+        return self.search("nome", "cpf").fields("nome", "cpf")
 
 
 class Usuario(models.Model):
@@ -324,9 +361,29 @@ class AnexoUsuario(models.Model):
     documento = models.FileField(max_length=200, upload_to="documento", null=True)
 
 
+class ProfissionalSaudeQueryset(models.QuerySet):
+    def all(self):
+        return (
+            self.search("usuario__nome", "usuario__cpf")
+            .filters(
+                "estabelecimento",
+                "especialidade",
+            )
+            .fields(
+                "usuario",
+                "estabelecimento",
+                "especialidade",
+            )
+            .actions("definirhorarioprofissionalsaude")
+        )
+
+
 class ProfissionalSaude(models.Model):
     usuario = models.ForeignKey(
-        Usuario, related_name="profissional_saude", on_delete=models.PROTECT
+        Usuario,
+        related_name="profissional_saude",
+        on_delete=models.PROTECT,
+        verbose_name="Pessoa Física",
     )
     estabelecimento = models.ForeignKey(
         EstabelecimentoSaude,
@@ -349,16 +406,67 @@ class ProfissionalSaude(models.Model):
     perceptor = models.BooleanField(default=False)
     ativo = models.BooleanField(default=False)
 
+    objects = ProfissionalSaudeQueryset()
+
     class Meta:
         icon = "stethoscope"
         verbose_name = "Profissional"
         verbose_name_plural = "Profissionais"
+
+    def serializer(self):
+        return (
+            super()
+            .serializer()
+            .fieldset("Dados Gerais", (("estabelecimento", "especialidade"),))
+            .fieldset(
+                "Dados Profissionais",
+                (
+                    ("formacao", "registro_profissional"),
+                    ("especialidade", "registro_especialista"),
+                ),
+            )
+            .fieldset(
+                "Outras Informações",
+                (
+                    ("programa_provab", "programa_mais_medico"),
+                    ("residente", "perceptor"),
+                ),
+            )
+            .fieldset("Agenda dos Próximos Dias", ("get_horarios",))
+        )
 
     def __str__(self):
         return "%s (CPF: %s / CRM: %s)" % (
             self.usuario.nome,
             self.usuario.cpf,
             self.registro_profissional,
+        )
+
+    @meta(None)
+    def get_horarios(self, readonly=True):
+        return Scheduler(
+            readonly=readonly,
+            initial=self.horarioprofissionalsaude_set.values_list(
+                "data_hora", flat=True
+            ),
+        )
+
+
+class HorarioProfissionalSaude(models.Model):
+    profissional_saude = models.ForeignKey(
+        ProfissionalSaude,
+        verbose_name="Profissional de Saúde",
+        on_delete=models.CASCADE,
+    )
+    data_hora = models.DateTimeField(verbose_name="Data/Hora")
+
+    class Meta:
+        verbose_name = "Horário de Atendimento"
+        verbose_name_plural = "Horários de Atendimento"
+
+    def __str__(self):
+        return "{} - {}".format(
+            self.data_hora.strftime("%d/%m/%Y %H:%M"), self.profissional_saude
         )
 
 
@@ -474,7 +582,25 @@ class Solicitacao(models.Model):
     atraso = models.BooleanField(default=False, null=True)
     sugestao_sincrona = models.CharField(max_length=150, null=True)
 
-    agendado_para = models.DateTimeField(null=True)
+    horario_profissional_saude = models.ForeignKey(
+        HorarioProfissionalSaude,
+        verbose_name="Horário",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    horario_excepcional = models.BooleanField(
+        verbose_name="Horário Exceptional",
+        default=False,
+        help_text="Marque essa opção caso deseje agendar em um horário fora da agenda do profissional.",
+    )
+    justificativa_horario_excepcional = models.TextField(
+        verbose_name="Justificativa do Horário",
+        null=True,
+        blank=True,
+        help_text="Obrigatório para agendamentos em horário excepcional.",
+    )
+    agendado_para = models.DateTimeField(null=True, blank=True)
+
     finalizado_em = models.DateTimeField(null=True)
 
     # Verificando quantas vezes o solicitante acessou a TC
@@ -483,8 +609,40 @@ class Solicitacao(models.Model):
     objects = SolicitacaoQuerySet()
 
     class Meta:
+        icon = "laptop-file"
         verbose_name = "Solicitação"
         verbose_name_plural = "Solicitações"
+
+    def formfactory(self):
+        return (
+            super()
+            .formfactory()
+            .fieldset(
+                "Dados Gerais",
+                (
+                    ("estabelecimento", "solicitante"),
+                    ("enfoque_solicitacao", "tipo_solicitacao"),
+                ),
+            )
+            .fieldset(
+                "Detalhamento",
+                (
+                    "paciente",
+                    ("cid", "ciap"),
+                    "assunto",
+                    "duvida",
+                ),
+            )
+            .fieldset(
+                "Agendamento",
+                (
+                    ("area_tematica", "horario_profissional_saude"),
+                    "horario_excepcional",
+                    "justificativa_horario_excepcional",
+                    "agendado_para",
+                ),
+            )
+        )
 
     def get_token_paciente(self):
         signer = Signer()

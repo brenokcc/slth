@@ -28,34 +28,36 @@ application:
     actions:
     top:
     center:
-      - solicitacao
+      - solicitacoes
     boxes:
-      - estabelecimentosaude
-      - profissionalsaude
-      - usuario
+      - estabelecimentossaude
+      - profissionaissaude
+      - usuarios
+      - solicitacoes
     search:
     usermenu:
       - icons
       - users
       - logout
     adder:
+      - cadastrarsolicitacao
     tools:
     settings:
   menu:
     Cids: cid
     Ciaps: ciap
-    Áreas Temáticas: areatematica
-    Tipos de Solicitacão: tiposolicitacao
-    Estados: unidadefederativa
-    Níveis de Formacão: nivelformacao
-    Sexos: sexo
-    Municípios: municipio
-    Estabelecimentos de Saude: estabelecimentosaude
-    Especialidades: especialidade
-    Pessoas Físicas: usuario
-    Profissionais de Saúde: profissionalsaude
-    Solicitações: solicitacao
-    Certificados Digitais: certificadodigital
+    Áreas Temáticas: areastematica
+    Tipos de Solicitacão: tipossolicitacao
+    Estados: unidadesfederativas
+    Níveis de Formacão: niveisformacao
+    Sexos: sexos
+    Municípios: municipios
+    Estabelecimentos de Saude: estabelecimentossaude
+    Especialidades: especialidades
+    Pessoas Físicas: usuarios
+    Profissionais de Saúde: profissionaissaude
+    Solicitações: solicitacoes
+    Certificados Digitais: certificadosdigitais
     Sair: logout
   theme:
     colors:
