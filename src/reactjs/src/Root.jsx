@@ -25,6 +25,7 @@ import {
   FilePreview,
   Counter,
   Indicators,
+  Scheduler,
 } from "./Library";
 
 var root;
@@ -90,6 +91,7 @@ ComponentFactory.register(IconSet, "IconSet");
 ComponentFactory.register(Grid, "Grid");
 ComponentFactory.register(Rows, "Rows");
 ComponentFactory.register(Timeline, "Timeline");
+ComponentFactory.register(Scheduler, "Scheduler");
 ComponentFactory.register(WebConf, "WebConf");
 
 window.addEventListener("popstate", (e) => {

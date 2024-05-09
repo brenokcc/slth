@@ -11,6 +11,7 @@ import { Icon } from "./Icon.jsx";
 import { Button } from "./Button.jsx";
 import { Action } from "./Action.jsx";
 import { Theme } from "./Theme";
+import { Scheduler } from "./Library.jsx";
 
 const INPUT_TYPES = [
   "text",
@@ -34,6 +35,7 @@ const INPUT_STYLE = {
   padding: 15,
   border: "solid 1px #d9d9d9",
   borderRadius: 5,
+  backgroundColor: "white",
 };
 
 function isImage(url) {
@@ -215,7 +217,10 @@ function Field(props) {
     else if (props.data.type == "boolean") return <Boolean data={props.data} />;
     else if (props.data.type == "textarea")
       return <Textarea data={props.data} />;
-    else return <span>{props.data.name}</span>;
+    else if (props.data.type == "scheduler") {
+      props.data.scheduler.input_name = props.data.name;
+      return <Scheduler data={props.data.scheduler} />;
+    } else return <span>{props.data.name}</span>;
   }
 
   function renderError() {

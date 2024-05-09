@@ -8,7 +8,7 @@ function Message(props) {
     const style = {
       position: "fixed",
       color: "white",
-      backgroundColor: props.isError ? "#e52207" : Theme.colors.primary,
+      backgroundColor: props.isError ? "#e52207" : Theme.colors.success,
       width: 300,
       top: 10,
       left: (window.innerWidth - 320) / 2,

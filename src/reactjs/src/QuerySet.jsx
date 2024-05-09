@@ -341,7 +341,7 @@ function QuerySet(props) {
     const style = {
       textAlign: "left",
       verticalAlign: "top",
-      lineHeight: "3rem",
+      lineHeight: "1.2rem",
       color: Theme.colors.primary,
       padding: 5,
     };
@@ -614,7 +614,7 @@ function QuerySet(props) {
                 );
               })}
             <div>
-              <Button onClick={reload} label="Filtrar" icon="filter" primary />
+              <Button onClick={reload} label="Filtrar" icon="filter" />
             </div>
           </GridLayout>
           {filtering &&

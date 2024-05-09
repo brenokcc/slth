@@ -403,6 +403,135 @@ function Counter(props) {
   return render();
 }
 
+function Scheduler(props) {
+  const id = Math.random();
+  var mouseDown = false;
+  const FREE = "rgb(219, 237, 255)";
+  const SELECTED = "rgb(89, 154, 242)";
+  const BLOCKED = "rgb(247, 208, 212)";
+
+  function bgColor(value) {
+    if (value) return BLOCKED;
+    return FREE;
+  }
+
+  function onMouseDown(e) {
+    mouseDown = true;
+    e.preventDefault();
+  }
+
+  function onMouseUp(e) {
+    mouseDown = false;
+    document.getElementById("input" + id).value = JSON.stringify(
+      getSelections()
+    );
+  }
+
+  function onMouseOver(e) {
+    if (
+      props.data.single_selection &&
+      getSelections().length > 0 &&
+      e.target.style.backgroundColor != SELECTED
+    ) {
+      return;
+    }
+    if (mouseDown && e.target.style.backgroundColor != BLOCKED) {
+      e.target.style.backgroundColor =
+        e.target.style.backgroundColor == FREE ? SELECTED : FREE;
+    }
+  }
+
+  function getSelections() {
+    const selections = [];
+    document
+      .getElementById(id)
+      .querySelectorAll("td")
+      .forEach(function (td) {
+        if (td.style.backgroundColor == SELECTED)
+          selections.push(td.dataset["value"].split(","));
+      });
+    return selections;
+  }
+
+  function render() {
+    const style = {
+      overflowX: "scroll",
+    };
+    const table = {
+      width: "100%",
+      borderSpacing: 0,
+      borderCollapse: "collapse",
+      marginTop: 15,
+      marginBottom: 15,
+    };
+    const cell = {
+      border: "solid 4px white",
+    };
+    return (
+      <div id={id} style={style}>
+        <input id={"input" + id} type="hidden" name={props.data.input_name} />
+        <table style={table} onMouseDown={onMouseDown} onMouseUp={onMouseUp}>
+          <thead>
+            <tr>
+              {props.data.matrix[0].map(function (value) {
+                return (
+                  <th className="bold" key={Math.random()} style={cell}>
+                    {value}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {props.data.matrix.map(function (row, i) {
+              if (i > 0) {
+                return (
+                  <tr key={Math.random()}>
+                    {row.map(function (value, j) {
+                      if (j == 0)
+                        return (
+                          <th
+                            className="bold"
+                            key={Math.random()}
+                            align="center"
+                            style={cell}
+                          >
+                            {value}
+                          </th>
+                        );
+                      else {
+                        const td = {
+                          backgroundColor: bgColor(value),
+                          border: "solid 4px white",
+                        };
+                        return (
+                          <td
+                            key={Math.random()}
+                            align="center"
+                            style={td}
+                            onMouseDown={onMouseOver}
+                            onMouseLeave={onMouseOver}
+                            onMouseUp={onMouseOver}
+                            data-value={[props.data.matrix[0][j], row[0]]}
+                            title={value ? value : null}
+                          >
+                            {value ? "" : ""}
+                          </td>
+                        );
+                      }
+                    })}
+                  </tr>
+                );
+              }
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  return render();
+}
+
 export {
   Banner,
   Image,
@@ -420,5 +549,6 @@ export {
   FilePreview,
   Grid,
   Counter,
+  Scheduler,
 };
 export default Html;

@@ -21,7 +21,7 @@ function Field(props) {
 
 function StaticField(props) {
   function renderValue() {
-    if (props.data.url) {
+    if (props.data.url && props.data.url.indexOf("only=") < 0) {
       return (
         <Link href={props.data.url}>
           <>
