@@ -512,7 +512,7 @@ function Scheduler(props) {
                             onMouseUp={onMouseOver}
                             data-value={[props.data.matrix[0][j], row[0]]}
                           >
-                            {value && <Tooltip text={value}><Icon icon='stethoscope' style={{"color": "white"}}/></Tooltip>}
+                            {value && <Tooltip text={value}><Icon icon='stethoscope' style={{color: "white", cursor: "help"}}/></Tooltip>}
                           </td>
                         );
                       }
@@ -530,6 +530,7 @@ function Scheduler(props) {
 }
 
 function Tooltip(props){
+
   function render(){
     StyleSheet(`
       .tooltip {
@@ -539,7 +540,7 @@ function Tooltip(props){
       .tooltip .tooltiptext {
         visibility: hidden;
         width: 220px;
-        background-color: black;
+        background-color: ${Theme.colors.highlight};
         color: #fff;
         text-align: center;
         border-radius: 6px;
@@ -549,25 +550,16 @@ function Tooltip(props){
         bottom: 150%;
         left: 50%;
         margin-left: -60px;
-      }
-      .tooltip .tooltiptext::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        margin-left: -5px;
-        border-width: 5px;
-        border-style: solid;
-        border-color: black transparent transparent transparent;
+        z-index: 9999;
       }
       .tooltip:hover .tooltiptext {
         visibility: visible;
       }
     `)
-    
+    console.log(props.text);
     return (
       <div className="tooltip">{props.children}
-        <span className="tooltiptext">{props.text}</span>
+        <div className="tooltiptext">{format(props.text)}</div>
       </div>
     )
   }

@@ -27,6 +27,7 @@ import {
   Indicators,
   Scheduler,
 } from "./Library";
+import Text from "./Text";
 
 var root;
 var COMPONENT_REGISTRY = {};
@@ -94,6 +95,7 @@ ComponentFactory.register(Cards, "Cards");
 ComponentFactory.register(Timeline, "Timeline");
 ComponentFactory.register(Scheduler, "Scheduler");
 ComponentFactory.register(WebConf, "WebConf");
+ComponentFactory.register(Text, "Text");
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);

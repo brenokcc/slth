@@ -24,6 +24,12 @@ function format(obj) {
       var data = tokens[0];
       var hora = tokens[1];
       return hora == "00:00:00" ? data : data + " " + hora;
+    } else if (obj.indexOf('\n') >=0){
+      return obj.split('\n').map(function(line, i){
+        return <>
+          <div key={Math.random()}>{line}</div>
+        </>
+      });
     }
     return obj;
   }
@@ -32,7 +38,13 @@ function format(obj) {
   }
   if (typeof obj == "object" && Array.isArray(obj)) {
     if (obj.length == 0) return "-";
-    else
+    else if (typeof obj[0] == "object" && obj[0].type != null){
+      return <>
+        {obj.map(function (item) {
+            return <ComponentFactory data={item} />;
+        })}
+      </>
+    } else {
       return (
         <ul style={{ padding: 0 }}>
           {obj.map(function (item) {
@@ -40,6 +52,7 @@ function format(obj) {
           })}
         </ul>
       );
+    }
   }
   if (
     typeof obj == "object" &&

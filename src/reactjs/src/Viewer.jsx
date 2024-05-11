@@ -162,7 +162,6 @@ function Cards(props) {
       padding: 10px;
       box-shadow: 0 1px 6px rgba( 0, 0, 0 , 0.16 );
       margin: 10px;
-      
     }
     .cards h3{
       margin-top: 5px;

@@ -180,7 +180,7 @@ class QuerySet(models.QuerySet):
             term = self.request.GET.get('term')
             if term:
                 choices = choices.apply_search(term)
-            raise JsonResponseException([dict(id=obj.id, value=str(obj)) for obj in choices[0:20]])
+            raise JsonResponseException([dict(id=obj.id, value=str(obj).strip()) for obj in choices[0:20]])
 
 
         return qs

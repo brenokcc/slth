@@ -7,6 +7,13 @@ PRIMARY = "primary"
 WARNING = "warning"
 DANGER = "danger"
 
+class Text(dict):
+    def __init__(self, text, color="inherite", size="inherite", bold=False, italic=False):
+        self["type"] = "text"
+        self["text"] = text
+        self["color"] = color
+        self["bold"] = bold
+        self["italic"] = italic
 
 class Image(dict):
     def __init__(self, src, width=None, height=None, round=False, placeholder=None):

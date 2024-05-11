@@ -6,7 +6,8 @@ function GridLayout(props) {
     const style = {
       display: "grid",
       gridGap: 0,
-      gridTemplateColumns: "repeat(auto-fit, minmax(" + width + "px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(" + width + "px, 0.5fr))",
+      //gridTemplateColumns: "repeat(auto-fit, minmax(" + width + "px, " + (width + 100) + "px))",
       alignItems: props.alignItems || "end",
     };
     return <div style={style}>{props.children}</div>;

@@ -54,7 +54,7 @@ application:
   menu:
     Cids: cid
     Ciaps: ciap
-    Áreas Temáticas: areastematica
+    Áreas Temáticas: areastematicas
     Tipos de Solicitacão: tipossolicitacao
     Estados: unidadesfederativas
     Níveis de Formacão: niveisformacao

@@ -81,9 +81,30 @@ class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
         return self.check_role('ge')
 
 
-class ConsultarAgenda(endpoints.Endpoint):
+class AgendaEstabelecimentoSaude(endpoints.InstanceEndpoint[EstabelecimentoSaude]):
+    class Meta:
+        icon = 'clock'
+        verbose_name = 'Agenda de Unidade de Saúde'
+
     def get(self):
-        return Scheduler()
+        return self.serializer().fields('nome', 'get_agenda')
+    
+    def check_permission(self):
+        return True
+    
+class AgendaProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
+    class Meta:
+        icon = 'clock'
+        verbose_name = 'Agenda de Profissional de Saúde'
+    
+    def get(self):
+        return self.serializer().fieldset(
+            "Dados do Profissional",
+            ("usuario", ("estabelecimento", "especialidade")),
+        ).fieldset('Agenda', ('get_agenda',))
+    
+    def check_permission(self):
+        return True
 
 
 class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
@@ -104,7 +125,7 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
 
     def getform(self, form):
         form.fields["horarios"] = forms.SchedulerField(
-            scheduler=self.instance.get_horarios(readonly=False)
+            scheduler=self.instance.get_agenda(readonly=False)
         )
         return form
 

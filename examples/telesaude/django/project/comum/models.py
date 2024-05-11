@@ -13,7 +13,7 @@ from django.utils.timesince import timesince
 from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User
-from slth.components import Scheduler, FileLink, WebConf, Image, Map
+from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text
 
 
 class CategoriaProfissional(models.Model):
@@ -166,7 +166,7 @@ class EstabelecimentoSaudeQuerySet(models.QuerySet):
         return (
             self.search("codigo_cnes", "nome")
             .fields("foto", "codigo_cnes", "nome")
-            .filters("municipio").cards()
+            .filters("municipio").actions('agendaestabelecimentosaude').cards()
         )
 
 @role('gu', username='gestores__cpf', unidade='pk')
@@ -249,13 +249,29 @@ class EstabelecimentoSaude(models.Model):
 
     @meta()
     def get_agenda(self, readonly=True):
-        return Scheduler(
-            readonly=readonly,
-            initial=HorarioProfissionalSaude.objects.filter(
-                profissional_saude__estabelecimento=self
-            ).values_list("data_hora", "profissional_saude__usuario__nome"),
+        initial = []
+        qs = HorarioProfissionalSaude.objects.filter(
+            profissional_saude__estabelecimento=self
         )
+        campos = ("data_hora", "profissional_saude__usuario__nome", "profissional_saude__especialidade__area_tematica__nome")
+        qs1 = qs.filter(solicitacao__isnull=True)
+        qs2 = qs.filter(solicitacao__isnull=False)
+        horarios = {}
+        for i, solicitacoes in enumerate([qs1, qs2]):
+            for data_hora, nome, area in solicitacoes.values_list(*campos):
+                if data_hora not in horarios:
+                    horarios[data_hora] = []
+                profissional = f'{nome} ({area.upper()} )' if area else nome
+                horarios[data_hora].append(Text(profissional, color="#a4e2a4" if i==0 else "#f47c7c"))
+        for data_hora, text in horarios.items():
+            initial.append((data_hora, text))
+        return Scheduler(readonly=readonly, initial=initial)
 
+
+class EspecialidadeQuerySet(models.QuerySet):
+    def all(self):
+        return self.search('nome').filters('categoria', 'area_tematica')
+    
 
 class Especialidade(models.Model):
 
@@ -264,6 +280,9 @@ class Especialidade(models.Model):
     categoria = models.ForeignKey(
         "comum.CategoriaProfissional", on_delete=models.CASCADE
     )
+    area_tematica = models.ForeignKey(AreaTematica, verbose_name='Área Temática', on_delete=models.CASCADE, null=True, blank=True)
+
+    objects = EspecialidadeQuerySet()
 
     def __str__(self):
         return "%s - %s" % (self.codigo_cbo, self.nome)
@@ -388,7 +407,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
                 "estabelecimento",
                 "especialidade",
             )
-            .actions("definirhorarioprofissionalsaude")
+            .actions("agendaprofissionalsaude", "definirhorarioprofissionalsaude")
         ).cards()
 
 @role('ps', username='usuario__cpf', unidade='estabelecimento')
@@ -447,7 +466,7 @@ class ProfissionalSaude(models.Model):
                     ("residente", "perceptor"),
                 ),
             )
-            .fieldset("Agenda dos Próximos Dias", ("get_horarios",))
+            .fieldset("Agenda dos Próximos Dias", ("get_agenda",))
         )
 
     def __str__(self):
@@ -458,7 +477,7 @@ class ProfissionalSaude(models.Model):
         )
 
     @meta(None)
-    def get_horarios(self, readonly=True):
+    def get_agenda(self, readonly=True):
         return Scheduler(
             readonly=readonly,
             initial=self.horarioprofissionalsaude_set.values_list(
@@ -537,7 +556,7 @@ class SolicitacaoQuerySet(models.QuerySet):
             .fields(
                 ("area_tematica", "data", "tipo_solicitacao"),
                 ("solicitante", "estabelecimento", "especialista"),
-            ).limit(5)
+            ).limit(5).order_by('-id')
         )
 
 
@@ -548,7 +567,7 @@ class Solicitacao(models.Model):
     )
     # TODO remover
     vinculo = models.ForeignKey(
-        ProfissionalVinculo, related_name="solicitacoes", on_delete=models.CASCADE
+        ProfissionalVinculo, related_name="solicitacoes", on_delete=models.CASCADE, null=True
     )
 
     solicitante = models.ForeignKey(
