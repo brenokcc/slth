@@ -21,6 +21,13 @@ function Field(props) {
 }
 
 function StaticField(props) {
+  function renderLabel(){
+    if (props.data.label){
+      return (
+        <><strong>{props.data.label}</strong>:<br></br></>
+      )
+    }
+  }
   function renderValue() {
     if (props.data.url && props.data.url.indexOf("only=") < 0) {
       return (
@@ -43,7 +50,7 @@ function StaticField(props) {
     };
     return (
       <div style={style}>
-        <strong>{props.data.label}</strong>:<br></br>
+        {renderLabel()}
         {renderValue()}
       </div>
     );
@@ -108,7 +115,7 @@ function Fields(props) {
           </GridLayout>
         );
       } else {
-        if (item.label != "ID" && item.label != props.exclude) {
+        if (item.label != "ID" && (props.exclude==null || item.label != props.exclude)) {
           return (
             <div key={Math.random()}>
               <Field data={item} width={100} />
@@ -140,6 +147,47 @@ function Rows(props) {
     };
     return (
       <div style={style}>
+        {renderTitle()}
+        {renderFields()}
+        {renderActions()}
+      </div>
+    );
+  }
+  return render();
+}
+
+function Cards(props) {
+  StyleSheet(`
+    .cards{
+      padding: 10px;
+      box-shadow: 0 1px 6px rgba( 0, 0, 0 , 0.16 );
+      margin: 10px;
+      
+    }
+    .cards h3{
+      margin-top: 5px;
+      margin-bottom: 5px;
+      height: 3rem;
+      overflow-y: hidden;
+    }
+    .cards img{
+      width: 100% !important;
+      height: 150px !important;
+      object-fit: cover;
+    }
+  `)
+  function renderTitle() {
+    return <h3>{props.data.title}</h3>;
+  }
+  function renderFields() {
+    return <Fields data={props.data.data} />;
+  }
+  function renderActions() {
+    return <ActionSet data={props.data.actions} />;
+  }
+  function render() {
+    return (
+      <div className="cards">
         {renderTitle()}
         {renderFields()}
         {renderActions()}
@@ -531,5 +579,5 @@ function Group(props) {
   return render();
 }
 
-export { Fieldset, Field, Object, Section, Group, Rows, Timeline };
+export { Fieldset, Field, Object, Section, Group, Rows, Cards, Timeline };
 export default Object;

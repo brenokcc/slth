@@ -11,6 +11,7 @@ application:
     opa: Operador de Acordão
   index: consultar
   dashboard:
+    toolbar:
     actions:
       - login
     top:

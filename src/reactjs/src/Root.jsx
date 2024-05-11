@@ -1,5 +1,5 @@
 import React from "react";
-import { Rows, Timeline } from "./Viewer";
+import { Cards, Rows, Timeline } from "./Viewer";
 import { Form } from "./Form";
 import { QuerySet } from "./QuerySet";
 import { Object as Object2, Fieldset, Field, Section, Group } from "./Viewer";
@@ -90,6 +90,7 @@ ComponentFactory.register(Application, "Application");
 ComponentFactory.register(IconSet, "IconSet");
 ComponentFactory.register(Grid, "Grid");
 ComponentFactory.register(Rows, "Rows");
+ComponentFactory.register(Cards, "Cards");
 ComponentFactory.register(Timeline, "Timeline");
 ComponentFactory.register(Scheduler, "Scheduler");
 ComponentFactory.register(WebConf, "WebConf");

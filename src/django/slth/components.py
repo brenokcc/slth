@@ -212,6 +212,7 @@ class Navbar(dict):
         self["tools"] = []
         self["settings"] = []
         self["actions"] = []
+        self["toolbar"] = []
 
     def add_action(self, entrypoint, name, url, modal=True, icon=None):
         self[entrypoint].append(dict(name=name, url=url, modal=modal, icon=icon))

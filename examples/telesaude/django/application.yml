@@ -28,6 +28,11 @@ application:
     ps: Profissinal de Saúde
   index: dashboard
   dashboard:
+    toolbar:
+      - usuarios
+      - estabelecimentossaude
+      - profissionaissaude
+      - solicitacoes
     actions:
     top:
     center:

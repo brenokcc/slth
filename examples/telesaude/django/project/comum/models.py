@@ -13,7 +13,7 @@ from django.utils.timesince import timesince
 from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User
-from slth.components import Scheduler, FileLink, WebConf, Image
+from slth.components import Scheduler, FileLink, WebConf, Image, Map
 
 
 class CategoriaProfissional(models.Model):
@@ -166,7 +166,7 @@ class EstabelecimentoSaudeQuerySet(models.QuerySet):
         return (
             self.search("codigo_cnes", "nome")
             .fields("foto", "codigo_cnes", "nome")
-            .filters("municipio")
+            .filters("municipio").cards()
         )
 
 @role('gu', username='gestores__cpf', unidade='pk')
@@ -213,10 +213,13 @@ class EstabelecimentoSaude(models.Model):
             super()
             .serializer()
             .fieldset("Dados Gerais", ("nome", ("codigo_cnes", "municipio")))
-            .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
-            .fieldset("Geolocalização", (("latitude", "longitude")))
-            .queryset("Gestores", "gestores")
-            .queryset("Operadores", "operadores")
+            .group()
+                .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
+                .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
+                .queryset("Gestores", "gestores")
+                .queryset("Operadores", "operadores")
+                .queryset("Profissionais", "get_profissionais_saude")
+            .parent()
             .fieldset("Agenda dos Próximos Dias", ("get_agenda",))
         )
 
@@ -226,15 +229,23 @@ class EstabelecimentoSaude(models.Model):
             .formfactory()
             .fieldset("Dados Gerais", ("foto", "nome", ("codigo_cnes", "municipio")))
             .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
-            .fieldset("Geolocalização", (("latitude", "longitude")))
+            .fieldset("Geolocalização", (("latitude", "longitude"),))
             .fieldset("Recursos Humanos", ("gestores", "operadores"))
         )
 
     def __str__(self):
         return "%s - %s" % (self.codigo_cnes, self.nome)
     
+    @meta()
     def get_foto(self):
-        return Image(self.foto, placeholder='/static/images/ubs.png')
+        return Image(self.foto, placeholder='/static/images/ubs.png', width='auto', height='auto')
+    
+    def get_mapa(self):
+        return Map(self.latitude, self.longitude)
+
+    @meta('Profissionais de Saúde')
+    def get_profissionais_saude(self):
+        return self.profissionalsaude_set.all()
 
     @meta()
     def get_agenda(self, readonly=True):
@@ -374,12 +385,11 @@ class ProfissionalSaudeQueryset(models.QuerySet):
                 "especialidade",
             )
             .fields(
-                "usuario",
                 "estabelecimento",
                 "especialidade",
             )
             .actions("definirhorarioprofissionalsaude")
-        )
+        ).cards()
 
 @role('ps', username='usuario__cpf', unidade='estabelecimento')
 class ProfissionalSaude(models.Model):
@@ -416,6 +426,7 @@ class ProfissionalSaude(models.Model):
         icon = "stethoscope"
         verbose_name = "Profissional"
         verbose_name_plural = "Profissionais"
+        search_fields = 'usuario__cpf', 'usuario__nome'
 
     def serializer(self):
         return (

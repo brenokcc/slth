@@ -624,7 +624,7 @@ class Application(PublicEndpoint):
             logo=logo,
             user=user,
         )
-        for entrypoint in ["actions", "usermenu", "adder", "settings", "tools"]:
+        for entrypoint in ["actions", "usermenu", "adder", "settings", "tools", "toolbar"]:
             if APPLICATON["dashboard"][entrypoint]:
                 for endpoint in APPLICATON["dashboard"][entrypoint]:
                     cls = ENDPOINTS[endpoint]

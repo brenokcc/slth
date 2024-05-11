@@ -34,7 +34,7 @@ function Image(props) {
 }
 
 function Map(props) {
-  return (
+  return props.data.latitude && props.data.longitude && (
     <iframe
       width={props.data.width || "100%"}
       height={props.data.height || "400px"}
@@ -194,11 +194,6 @@ function Boxes(props) {
       textAlign: "center",
       backgroundColor: "#f8f8f8",
     };
-    const h2 = {
-      color: "blue",
-      paddingTop: 25,
-      fontSize: "1.5rem",
-    };
     const box = {
       padding: 20,
       display: "inline-flex",
@@ -252,6 +247,7 @@ function Boxes(props) {
   }
   return render();
 }
+
 
 function Shell(props) {
   function render() {

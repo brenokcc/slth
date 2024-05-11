@@ -12,6 +12,7 @@ application:
     consultante: Consultante
   index: dashboard
   dashboard:
+    toolbar:
     actions:
     top:
     center:

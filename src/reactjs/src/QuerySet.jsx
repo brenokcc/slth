@@ -237,14 +237,27 @@ function QuerySet(props) {
   function renderData() {
     if (data.data.length > 0) {
       if (data.renderer) {
-        return (
-          <div style={{ marginBottom: 15 }}>
-            {data.data.map(function (item) {
-              item.type = data.renderer;
-              return <ComponentFactory data={item} key={Math.random()} />;
-            })}
-          </div>
-        );
+        if(data.renderer=="cards"){
+          return (
+            <GridLayout width={300} alignItems="start">
+              {data.data.map(function (item) {
+                item.type = data.renderer;
+                return <div>
+                  <ComponentFactory data={item} key={Math.random()} />
+                </div>;
+              })}
+          </GridLayout>
+          )
+        } else {
+          return (
+            <div style={{ marginBottom: 15 }}>
+              {data.data.map(function (item) {
+                item.type = data.renderer;
+                return <ComponentFactory data={item} key={Math.random()} />;
+              })}
+            </div>
+          );
+        }
       } else {
         return renderTable();
       }
