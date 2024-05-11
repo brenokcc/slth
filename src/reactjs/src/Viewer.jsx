@@ -7,6 +7,7 @@ import { Link } from "./Link.jsx";
 import { GridLayout } from "./Layout";
 import toLabelCase from "./Utils";
 import { Icon } from "./Icon.jsx";
+import { StyleSheet} from "./StyleSheet.jsx"
 
 function Field(props) {
   function render() {
@@ -324,16 +325,20 @@ function ObjectActions(props) {
 
 function Title(props) {
   function render() {
-    const div = {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-    };
-    const h1 = { margin: 0 };
+    StyleSheet( `
+      .object-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .object-title h1 {
+          margin: 0
+      }
+    `)
     return (
-      <div style={div}>
+      <div className="object-title">
         {props.data.title && (
-          <h1 style={h1} data-label={toLabelCase(props.data.title)}>
+          <h1 data-label={toLabelCase(props.data.title)}>
             {props.data.title}
           </h1>
         )}

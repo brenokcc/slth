@@ -21,8 +21,11 @@ application:
         username: sub
         email: email
   groups:
-    administrador: Administrador
-    operador: Operador
+    ge: Gestor Estadual
+    gm: Gestor Municipal
+    gu: Gestor de Unidade
+    ou: Operador de Unidade
+    ps: Profissinal de Saúde
   index: dashboard
   dashboard:
     actions:
@@ -30,9 +33,9 @@ application:
     center:
       - solicitacoes
     boxes:
+      - usuarios
       - estabelecimentossaude
       - profissionaissaude
-      - usuarios
       - solicitacoes
     search:
     usermenu:

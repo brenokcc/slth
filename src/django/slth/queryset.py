@@ -107,6 +107,10 @@ class QuerySet(models.QuerySet):
         self.metadata['attrname'] = name
         return self
     
+    def reloadable(self):
+        self.metadata['reloadable'] = True
+        return self
+    
     def calendar(self, name):
         self.metadata['calendar'] = name
         return self
@@ -225,6 +229,7 @@ class QuerySet(models.QuerySet):
         attrname = self.metadata.get('attrname')
         relations = self.metadata.get('relations')
         renderer = self.metadata.get('renderer')
+        reloadable = self.metadata.get('reloadable')
         bi = self.metadata.get('bi', [])
         subset = None
         actions = []
@@ -278,7 +283,7 @@ class QuerySet(models.QuerySet):
             if field:
                 filters.append(field)
 
-        total = self.count()
+        total = qs.count()
         for name in self.metadata.get('subsets', ()):
             attr = getattr(self, name)
             label = getattr(attr, 'verbose_name', name.title())
@@ -296,6 +301,8 @@ class QuerySet(models.QuerySet):
         data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=total, icon=None, actions=actions, filters=filters, search=search)
         if renderer:
             data.update(renderer=renderer)
+        if reloadable:
+            data.update(reloadable=reloadable)
         if bi:
             bi_data = []
             for names in bi:

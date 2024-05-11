@@ -567,6 +567,7 @@ function Selector(props) {
       borderRadius: 5,
       maxHeight: 150,
       overflowY: "auto",
+      zIndex: 99999,
     };
     ul.position = "absolute";
     ul.backgroundColor = "white";

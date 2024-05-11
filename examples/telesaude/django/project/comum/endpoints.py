@@ -9,11 +9,13 @@ class CategoriasProfissional(endpoints.AdminEndpoint[CategoriaProfissional]):
 
 
 class CIDs(endpoints.AdminEndpoint[CID]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class CIAPs(endpoints.AdminEndpoint[CIAP]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class TiposEnfoqueResposta(endpoints.AdminEndpoint[TipoEnfoqueResposta]):
@@ -21,7 +23,8 @@ class TiposEnfoqueResposta(endpoints.AdminEndpoint[TipoEnfoqueResposta]):
 
 
 class AreasTematicas(endpoints.AdminEndpoint[AreaTematica]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class TiposSolicitacao(endpoints.AdminEndpoint[TipoSolicitacao]):
@@ -29,7 +32,8 @@ class TiposSolicitacao(endpoints.AdminEndpoint[TipoSolicitacao]):
 
 
 class UnidadesFederativas(endpoints.AdminEndpoint[UnidadeFederativa]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class NiveisFormacao(endpoints.AdminEndpoint[NivelFormacao]):
@@ -41,43 +45,40 @@ class Sexos(endpoints.AdminEndpoint[Sexo]):
 
 
 class Municipios(endpoints.AdminEndpoint[Municipio]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class EstabelecimentosSaude(endpoints.AdminEndpoint[EstabelecimentoSaude]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class Especialidades(endpoints.AdminEndpoint[Especialidade]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class Usuarios(endpoints.AdminEndpoint[Usuario]):
-    pass
-
-
-class AnexosUsuario(endpoints.AdminEndpoint[AnexoUsuario]):
-    pass
-
+    def check_permission(self):
+        return self.check_role('ge')
 
 class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class Solicitacoes(endpoints.AdminEndpoint[Solicitacao]):
-    pass
-
-
-class AnexosSolicitacao(endpoints.AdminEndpoint[AnexoSolicitacao]):
-    pass
-
+    def check_permission(self):
+        return self.check_role('ge')
 
 class StatusSolicitacao(endpoints.AdminEndpoint[StatusSolicitacao]):
     pass
 
 
 class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
-    pass
+    def check_permission(self):
+        return self.check_role('ge')
 
 
 class ConsultarAgenda(endpoints.Endpoint):
@@ -114,3 +115,49 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
                 data_hora=data_hora, profissional_saude=self.instance
             )
         return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ge')
+
+
+class SalaVirtual(endpoints.InstanceEndpoint[Solicitacao]):
+
+    class Meta:
+        icon = 'display'
+        modal = False
+        verbose_name = 'Sala Virtual'
+
+    def get(self):
+        return (
+            self.serializer().actions('anexararquivo')
+            .field('get_webconf')
+            .queryset('Anexos', 'get_anexos_webconf')
+            .endpoint('Condutas e Enaminhamentos', 'registrarcondutasecanminhamentos', wrap=False)
+        )
+    
+
+class RegistrarCondutasEcanminhamentos(endpoints.ChildEndpoint):
+
+    class Meta:
+        verbose_name = 'Registrar Condutas e Enaminhamentos'
+
+    def get(self):
+        instance = EncaminhamentosCondutas.objects.filter(
+            solicitacao=self.source, responsavel=self.source.especialista
+        ).first()
+        if instance is None:
+            instance = EncaminhamentosCondutas(
+                solicitacao=self.source, responsavel=self.source.especialista
+            )
+        return self.formfactory(instance).fields('subjetivo', 'objetivo', 'avaliacao', 'plano')
+
+
+class AnexarArquivo(endpoints.ChildEndpoint):
+    class Meta:
+        icon = 'upload'
+        verbose_name = 'Anexar Arquivo'
+
+    def get(self):
+        autor = Usuario.objects.filter(cpf=self.request.user.username).first() or self.source.especialista.usuario
+        instance = AnexoSolicitacao(solicitacao=self.source, autor=autor)
+        return self.formfactory(instance).fields('arquivo')

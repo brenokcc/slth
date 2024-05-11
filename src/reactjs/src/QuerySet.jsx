@@ -12,6 +12,9 @@ import { Link } from "./Link";
 import { Icon, IconButton } from "./Icon";
 import toLabelCase from "./Utils";
 import ComponentFactory from "./Root";
+import { StyleSheet} from "./StyleSheet.jsx"
+import Calendar from "./Calendar.jsx";
+import Paginator from "./Paginator.jsx";
 
 function Counter(props) {
   function render() {
@@ -34,20 +37,48 @@ function Counter(props) {
 }
 
 function QuerySet(props) {
+
+  StyleSheet(`
+    .queryset h1, .queryset h2{
+      margin: 0px;
+    }
+    .queryset .title{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .queryset .title .fa-spin{
+      display: none;
+    }
+    .queryset .tabs{
+      text-align: center;
+      width: 100%;
+      margin: auto;
+      padding-bottom: 20px;
+      line-height: 2.5rem;
+    }
+    .queryset .tabs .a{
+        padding-bottom: 5px;
+        padding-left: 15px;
+        padding-right: 15px;
+        font-weight: active ? bold : normal;
+        text-decoration: none;
+    }
+  `)
+
   if (props.data.id == null) props.data.id = Math.random();
   const [data, setData] = useState(props.data);
 
   function renderTitleText() {
-    const style = { margin: 0 };
     if (data.attrname) {
       return (
-        <h2 style={style} data-label={toLabelCase(data.title)}>
+        <h2 data-label={toLabelCase(data.title)}>
           {data.title}
         </h2>
       );
     } else {
       return (
-        <h1 style={style} data-label={toLabelCase(data.title)}>
+        <h1 data-label={toLabelCase(data.title)}>
           {data.title}
         </h1>
       );
@@ -55,17 +86,11 @@ function QuerySet(props) {
   }
 
   function renderTitle() {
-    const syle = {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    };
     return (
-      <div style={syle}>
+      <div className="title">
         {renderTitleText()}
         <i
           id={"loader-" + props.data.id}
-          style={{ display: "none" }}
           className="fa-solid fa-circle-notch fa-spin fa-1x"
         ></i>
       </div>
@@ -81,14 +106,7 @@ function QuerySet(props) {
   function renderTabs() {
     return (
       data.subsets && (
-        <div
-          style={{
-            textAlign: "center",
-            width: "100%",
-            margin: "auto",
-            paddingBottom: 20,
-            lineHeight: "2.5rem",
-          }}
+        <div className="tabs"
         >
           {data.subsets.map(function (subset, i) {
             var active =
@@ -98,12 +116,7 @@ function QuerySet(props) {
                 key={Math.random()}
                 href="#"
                 style={{
-                  paddingBottom: 5,
-                  paddingLeft: 15,
-                  paddingRight: 15,
-                  fontWeight: active ? "bold" : "normal",
                   borderBottom: active ? "solid 3px #2670e8" : 0,
-                  textDecoration: "none",
                   color: "#0c326f",
                 }}
                 onClick={function (e) {
@@ -135,205 +148,12 @@ function QuerySet(props) {
       month || "";
     form.querySelector("input[name=" + data.calendar.field + "__year]").value =
       year || "";
-    reload();
+    setPage(1);
   }
 
   function renderCalendar() {
     if (data.calendar) {
-      const days = ["SEG", "TER", "QUA", "QUI", "SEX", "SAB", "DOM"];
-      const months = [
-        "JANEIRO",
-        "FEVEVEIRO",
-        "MARÇO",
-        "ABRIL",
-        "MAIO",
-        "JUNHO",
-        "JULHO",
-        "AGOSTO",
-        "SETEMRO",
-        "OUTUBRO",
-        "NOVEMBRO",
-        "DEZEMBRO",
-      ];
-      const table = {
-        width: "100%",
-        borderSpacing: 0,
-        borderCollapse: "collapse",
-        marginTop: 15,
-        marginBottom: 15,
-      };
-
-      const day = {
-        marginLeft: "17",
-        textAlign: "right",
-        paddingRight: 2,
-        paddingTop: 2,
-        float: "right",
-        fontSize: "0.8rem",
-      };
-      const td = {
-        verticalAlign: "top",
-        width: "14.2%",
-        height: 55,
-        border: "solid 1px #EEE",
-      };
-
-      const number = {
-        backgroundColor: Theme.colors.primary,
-        borderRadius: "50%",
-        color: "white",
-        display: "block",
-        width: 30,
-        height: 30,
-        margin: "auto",
-        cursor: "pointer",
-        lineHeight: "2rem",
-      };
-      const total = {
-        padding: 10,
-        textAlign: "center",
-      };
-      const arrows = {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-      };
-
-      const today = new Date();
-      const selected = data.calendar.day
-        ? new Date(
-            data.calendar.year,
-            data.calendar.month - 1,
-            data.calendar.day
-          )
-        : null;
-      var rows = [[], [], [], [], [], []];
-      var month = data.calendar.month - 1;
-      var start = new Date(data.calendar.year, data.calendar.month - 1, 1);
-      while (start.getDay() > 1) start.setDate(start.getDate() - 1);
-      var i = 0;
-      while (start.getMonth() <= month || rows[i].length < 7) {
-        if (rows[i].length == 7) i += 1;
-        if (i == 5) break;
-        rows[i].push({
-          date: start.getDate(),
-          total: data.calendar.total[start.toLocaleDateString("pt-BR")],
-          today: start.getDate() === today.getDate(),
-          selected: selected ? start.getDate() == selected.getDate() : false,
-        });
-        start.setDate(start.getDate() + 1);
-      }
-      return (
-        <div className="calendar">
-          <div style={arrows}>
-            <div>
-              <IconButton
-                default
-                icon="arrow-left"
-                onClick={() =>
-                  calendarFilter(
-                    null,
-                    data.calendar.previous.month,
-                    data.calendar.previous.year
-                  )
-                }
-              />
-            </div>
-            <div>
-              <h3 align="center" style={{ margin: 0 }}>
-                {months[data.calendar.month - 1]} {data.calendar.year}
-              </h3>
-              {data.calendar.day && (
-                <div align="center" className={day}>
-                  {new Date(
-                    data.calendar.year,
-                    data.calendar.month - 1,
-                    data.calendar.day
-                  ).toLocaleDateString("pt-BR")}
-                  <Icon
-                    default
-                    icon="x"
-                    onClick={() =>
-                      calendarFilter(
-                        null,
-                        data.calendar.month,
-                        data.calendar.year
-                      )
-                    }
-                    style={{ marginLeft: 10, cursor: "pointer" }}
-                  />
-                </div>
-              )}
-            </div>
-            <div>
-              <IconButton
-                default
-                icon="arrow-right"
-                onClick={() =>
-                  calendarFilter(
-                    null,
-                    data.calendar.next.month,
-                    data.calendar.next.year
-                  )
-                }
-              />
-            </div>
-          </div>
-          <table style={table}>
-            <thead>
-              <tr>
-                {days.map((day) => (
-                  <th key={Math.random()}>{day}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={Math.random()}>
-                  {row.map((item) => (
-                    <td key={Math.random()} style={td}>
-                      <div style={day}>
-                        {item.today ? (
-                          <span style={{ textDecoration: "underline" }}>
-                            {item.date}
-                          </span>
-                        ) : (
-                          item.date + item.today
-                        )}
-                      </div>
-                      {item.total && (
-                        <div
-                          style={total}
-                          onClick={() =>
-                            calendarFilter(
-                              item.date,
-                              data.calendar.month,
-                              data.calendar.year
-                            )
-                          }
-                        >
-                          <div style={number}>
-                            <span
-                              style={{
-                                textDecoration: item.selected
-                                  ? "underline"
-                                  : "normal",
-                              }}
-                            >
-                              {item.total}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {!item.total && <div style={total}>&nbsp;</div>}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
+      return <Calendar data={data.calendar} onChange={calendarFilter}/>
     }
   }
 
@@ -466,7 +286,7 @@ function QuerySet(props) {
   function setPage(page) {
     const form = document.getElementById("form-" + props.data.id);
     const input = form.querySelector("input[name=page]");
-    input.value = page;
+    if(input) input.value = page;
     reload();
   }
 
@@ -476,96 +296,8 @@ function QuerySet(props) {
       const input = form.querySelector("input[name=page]");
       if (input) input.value = data.pagination.page.current;
     }
-    const style = {
-      display: "flex",
-      justifyContent: "space-between",
-      lineHeight: "4rem",
-      alignItems: "baseline",
-    };
-    const inline = {
-      display: "inline",
-      paddingRight: 10,
-    };
-    const select = {
-      marginLeft: 10,
-      marginRight: 10,
-      height: "2.5rem",
-      paddingLeft: 5,
-      paddingRight: 5,
-      textAlign: "center",
-    };
-    return (
-      data.pagination.page.total > 1 && (
-        <div style={style}>
-          <div>
-            {window.innerWidth > 800 && (
-              <div style={inline}>
-                Exibir
-                <select
-                  style={select}
-                  name="page_size"
-                  onChange={() => setPage(1)}
-                  value={data.pagination.page.size}
-                >
-                  {data.pagination.page.sizes.map(function (size) {
-                    return <option key={Math.random()}>{size}</option>;
-                  })}
-                </select>
-              </div>
-            )}
-            {window.innerWidth > 800 && <div style={inline}>|</div>}
+    return <Paginator data={data.pagination} onChange={setPage} total={data.total}/>
 
-            <div style={inline}>
-              {data.pagination.start} - {data.pagination.end} de {data.total}
-            </div>
-          </div>
-          <div>
-            <div style={inline}>
-              <span>Página</span>
-              <input
-                type="text"
-                name="page"
-                defaultValue={data.pagination.page.current}
-                style={{
-                  width: 30,
-                  marginLeft: 10,
-                  marginRight: 10,
-                  height: "2rem",
-                  textAlign: "center",
-                }}
-                onKeyDown={function (e) {
-                  if (e.key == "Enter") {
-                    e.preventDefault();
-                    setPage(
-                      e.target.value < 0
-                        ? 1
-                        : Math.min(e.target.value, data.pagination.page.total)
-                    );
-                  }
-                }}
-              />
-              <div style={inline}>|</div>
-              {data.pagination.page.previous && (
-                <Button
-                  icon="chevron-left"
-                  default
-                  display="inline"
-                  onClick={() => setPage(data.pagination.page.previous)}
-                />
-              )}
-              {data.pagination.page.next && (
-                <Button
-                  icon="chevron-right"
-                  default
-                  display="inline"
-                  onClick={() => setPage(data.pagination.page.next)}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )
-    );
   }
 
   function renderActions() {
@@ -575,6 +307,14 @@ function QuerySet(props) {
           return <Action key={Math.random()} data={action} primary />;
         })}
       </div>
+    );
+  }
+
+  function scrollTop(){
+    const rect = document.getElementById(props.data.id).getBoundingClientRect();
+    console.log(rect);
+    window.scrollTo(
+      { top: rect.x,  behavior: 'smooth' }
     );
   }
 
@@ -644,7 +384,16 @@ function QuerySet(props) {
     request("GET", url, function (data) {
       setData(data);
       showLoader(false);
+      scrollTop();
     });
+  }
+
+  function renderReloader(){
+    const style = {color: Theme.colors.primary}
+    return props.data.reloadable && <div align="center">
+      <i>Ultima atualização em {new Date().toLocaleTimeString()}</i>
+      <div><Link style={style} onClick={(e)=>{e.preventDefault(); reload()}}>Atualizar agora</Link></div>
+    </div>
   }
 
   function renderContent() {
@@ -669,14 +418,15 @@ function QuerySet(props) {
       );
     } else {
       return (
-        <>
+        <div className="content">
+          {renderReloader()}
           {renderActions()}
           {renderTabs()}
           {renderSearchFilterPanel()}
           {renderCalendar()}
           {renderData()}
           {renderPaginator()}
-        </>
+        </div>
       );
     }
   }
@@ -685,7 +435,7 @@ function QuerySet(props) {
     window[props.data.id] = () => reload();
     const sytle = { backgroundColor: "white", padding: 20 };
     return (
-      <div className="reloadable" id={props.data.id} sytle={sytle}>
+      <div className="reloadable queryset" id={props.data.id} sytle={sytle}>
         <form id={"form-" + props.data.id}>
           <div>{false && JSON.stringify(data)}</div>
           <input type="hidden" name="subset" id={"subset-" + props.data.id} />

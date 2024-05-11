@@ -9,10 +9,10 @@ DANGER = "danger"
 
 
 class Image(dict):
-    def __init__(self, src, width=None, height=None, round=False):
+    def __init__(self, src, width=None, height=None, round=False, placeholder=None):
         if width is None and height is None:
-            width = 200
-            height = 200
+            width = 100
+            height = 100
         if width and not height:
             height = width
         if height and not width:
@@ -22,6 +22,7 @@ class Image(dict):
         self["width"] = width
         self["height"] = height
         self["round"] = round
+        self["placeholder"] = placeholder
 
 
 class FileLink(dict):
@@ -34,7 +35,7 @@ class FileLink(dict):
 
 class FileViewer(dict):
     def __init__(self, url):
-        self["type"] = "fileviewer"
+        self["type"] = "filepreview"
         self["url"] = url
 
 

@@ -121,7 +121,7 @@ def api_watchdog(sender, **kwargs):
 autoreload_started.connect(api_watchdog)
 
 
-def meta(verbose_name):
+def meta(verbose_name=None):
     def decorate(function):
         function.verbose_name = verbose_name
         return function

@@ -6,7 +6,7 @@ application:
   logo: /static/images/analisa.png
   version: 1.0.1
   groups:
-    administrador: Administrador
+    administragdor: Administrador
     especialista: Especialista
     cliente: Cliente
     consultante: Consultante

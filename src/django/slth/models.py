@@ -10,7 +10,6 @@ from django.utils.html import strip_tags
 from django.core.mail import EmailMultiAlternatives
 from slth import APPLICATON
 
-
 class RoleQuerySet(models.QuerySet):
 
     def contains(self, *names):
@@ -187,5 +186,5 @@ class User(User):
     
     @meta('Papéis')
     def get_roles(self):
-        return Role.objects.filter(username=self.username).fields('get_description')
+        return Role.objects.filter(username=self.username).fields('get_description').actions('delete')
 

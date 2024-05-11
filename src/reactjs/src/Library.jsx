@@ -7,6 +7,7 @@ import { GridLayout } from "./Layout";
 import { toLabelCase } from "./Utils";
 import { Link } from "./Link";
 import format from "./Formatter.jsx";
+import { StyleSheet} from "./StyleSheet.jsx"
 
 function Html(props) {
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
@@ -21,7 +22,7 @@ function Image(props) {
   return (
     <div style={style}>
       <img
-        src={props.data.src}
+        src={props.data.src || props.data.placeholder}
         style={{
           width: props.data.width,
           height: props.data.height,
@@ -514,9 +515,8 @@ function Scheduler(props) {
                             onMouseLeave={onMouseOver}
                             onMouseUp={onMouseOver}
                             data-value={[props.data.matrix[0][j], row[0]]}
-                            title={value ? value : null}
                           >
-                            {value ? "" : ""}
+                            {value && <Tooltip text={value}><Icon icon='stethoscope' style={{"color": "white"}}/></Tooltip>}
                           </td>
                         );
                       }
@@ -529,6 +529,51 @@ function Scheduler(props) {
         </table>
       </div>
     );
+  }
+  return render();
+}
+
+function Tooltip(props){
+  function render(){
+    StyleSheet(`
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 220px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px 0;
+        position: absolute;
+        z-index: 1;
+        bottom: 150%;
+        left: 50%;
+        margin-left: -60px;
+      }
+      .tooltip .tooltiptext::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: black transparent transparent transparent;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+      }
+    `)
+    
+    return (
+      <div className="tooltip">{props.children}
+        <span className="tooltiptext">{props.text}</span>
+      </div>
+    )
   }
   return render();
 }
@@ -551,5 +596,6 @@ export {
   Grid,
   Counter,
   Scheduler,
+  Tooltip,
 };
 export default Html;

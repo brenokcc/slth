@@ -13,6 +13,20 @@ from .components import Image, FileLink, FileViewer
 from django.db.models.fields.files import ImageFieldFile, FieldFile
 
 
+def getattrr(obj, args):
+    return getattr_rec(obj, args.split('__'))
+
+
+def getattr_rec(obj, args):
+    if obj is None:
+        return None
+    if len(args) > 1:
+        attr = args.pop(0)
+        return getattr_rec(getattrr(obj, attr), args)
+    else:
+        return getattr(obj, args[0])
+
+
 def to_snake_case(name):
     return slugify(name).replace('-', '_')
 
@@ -55,7 +69,7 @@ def getfield(obj, name_or_names, request=None):
             name_or_names, action_name = name_or_names.split(':')
         else:
             name_or_names, action_name = name_or_names, None
-        attr = getattr(obj, name_or_names)
+        attr = getattrr(obj, name_or_names)
         if type(attr) == types.MethodType:
             value = attr()
             label = getattr(attr, 'verbose_name', name_or_names.replace('get_', ''))
@@ -64,7 +78,7 @@ def getfield(obj, name_or_names, request=None):
             label = getattr(type(obj), name_or_names[4:-8]).field.verbose_name
         else:
             value = attr
-            label = getattr(type(obj), name_or_names).field.verbose_name
+            label = type(obj).get_field(name_or_names).verbose_name
         label = label.title().replace('_', ' ') if label and label.islower() else label
         field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True, request=request))
         if action_name:
@@ -81,7 +95,7 @@ def getfield(obj, name_or_names, request=None):
 
 
 class Serializer:
-    def __init__(self, obj=None, request=None, serializer=None, type='object', title=None):
+    def __init__(self, obj=None, request=None, serializer=None, type='object', title=None, show_title=True):
         self.path = serializer.path.copy() if serializer else []
         self.obj = obj
         self.lazy = False
@@ -97,6 +111,7 @@ class Serializer:
             self.title = str(obj)
         else:
             self.title = None
+        self.show_title = show_title
 
     def actions(self, *actions) -> 'Serializer':
         self.metadata['actions'].extend(actions)
@@ -133,8 +148,12 @@ class Serializer:
     def section(self, title) -> 'Serializer':
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title)
     
-    def group(self, title) -> 'Serializer':
-        return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title)
+    def group(self, title=None) -> 'Serializer':
+        show_title = True
+        if title is None:
+            title = 'group'
+            show_title = False
+        return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title, show_title=show_title)
 
     def parent(self) -> 'Serializer':
         self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self)))
@@ -294,7 +313,7 @@ class Serializer:
                 if data:
                     items.extend(data) if datatype == 'fields' else items.append(data)
 
-        output = dict(type=self.type, title=self.title)
+        output = dict(type=self.type, title=self.title if self.show_title else None)
         if self.serializer:
             datatype = to_snake_case(self.title)
             output.update(key=datatype)

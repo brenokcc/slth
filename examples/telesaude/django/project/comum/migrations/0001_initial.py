@@ -449,4 +449,22 @@ class Migration(migrations.Migration):
             },
             bases=(models.Model, slth.ModelMixin),
         ),
+        migrations.CreateModel(
+            name='EncaminhamentosCondutas',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('subjetivo', slth.db.models.TextField(blank=True, null=True)),
+                ('objetivo', slth.db.models.TextField(blank=True, null=True)),
+                ('avaliacao', slth.db.models.TextField(blank=True, null=True)),
+                ('plano', slth.db.models.TextField(blank=True, null=True)),
+                ('data', models.DateTimeField(auto_now_add=True)),
+                ('responsavel', slth.db.models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='condutas_ecaminhamentos', to='comum.profissionalsaude')),
+                ('solicitacao', slth.db.models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='condutas_ecaminhamentos', to='comum.solicitacao')),
+            ],
+            options={
+                'verbose_name': 'Encaminhamento e Condutas',
+                'verbose_name_plural': 'Encaminhamentos e Condutas',
+            },
+            bases=(models.Model, slth.ModelMixin),
+        ),
     ]

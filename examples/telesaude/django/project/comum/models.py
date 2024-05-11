@@ -11,9 +11,9 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.core.signing import Signer
-from slth.db import models, meta
+from slth.db import models, meta, role
 from slth.models import User
-from slth.components import Scheduler
+from slth.components import Scheduler, FileLink, WebConf, Image
 
 
 class CategoriaProfissional(models.Model):
@@ -92,7 +92,7 @@ class TipoSolicitacao(models.Model):
     def __str__(self):
         return "%s" % self.nome
 
-
+@role('ge', username='gestores__cpf', estado='pk')
 class UnidadeFederativa(models.Model):
     codigo = models.CharField(max_length=2, primary_key=True)
     sigla = models.CharField(max_length=2, unique=True)
@@ -140,7 +140,7 @@ class Perfil(models.Model):
     def __str__(self):
         return "%s" % self.nome
 
-
+@role('gm', username='gestores__cpf', municipio='pk')
 class Municipio(models.Model):
     estado = models.ForeignKey(UnidadeFederativa, on_delete=models.CASCADE)
     codigo = models.CharField(max_length=6, unique=True)
@@ -169,10 +169,11 @@ class EstabelecimentoSaudeQuerySet(models.QuerySet):
             .filters("municipio")
         )
 
-
+@role('gu', username='gestores__cpf', unidade='pk')
+@role('ou', username='gestores__cpf', unidade='pk')
 class EstabelecimentoSaude(models.Model):
     foto = models.ImageField(
-        verbose_name="Foto", null=True, blank=True, upload_to="estabelecimentos_saude"
+        verbose_name="Foto", null=True, blank=True, upload_to="estabelecimentos_saude", width=200
     )
 
     codigo_cnes = models.CharField(verbose_name="CNES", max_length=12, unique=True)
@@ -204,8 +205,8 @@ class EstabelecimentoSaude(models.Model):
 
     class Meta:
         icon = "building"
-        verbose_name = "Estabelecimento de Saúde"
-        verbose_name_plural = "Estabelecimentos de Saúde"
+        verbose_name = "Unidade de Saúde"
+        verbose_name_plural = "Unidades de Saúde"
 
     def serializer(self):
         return (
@@ -216,14 +217,14 @@ class EstabelecimentoSaude(models.Model):
             .fieldset("Geolocalização", (("latitude", "longitude")))
             .queryset("Gestores", "gestores")
             .queryset("Operadores", "operadores")
-            .field("get_horarios")
+            .fieldset("Agenda dos Próximos Dias", ("get_agenda",))
         )
 
     def formfactory(self):
         return (
             super()
-            .serializer()
-            .fieldset("Dados Gerais", ("nome", ("codigo_cnes", "municipio")))
+            .formfactory()
+            .fieldset("Dados Gerais", ("foto", "nome", ("codigo_cnes", "municipio")))
             .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
             .fieldset("Geolocalização", (("latitude", "longitude")))
             .fieldset("Recursos Humanos", ("gestores", "operadores"))
@@ -231,9 +232,12 @@ class EstabelecimentoSaude(models.Model):
 
     def __str__(self):
         return "%s - %s" % (self.codigo_cnes, self.nome)
+    
+    def get_foto(self):
+        return Image(self.foto, placeholder='/static/images/ubs.png')
 
-    @meta("Horários de Atendimento dos Próximos Dias")
-    def get_horarios(self, readonly=True):
+    @meta()
+    def get_agenda(self, readonly=True):
         return Scheduler(
             readonly=readonly,
             initial=HorarioProfissionalSaude.objects.filter(
@@ -377,7 +381,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
             .actions("definirhorarioprofissionalsaude")
         )
 
-
+@role('ps', username='usuario__cpf', unidade='estabelecimento')
 class ProfissionalSaude(models.Model):
     usuario = models.ForeignKey(
         Usuario,
@@ -522,7 +526,7 @@ class SolicitacaoQuerySet(models.QuerySet):
             .fields(
                 ("area_tematica", "data", "tipo_solicitacao"),
                 ("solicitante", "estabelecimento", "especialista"),
-            )
+            ).limit(5)
         )
 
 
@@ -574,7 +578,7 @@ class Solicitacao(models.Model):
 
     data = models.DateTimeField(blank=True)
     assunto = models.CharField(max_length=200)
-    duvida = models.CharField(max_length=2000)
+    duvida = models.TextField(max_length=2000)
     paciente = models.ForeignKey(
         "Usuario", related_name="solicitacoes_paciente", on_delete=models.PROTECT
     )
@@ -620,7 +624,8 @@ class Solicitacao(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    ("estabelecimento", "solicitante"),
+                    "estabelecimento",
+                    ("area_tematica", "solicitante"),
                     ("enfoque_solicitacao", "tipo_solicitacao"),
                 ),
             )
@@ -636,13 +641,85 @@ class Solicitacao(models.Model):
             .fieldset(
                 "Agendamento",
                 (
-                    ("area_tematica", "horario_profissional_saude"),
+                    "horario_profissional_saude",
                     "horario_excepcional",
                     "justificativa_horario_excepcional",
                     "agendado_para",
                 ),
             )
         )
+    
+    def serializer(self):
+        return (
+            super()
+            .serializer()
+            .actions('salavirtual')
+            .fieldset(
+                "Dados Gerais",
+                (
+                    ("estabelecimento", "estabelecimento__municipio"),
+                    ("enfoque_solicitacao", "tipo_solicitacao"),
+                )
+            )
+            .group()
+                .section('Detalhamento')
+                    .fieldset(
+                        "Dados do Paciente", (
+                            ("nome", "cpf"),
+                            ("data_nascimento", "sexo")
+                        ), attr="paciente"
+                    )
+                    .fieldset(
+                        "Dados do Solicitante", (
+                            "usuario__nome",
+                            ("formacao", "registro_profissional"),
+                            ("especialidade", "registro_especialista"),
+                        ), attr="solicitante"
+                    )
+                    .fieldset(
+                        "Dados do Especialista", (
+                            "usuario__nome",
+                            ("formacao", "registro_profissional"),
+                            ("especialidade", "registro_especialista"),
+                        ), attr="especialista"
+                    )
+                    .fieldset(
+                        "Dados da Consulta", (
+                            ("assunto", "area_tematica"),
+                            "duvida",
+                            ("cid", "ciap"),
+                        )
+                    )
+                .parent()
+                .queryset('Histórico', 'get_historico')
+                .queryset('Anexos', 'get_anexos')
+                .queryset('Encaminhamentos/Condutas', 'get_condutas_ecaminhamentos')
+            .parent()
+        )
+    
+    @meta('Histórico')
+    def get_historico(self):
+        return self.fluxos.fields(
+            'data', ('status_novo', 'responsavel'), 'profissional_destino',
+            'comentario', 'encaminhamento', 'conduta'
+        ).timeline()
+    
+    @meta('Anexos')
+    def get_anexos(self):
+        return self.anexos.fields('get_nome_arquivo', 'autor', 'get_arquivo')
+    
+    @meta('Anexos')
+    def get_anexos_webconf(self):
+        return self.get_anexos().reloadable()
+    
+    
+    @meta('Encaminhamentos e Condutas')
+    def get_condutas_ecaminhamentos(self):
+        return self.condutas_ecaminhamentos.fields('subjetivo', 'objetivo', 'plano').rows()
+    
+    @meta()
+    def get_webconf(self):
+        return WebConf('aaaa', 'bbbb')
 
     def get_token_paciente(self):
         signer = Signer()
@@ -739,8 +816,12 @@ class AnexoSolicitacao(models.Model):
     def __str__(self):
         return "%s" % self.solicitacao
 
+    @meta('Nome do Arquivo')
     def get_nome_arquivo(self):
         return self.arquivo.name.split("/")[-1]
+    
+    def get_arquivo(self):
+        return FileLink(self.arquivo, icon='file', modal=True)
 
 
 class StatusSolicitacao(models.Model):
@@ -946,6 +1027,25 @@ class MotivoEncerramentoConferencia(models.Model):
     class Meta:
         verbose_name = "Motivo de Encerramento de Conferência"
         verbose_name_plural = "Motivos de Encerramento de Conferência"
+
+class EncaminhamentosCondutas(models.Model):
+    solicitacao = models.ForeignKey(Solicitacao, related_name="condutas_ecaminhamentos", on_delete=models.CASCADE)
+    responsavel = models.ForeignKey(ProfissionalSaude, related_name="condutas_ecaminhamentos", on_delete=models.CASCADE)
+
+    # Método SOAP - Subjetivo, Objetivo, Avaliação, Plano
+    subjetivo = models.TextField(verbose_name='S - subjetivo', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro da parte subjetiva da anamnese da consulta, ou seja, os dados dos sentimentos e percepções do cidadão em relação à sua saúde.')
+    objetivo = models.TextField(verbose_name='O - objetivo', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro do exame físico, como os sinais e sintomas detectados, além do registro de resultados de exames realizados.')
+    avaliacao = models.TextField(verbose_name='A - avaliacao', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro da conclusão feita pelo profissional de saúde a partir dos dados observados nos itens anteriores, como os motivos para aquele encontro, a anamnese do cidadão e dos exames físico e complementares.')
+    plano = models.TextField(verbose_name='P - Plano', blank=True, null=True, help_text='Conjunto de funcionalidades que permite registrar o plano de cuidado ao cidadão em relação ao(s) problema(s) avaliado(s).')
+
+    data = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Encaminhamento e Condutas'
+        verbose_name_plural = 'Encaminhamentos e Condutas'
+
+    def __str__(self):
+        return '{} - {}'.format(self.data.strftime('%d/%m/%Y %H:%M'), self.responsavel)
 
 
 class CertificadoDigital(models.Model):

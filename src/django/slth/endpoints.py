@@ -522,12 +522,23 @@ class Users(ListEndpoint[User]):
             .fields("username", "email", "get_roles")
             .actions(
                 "add",
-                "view",
+                "viewuser",
                 "edit",
                 "delete",
                 "sendpushnotification",
                 "changepassword",
             )
+        )
+
+class ViewUser(ViewEndpoint[User]):
+    class Meta:
+        modal = False
+        icon = 'eye'
+        verbose_name = 'Visualizar '
+
+    def get(self):
+        return (
+            super().get()
         )
 
 
