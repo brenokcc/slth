@@ -405,11 +405,18 @@ function Scheduler(props) {
   var mouseDown = false;
   const FREE = "rgb(219, 237, 255)";
   const SELECTED = "rgb(89, 154, 242)";
-  const BLOCKED = "rgb(247, 208, 212)";
+  const BLOCKED = "rgb(246, 123, 135)";
+  const SELECT = [];
+  const DESELECT = []
 
   function bgColor(value) {
-    if (value != null) return SELECTED;
-    return FREE;
+    if (props.data.readonly){
+      return value == null ? FREE : SELECTED;
+    } else {
+      if (value == null) return FREE;
+      if (value.text == null) return SELECTED;
+      return BLOCKED;
+    }
   }
 
   function onMouseDown(e) {
@@ -420,7 +427,7 @@ function Scheduler(props) {
   function onMouseUp(e) {
     mouseDown = false;
     document.getElementById("input" + id).value = JSON.stringify(
-      getSelections()
+      {select: SELECT, deselect: DESELECT}
     );
   }
 
@@ -434,8 +441,15 @@ function Scheduler(props) {
       return;
     }
     if (mouseDown && e.target.style.backgroundColor != BLOCKED) {
-      e.target.style.backgroundColor =
-        e.target.style.backgroundColor == FREE ? SELECTED : FREE;
+      if (e.target.style.backgroundColor == FREE){
+        e.target.style.backgroundColor = SELECTED;
+        console.log('MARCOU', e.target.dataset.day, e.target.dataset.time);
+        SELECT.push([e.target.dataset.day, e.target.dataset.time]);
+      } else {
+        e.target.style.backgroundColor = FREE;
+        console.log('DEMARCOU', e.target.dataset.day, e.target.dataset.time);
+        DESELECT.push([e.target.dataset.day, e.target.dataset.time]);
+      }
     }
   }
 
@@ -446,7 +460,7 @@ function Scheduler(props) {
       .querySelectorAll("td")
       .forEach(function (td) {
         if (td.style.backgroundColor == SELECTED)
-          selections.push(td.dataset["value"].split(","));
+          selections.push(td.dataset.day, td.dataset.time);
       });
     return selections;
   }
@@ -474,7 +488,7 @@ function Scheduler(props) {
               {props.data.matrix[0].map(function (value) {
                 return (
                   <th className="bold" key={Math.random()} style={cell}>
-                    {value}
+                    {value.text}
                   </th>
                 );
               })}
@@ -494,7 +508,7 @@ function Scheduler(props) {
                             align="center"
                             style={cell}
                           >
-                            {value}
+                            {value.text}
                           </th>
                         );
                       else {
@@ -510,9 +524,10 @@ function Scheduler(props) {
                             onMouseDown={onMouseOver}
                             onMouseLeave={onMouseOver}
                             onMouseUp={onMouseOver}
-                            data-value={[props.data.matrix[0][j], row[0]]}
+                            data-day={props.data.matrix[0][j].text}
+                            data-time={row[0].text}
                           >
-                            {value && <Tooltip text={value}><Icon icon='stethoscope' style={{color: "white", cursor: "help"}}/></Tooltip>}
+                            {value && value.text && <Tooltip text={value.text}><Icon icon='stethoscope' style={{color: "white", cursor: "help"}}/></Tooltip>}
                           </td>
                         );
                       }

@@ -282,7 +282,6 @@ class Scheduler(dict):
         chucks=2,
         start_day=None,
         days=7,
-        initial=(),
         single_selection=False,
         input_name="schedule",
         readonly=False,
@@ -303,23 +302,25 @@ class Scheduler(dict):
         self["slots"] = {}
         for day in self.days:
             self["slots"][day] = {k: None for k in self.times}
-        for obj in initial:
-            if isinstance(obj, datetime):
-                day = obj.strftime("%d/%m/%Y")
-                time = obj.strftime("%H:%M")
-                value = ""
-            else:
-                if len(obj) == 3:
-                    day, time, value = obj
-                else:
-                    date_time, value = obj
-                    day = date_time.strftime("%d/%m/%Y")
-                    time = date_time.strftime("%H:%M")
-            self["slots"][day][time] = value
 
-        self["matrix"] = [[""] + self.days]
+        self["matrix"] = []
+        row = [dict(text='', icon=None, color=None)]
+        for day in self.days:
+            row.append(dict(text=day, icon=None, color=None))
+        self["matrix"].append(row)
         for time in self.times:
-            row = [time]
+            row = [dict(text=time, icon=None, color=None)]
             for day in self.days:
                 row.append(self["slots"][day][time])
             self["matrix"].append(row)
+
+    def append(self, date_time, text, icon='check'):
+        day = date_time.strftime("%d/%m/%Y")
+        time = date_time.strftime("%H:%M")
+        value = dict(text=text, icon=icon)
+        self["slots"][day][time] = value
+        j = self.days.index(day) + 1 if day in self.days else -1
+        x = self.times.index(time) + 1 if time in self.times else -1
+        self["matrix"][x][j] = value
+
+        

@@ -153,13 +153,18 @@ function Application(props) {
 
           {props.data.navbar.toolbar &&
             props.data.navbar.toolbar.length > 0 &&
-            props.data.navbar.toolbar.map(function (action) {
-              return (
-                <div>
-                  <Action key={Math.random()} data={action} primary compact/>
-                </div>
-              );
-            })}
+            (
+              <div className="toolbar">
+                {props.data.navbar.toolbar.map(function (action) {
+                  return (
+                   
+                      <Action key={Math.random()} data={action} primary compact/>
+                 
+                  );
+                })}
+              </div>
+            )
+          }
 
           {props.data.navbar.actions &&
             props.data.navbar.actions.length > 0 &&

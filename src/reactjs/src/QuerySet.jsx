@@ -79,7 +79,7 @@ function QuerySet(props) {
     } else {
       return (
         <h1 data-label={toLabelCase(data.title)}>
-          {data.title} ({data.total > 0 && data.total})
+          {data.title} {data.total > 10 && "(" + data.total + ")"}
         </h1>
       );
     }

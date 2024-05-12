@@ -196,9 +196,12 @@ class QuerySet(models.QuerySet):
     def apply_search(self, term, lookups=None):
         if lookups is None:
             search_fields = getattr(self.model._meta, 'search_fields', None)
+            print(search_fields, 888888)
             if search_fields is None:
                 search_fields = [field.name for field in self.model._meta.get_fields() if isinstance(field, CharField)]
             lookups = [f'{name}__icontains' for name in search_fields]
+        else:
+            lookups = [name if name.endswith('__icontains') else f'{name}__icontains' for name in lookups]
         if lookups:
             terms = term.split(' ') if term else []
             conditions = []
@@ -208,7 +211,7 @@ class QuerySet(models.QuerySet):
                     for lookup in lookups
                 ]
                 conditions.append(reduce(operator.or_, queries))
-
+            print(conditions)
             return self.filter(reduce(operator.and_, conditions)) if conditions else self
         return self
     

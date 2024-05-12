@@ -67,7 +67,7 @@ function formShow(name) {
     var fieldset = document.querySelector(".form-fieldset." + name);
     if (fieldset) fieldset.style.display = "block";
     var field = document.querySelector(".form-group." + name);
-    if (field) field.style.display = "flex";
+    if (field) field.style.display = "block";
   }
 }
 function formValue(name, value) {

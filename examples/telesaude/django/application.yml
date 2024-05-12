@@ -37,6 +37,8 @@ application:
     top:
     center:
       - solicitacoes
+      - meuslocaisatendimento
+      - minhasteleconsultas
     boxes:
       - usuarios
       - estabelecimentossaude
@@ -52,21 +54,22 @@ application:
     tools:
     settings:
   menu:
-    Cids: cid
-    Ciaps: ciap
-    Áreas Temáticas: areastematicas
-    Tipos de Solicitacão: tipossolicitacao
-    Estados: unidadesfederativas
-    Níveis de Formacão: niveisformacao
-    Sexos: sexos
-    Municípios: municipios
-    Estabelecimentos de Saude: estabelecimentossaude
-    Especialidades: especialidades
-    Pessoas Físicas: usuarios
-    Profissionais de Saúde: profissionaissaude
-    Solicitações: solicitacoes
-    Certificados Digitais: certificadosdigitais
-    Sair: logout
+    Cadastros Gerais:
+      Cids: cid
+      Ciaps: ciap
+      Tipos de Solicitacão: tipossolicitacao
+      Estados: unidadesfederativas
+      Níveis de Formacão: niveisformacao
+      Sexos: sexos
+      Municípios: municipios
+    building:Estabelecimentos de Saude: estabelecimentossaude
+    stethoscope:Profissionais de Saúde:
+      Áreas Temáticas: areastematicas
+      Especialidades: especialidades
+      Vínculos Profissionais: profissionaissaude
+    users:Pessoas Físicas: usuarios
+    laptop-file:Teleconsultas: solicitacoes
+    file-signature:Certificados Digitais: certificadosdigitais
   theme:
     colors:
       primary: "#265890"

@@ -67,15 +67,29 @@ class TipoEnfoqueResposta(models.Model):
         return "%s" % self.nome
 
 
+class AreaTematicaQuerySet(models.QuerySet):
+    def all(self):
+        return self.fields('nome', 'ativo', 'ativo_sincrona', 'get_qtd_profissonais_saude').actions('profissionaissaudeareatematica')
+
+
 class AreaTematica(models.Model):
     nome = models.CharField(max_length=60, unique=True)
     ativo = models.BooleanField(default=True)
     ativo_sincrona = models.BooleanField(default=False)
 
+    objects = AreaTematicaQuerySet()
+
     class Meta:
         ordering = ("nome",)
         verbose_name = "Área Temática"
         verbose_name_plural = "Áreas Temáticas"
+
+    def get_profissonais_saude(self):
+        return ProfissionalSaude.objects.filter(especialidade__area_tematica=self).fields('usuario', 'estabelecimento')
+    
+    @meta('Qtd. de Profissionais')
+    def get_qtd_profissonais_saude(self):
+        return self.get_profissonais_saude().count()
 
     def __str__(self):
         return "%s" % self.nome
@@ -165,7 +179,7 @@ class EstabelecimentoSaudeQuerySet(models.QuerySet):
     def all(self):
         return (
             self.search("codigo_cnes", "nome")
-            .fields("foto", "codigo_cnes", "nome")
+            .fields("foto", ("codigo_cnes", "get_qtd_profissonais_saude"),  "municipio")
             .filters("municipio").actions('agendaestabelecimentosaude').cards()
         )
 
@@ -246,13 +260,18 @@ class EstabelecimentoSaude(models.Model):
     @meta('Profissionais de Saúde')
     def get_profissionais_saude(self):
         return self.profissionalsaude_set.all()
+    
+    @meta('Qtd. de Profissionais')
+    def get_qtd_profissonais_saude(self):
+        return self.profissionalsaude_set.count()
 
     @meta()
     def get_agenda(self, readonly=True):
-        initial = []
         qs = HorarioProfissionalSaude.objects.filter(
             profissional_saude__estabelecimento=self
         )
+        start_day = qs.values_list('data_hora', flat=True).first()
+        scheduler = Scheduler(start_day=start_day, readonly=True)
         campos = ("data_hora", "profissional_saude__usuario__nome", "profissional_saude__especialidade__area_tematica__nome")
         qs1 = qs.filter(solicitacao__isnull=True)
         qs2 = qs.filter(solicitacao__isnull=False)
@@ -264,13 +283,18 @@ class EstabelecimentoSaude(models.Model):
                 profissional = f'{nome} ({area.upper()} )' if area else nome
                 horarios[data_hora].append(Text(profissional, color="#a4e2a4" if i==0 else "#f47c7c"))
         for data_hora, text in horarios.items():
-            initial.append((data_hora, text))
-        return Scheduler(readonly=readonly, initial=initial)
+            scheduler.append(data_hora, text, icon='stethoscope')
+        return scheduler
 
 
 class EspecialidadeQuerySet(models.QuerySet):
     def all(self):
-        return self.search('nome').filters('categoria', 'area_tematica')
+        return (
+            self.search('nome')
+            .fields('codigo_cbo', 'nome', 'categoria', 'get_qtd_profissonais_saude')
+            .filters('categoria', 'area_tematica')
+            .actions('profissionaissaudeespecialidade')
+        )
     
 
 class Especialidade(models.Model):
@@ -283,6 +307,13 @@ class Especialidade(models.Model):
     area_tematica = models.ForeignKey(AreaTematica, verbose_name='Área Temática', on_delete=models.CASCADE, null=True, blank=True)
 
     objects = EspecialidadeQuerySet()
+
+    def get_profissonais_saude(self):
+        return self.profissionalsaude_set.fields('usuario', 'estabelecimento')
+    
+    @meta('Qtd. de Profissionais')
+    def get_qtd_profissonais_saude(self):
+        return self.profissionalsaude_set.count()
 
     def __str__(self):
         return "%s - %s" % (self.codigo_cbo, self.nome)
@@ -320,7 +351,7 @@ class Usuario(models.Model):
     objects = UsuarioQueryset()
 
     class Meta:
-        icon = "people-group"
+        icon = "users"
         verbose_name = "Pessoa Física"
         verbose_name_plural = "Pessoas Físicas"
 
@@ -416,7 +447,7 @@ class ProfissionalSaude(models.Model):
         Usuario,
         related_name="profissional_saude",
         on_delete=models.PROTECT,
-        verbose_name="Pessoa Física",
+        verbose_name="Profissional",
     )
     estabelecimento = models.ForeignKey(
         EstabelecimentoSaude,
@@ -443,21 +474,36 @@ class ProfissionalSaude(models.Model):
 
     class Meta:
         icon = "stethoscope"
-        verbose_name = "Profissional"
-        verbose_name_plural = "Profissionais"
+        verbose_name = "Vínculo Profissional"
+        verbose_name_plural = "Vínculos Profissionais"
         search_fields = 'usuario__cpf', 'usuario__nome'
+
+    def formfactory(self):
+        return (
+            super()
+            .formfactory()
+            .fieldset("Dados Gerais", ("estabelecimento", "usuario"))
+            .fieldset(
+                "Dados Profissionais",
+                (("registro_profissional", "especialidade", "registro_especialista"),),
+            )
+            .fieldset(
+                "Outras Informações",
+                (
+                    ("programa_provab", "programa_mais_medico"),
+                    ("residente", "perceptor"),
+                ),
+            )
+        )
 
     def serializer(self):
         return (
             super()
             .serializer()
-            .fieldset("Dados Gerais", (("estabelecimento", "especialidade"),))
+            .fieldset("Dados Gerais", ("estabelecimento", "usuario"))
             .fieldset(
                 "Dados Profissionais",
-                (
-                    ("formacao", "registro_profissional"),
-                    ("especialidade", "registro_especialista"),
-                ),
+                (("registro_profissional", "especialidade", "registro_especialista"),),
             )
             .fieldset(
                 "Outras Informações",
@@ -478,12 +524,19 @@ class ProfissionalSaude(models.Model):
 
     @meta(None)
     def get_agenda(self, readonly=True):
-        return Scheduler(
+        qs = self.horarioprofissionalsaude_set.filter(data_hora__gte=date.today()).order_by('data_hora')
+        scheduler = Scheduler(
             readonly=readonly,
-            initial=self.horarioprofissionalsaude_set.values_list(
-                "data_hora", flat=True
-            ),
         )
+        for data_hora, solicitacao in qs.values_list("data_hora", "solicitacao"):
+            scheduler.append(data_hora, f'Solicitação #{solicitacao}' if solicitacao else None, icon='stethoscope')
+        qs2 = HorarioProfissionalSaude.objects.filter(
+            data_hora__gte=date.today(),
+            profissional_saude__usuario__cpf=self.usuario.cpf
+        ).exclude(profissional_saude=self.pk)
+        for data_hora, estabelecimento in qs2.values_list("data_hora", "profissional_saude__estabelecimento__nome"):
+            scheduler.append(data_hora, estabelecimento, icon='x')
+        return scheduler
 
 
 class HorarioProfissionalSaude(models.Model):
@@ -552,9 +605,9 @@ class SolicitacaoQuerySet(models.QuerySet):
     def all(self):
         return (
             self.filters("area_tematica", "paciente", "solicitante", "especialista")
-            .calendar("data")
+            .calendar("agendado_para")
             .fields(
-                ("area_tematica", "data", "tipo_solicitacao"),
+                ("area_tematica", "agendado_para", "tipo_solicitacao"),
                 ("solicitante", "estabelecimento", "especialista"),
             ).limit(5).order_by('-id')
         )
@@ -633,9 +686,9 @@ class Solicitacao(models.Model):
         blank=True,
         help_text="Obrigatório para agendamentos em horário excepcional.",
     )
-    agendado_para = models.DateTimeField(null=True, blank=True)
+    agendado_para = models.DateTimeField(verbose_name='Data de Início', null=True, blank=True)
 
-    finalizado_em = models.DateTimeField(null=True)
+    finalizado_em = models.DateTimeField(verbose_name='Data de Término', null=True)
 
     # Verificando quantas vezes o solicitante acessou a TC
     qtd_acessos = models.IntegerField(default=0)
@@ -644,8 +697,8 @@ class Solicitacao(models.Model):
 
     class Meta:
         icon = "laptop-file"
-        verbose_name = "Solicitação"
-        verbose_name_plural = "Solicitações"
+        verbose_name = "Teleconsulta"
+        verbose_name_plural = "Teleconsultas"
 
     def formfactory(self):
         return (
@@ -654,18 +707,16 @@ class Solicitacao(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    "estabelecimento",
                     ("area_tematica", "solicitante"),
-                    ("enfoque_solicitacao", "tipo_solicitacao"),
                 ),
             )
             .fieldset(
                 "Detalhamento",
                 (
                     "paciente",
-                    ("cid", "ciap"),
                     "assunto",
                     "duvida",
+                    ("cid", "ciap"),
                 ),
             )
             .fieldset(
@@ -683,12 +734,12 @@ class Solicitacao(models.Model):
         return (
             super()
             .serializer()
-            .actions('salavirtual')
+            .actions('anexararquivo', 'salavirtual')
             .fieldset(
                 "Dados Gerais",
                 (
                     ("estabelecimento", "estabelecimento__municipio"),
-                    ("enfoque_solicitacao", "tipo_solicitacao"),
+                    ("agendado_para", "finalizado_em", "duracao_webconf"),
                 )
             )
             .group()
@@ -773,11 +824,10 @@ class Solicitacao(models.Model):
         except Exception as e:
             return timesince(self.data, timezone.now())
 
-    @property
+    @meta('Duração')
     def duracao_webconf(self):
         if self.finalizado_em and self.agendado_para:
             return timesince(self.agendado_para, self.finalizado_em)
-
         return "-"
 
     @property
@@ -825,8 +875,18 @@ class Solicitacao(models.Model):
         return "%s - %s" % (self.id, self.assunto)
 
     def save(self, *args, **kwargs):
+        if not self.estabelecimento_id and self.solicitante_id:
+            self.estabelecimento = self.solicitante.estabelecimento
+        if not self.enfoque_solicitacao_id:
+            self.enfoque_solicitacao = TipoEnfoqueResposta.objects.get(pk=11)
+        if not self.tipo_solicitacao_id:
+            self.tipo_solicitacao = TipoSolicitacao.objects.get(pk=2)
+        if not self.especialista_id and self.horario_profissional_saude_id:
+            self.especialista = self.horario_profissional_saude.profissional_saude
+            self.agendado_para = self.horario_profissional_saude.data_hora
         if not self.data:
             self.data = timezone.now()
+
         super(Solicitacao, self).save(*args, **kwargs)
 
 

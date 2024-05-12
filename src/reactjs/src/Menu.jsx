@@ -76,7 +76,8 @@ function Menu() {
     const style = {
       display: level == 0 ? "block" : "none",
       cursor: "pointer",
-      paddingLeft: 5,
+      paddingLeft: 15,
+      paddingRight: 20,
       paddingTop: 10,
       paddingBottom: 10,
       lineHeight: "2rem",
@@ -85,7 +86,7 @@ function Menu() {
     const iconStyle = { padding: 5, fontSize: "1.2rem" };
     if (item.url) {
       return (
-        <li key={Math.random()} style={style} onClick={onClick}>
+        <li key={Math.random()} style={style} onClick={onClick} className="item">
           <Link
             href={item.url}
             dataLabel={toLabelCase(item.label)}
@@ -141,12 +142,12 @@ function Menu() {
 
   function render() {
     const style = {
-      padding: 25,
+      marginTop: 10,
       height: "100%",
       borderRight: "solid 1px #EEE",
     };
     return (
-      <div style={style}>
+      <div style={style} className="menu">
         {renderUser()}
         {renderItems()}
       </div>

@@ -53,6 +53,7 @@ function Action(props) {
       //whiteSpace: "nowrap",
       borderRadius: 5,
       margin: 5,
+      minWidth: 50,
     };
     if (props.primary) {
       style.backgroundColor = Theme.colors.primary;

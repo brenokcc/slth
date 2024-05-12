@@ -658,11 +658,13 @@ class SchedulerField(CharField):
         super().__init__(*args, **kwargs)
 
     def clean(self, value):
-        values = []
+        values = dict(select=[], deselect=[])
         if value:
-            for date, hour in json.loads(value):
-                data_string = "{} {}".format(date, hour)
-                values.append(datetime.datetime.strptime(data_string, "%d/%m/%Y %H:%M"))
+            data = json.loads(value)
+            for key in values.keys():
+                for date, hour in data[key]:
+                    data_string = "{} {}".format(date, hour)
+                    values[key].append(datetime.datetime.strptime(data_string, "%d/%m/%Y %H:%M"))
         return values
 
 

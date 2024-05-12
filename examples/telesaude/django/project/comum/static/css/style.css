@@ -5,3 +5,6 @@ header, header ul, header input {
 header .brand span{
     display: none;
 }
+aside .menu .item:hover{
+    background-color: #f1e000;
+}

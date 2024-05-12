@@ -290,7 +290,7 @@ class AdminEndpoint(Generic[T], ModelEndpoint):
 
 class ListEndpoint(Generic[T], ModelEndpoint):
     def get(self) -> QuerySet:
-        return self.model.objects
+        return self.model.objects.contextualize(self.request)
 
 
 class AddEndpoint(Generic[T], ModelEndpoint):

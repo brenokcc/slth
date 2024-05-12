@@ -68,9 +68,75 @@ class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
         return self.check_role('ge')
 
 
-class Solicitacoes(endpoints.AdminEndpoint[Solicitacao]):
+class Solicitacoes(endpoints.ListEndpoint[Solicitacao]):
+    
+    class Meta:
+        icon = "laptop-file"
+        verbose_name= 'Teleconsultas'
+    
+    def get(self):
+        return super().get().all().actions('visualizarsolititacao')
+
     def check_permission(self):
         return self.check_role('ge')
+    
+
+class VisualizarSolititacao(endpoints.ViewEndpoint[Solicitacao]):
+    class Meta:
+        modal = False
+        verbose_name = 'Acessar '
+
+    def get(self):
+        return (
+            super().get()
+        )
+
+    def check_permission(self):
+        return self.check_role('ge', 'ps')
+
+    
+
+class MinhasTeleconsultas(endpoints.ListEndpoint[Solicitacao]):
+    
+    class Meta:
+        verbose_name= 'Teleconsultas'
+    
+    def get(self):
+        return super().get().all()
+
+    def check_permission(self):
+        return self.request.user.is_authenticated and not self.check_role('ge')
+
+class MeusLocaisAtendimento(endpoints.ListEndpoint[ProfissionalSaude]):
+    
+    class Meta:
+        verbose_name= 'Vínculos'
+    
+    def get(self):
+        return super().get().filter(usuario__cpf=self.request.user).fields('estabelecimento', 'especialidade').actions("definirhorarioprofissionalsaude")
+
+    def check_permission(self):
+        return self.request.user.is_authenticated and not self.check_role('ge')
+
+
+class CadastrarSolicitacao(endpoints.AddEndpoint[Solicitacao]):
+    class Meta:
+        verbose_name = 'Cadastrar '
+
+    def get(self):
+        return (
+            super().get().hidden('justificativa_horario_excepcional', 'agendado_para')
+        )
+    
+    def on_horario_excepcional_change(self, controller, values):
+        if values.get('horario_excepcional'):
+            controller.show('justificativa_horario_excepcional', 'agendado_para')
+        else:
+            controller.hide('justificativa_horario_excepcional', 'agendado_para')
+    
+    def check_permission(self):
+        return self.check_role('ge')
+
 
 class StatusSolicitacao(endpoints.AdminEndpoint[StatusSolicitacao]):
     pass
@@ -79,6 +145,23 @@ class StatusSolicitacao(endpoints.AdminEndpoint[StatusSolicitacao]):
 class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
     def check_permission(self):
         return self.check_role('ge')
+
+
+class ProfissionaisSaudeEspecialidade(endpoints.InstanceEndpoint[Especialidade]):
+    class Meta:
+        icon = "stethoscope"
+        verbose_name = 'Profissionais de Saúde'
+    
+    def get(self):
+        return self.instance.get_profissonais_saude()
+    
+class ProfissionaisSaudeAreaTematica(endpoints.InstanceEndpoint[AreaTematica]):
+    class Meta:
+        icon = "stethoscope"
+        verbose_name = 'Profissionais de Saúde'
+    
+    def get(self):
+        return self.instance.get_profissonais_saude()
 
 
 class AgendaEstabelecimentoSaude(endpoints.InstanceEndpoint[EstabelecimentoSaude]):
@@ -130,15 +213,14 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
         return form
 
     def post(self):
-        self.instance.horarioprofissionalsaude_set.all().delete()
-        for data_hora in self.cleaned_data["horarios"]:
-            HorarioProfissionalSaude.objects.create(
-                data_hora=data_hora, profissional_saude=self.instance
-            )
+        for data_hora in self.cleaned_data["horarios"]["select"]:
+            HorarioProfissionalSaude.objects.create(data_hora=data_hora, profissional_saude=self.instance)
+        for data_hora in self.cleaned_data["horarios"]["deselect"]:
+            HorarioProfissionalSaude.objects.filter(data_hora=data_hora, profissional_saude=self.instance).delete()
         return super().post()
     
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('ge') or self.instance.usuario.cpf == self.request.user.username
 
 
 class SalaVirtual(endpoints.InstanceEndpoint[Solicitacao]):
