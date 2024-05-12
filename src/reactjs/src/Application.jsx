@@ -151,7 +151,7 @@ function Application(props) {
             <PushWebNotification />
           </div>
 
-          {props.data.navbar.toolbar &&
+          {props.data.navbar.toolbar && window.innerWidth > 800 &&
             props.data.navbar.toolbar.length > 0 &&
             (
               <div className="toolbar">
@@ -295,6 +295,15 @@ function Application(props) {
   function renderFooter() {
     return props.data.footer ? (
       <div align="center">
+        <div>
+          {window.application.sponsors && window.application.sponsors.length > 0 && (
+          <div>
+            {window.application.sponsors.map(function (url) {
+              return <img src={url} style={{height: 30, padding: 5}}/>;
+            })}
+            </div>)
+          }
+        </div>
         <div>Todos os direitos reservados</div>
         <div>{props.data.footer.version}</div>
       </div>

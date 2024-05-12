@@ -270,6 +270,12 @@ function Fieldset(props) {
   const id = Math.random();
   const [content, setContent] = useState(props.data);
 
+  StyleSheet(`
+    .object-fieldset{
+      margin-top: 10px;
+    }
+  `)
+
   function renderTitle() {
     return <Subtitle data={content} />;
   }
@@ -324,14 +330,14 @@ function Fieldset(props) {
     if (props.data.url) {
       window[id] = () => loadContent(props.data.url);
       return (
-        <div className={props.data.url && "reloadable"} id={id}>
+        <div className={props.data.url ? "reloadable object-fieldset" : "object-fieldset" } id={id}>
           {renderTitle()}
           {renderContainer()}
         </div>
       );
     } else {
       return (
-        <div>
+        <div className="object-fieldset">
           {renderTitle()}
           {renderContainer()}
         </div>
@@ -397,17 +403,21 @@ function Title(props) {
 }
 
 function Subtitle(props) {
+  StyleSheet( `
+      .fieldset-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .fieldset-title h2 {
+          margin: 0
+      }
+    `)
   function render() {
-    const div = {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-    };
-    const h2 = { marginBottom: 0, marginTop: 15 };
     return (
-      <div style={div}>
+      <div className="fieldset-title">
         {props.data.title && (
-          <h2 style={h2} data-label={toLabelCase(props.data.title)}>
+          <h2 data-label={toLabelCase(props.data.title)}>
             {props.data.title}
           </h2>
         )}
@@ -438,10 +448,10 @@ function Object(props) {
 
   function render() {
     return (
-      <>
+      <div className="object-viewer">
         {renderTitle()}
         {renderContent()}
-      </>
+      </div>
     );
   }
   return render();

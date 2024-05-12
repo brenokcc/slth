@@ -5,6 +5,12 @@ application:
   icon: /static/images/logo.svg
   logo: /static/images/logo.svg
   version: 1.0.5
+  sponsors:
+    - /static/images/logos/logo1.png
+    - /static/images/logos/logo2.png
+    - /static/images/logos/logo3.png
+    - /static/images/logos/logo4.png
+    - /static/images/logos/logo5.svg
   oauth:
     govbr:
       name: gov.br
@@ -49,8 +55,6 @@ application:
       - icons
       - users
       - logout
-    adder:
-      - cadastrarsolicitacao
     tools:
     settings:
   menu:

@@ -46,7 +46,7 @@ function format(obj) {
       </>
     } else {
       return (
-        <ul style={{ padding: 0 }}>
+        <ul style={{ padding: 0, marginLeft: 17 }}>
           {obj.map(function (item) {
             return <li key={Math.random()}>{item}</li>;
           })}

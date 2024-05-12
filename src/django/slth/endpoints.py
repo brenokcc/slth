@@ -673,7 +673,8 @@ class Application(PublicEndpoint):
 
         footer = Footer(APPLICATON["version"])
         return Application_(
-            icon=icon, navbar=navbar, menu=menu, footer=footer, oauth=oauth.providers()
+            icon=icon, navbar=navbar, menu=menu, footer=footer, oauth=oauth.providers(),
+            sponsors=APPLICATON.get("sponsors", ())
         )
 
 

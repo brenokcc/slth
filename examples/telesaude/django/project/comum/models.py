@@ -69,7 +69,7 @@ class TipoEnfoqueResposta(models.Model):
 
 class AreaTematicaQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'ativo', 'ativo_sincrona', 'get_qtd_profissonais_saude').actions('profissionaissaudeareatematica')
+        return self.fields('nome', 'get_qtd_profissonais_saude').actions('profissionaissaudeareatematica')
 
 
 class AreaTematica(models.Model):
@@ -180,7 +180,7 @@ class EstabelecimentoSaudeQuerySet(models.QuerySet):
         return (
             self.search("codigo_cnes", "nome")
             .fields("foto", ("codigo_cnes", "get_qtd_profissonais_saude"),  "municipio")
-            .filters("municipio").actions('agendaestabelecimentosaude').cards()
+            .filters("municipio").actions('agendaestabelecimentosaude', 'equipeestabelecimentosaude').cards()
         )
 
 @role('gu', username='gestores__cpf', unidade='pk')
@@ -259,7 +259,7 @@ class EstabelecimentoSaude(models.Model):
 
     @meta('Profissionais de Saúde')
     def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all()
+        return self.profissionalsaude_set.all().filters('especialidade')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -291,7 +291,7 @@ class EspecialidadeQuerySet(models.QuerySet):
     def all(self):
         return (
             self.search('nome')
-            .fields('codigo_cbo', 'nome', 'categoria', 'get_qtd_profissonais_saude')
+            .fields('codigo_cbo', 'nome', 'area_tematica', 'get_qtd_profissonais_saude')
             .filters('categoria', 'area_tematica')
             .actions('profissionaissaudeespecialidade')
         )
@@ -330,23 +330,23 @@ class Usuario(models.Model):
         verbose_name="Foto", null=True, blank=True, upload_to="pessoas_fisicas"
     )
 
-    nome = models.CharField(max_length=80)
-    nome_social = models.CharField(max_length=80, null=True, blank=True)
-    cpf = models.CharField(max_length=14, unique=True)
-    telefone = models.CharField(max_length=15, blank=True, null=True)
-    endereco = models.CharField(max_length=255, blank=True, null=True)
-    numero = models.CharField(max_length=255, blank=True, null=True)
-    cep = models.CharField(max_length=255, blank=True, null=True)
-    bairro = models.CharField(max_length=255, blank=True, null=True)
-    complemento = models.CharField(max_length=150, blank=True, null=True)
-    municipio = models.ForeignKey(Municipio, null=True, on_delete=models.PROTECT)
-    data_nascimento = models.DateField(null=True)
-    cns = models.CharField(max_length=15, null=True)
+    nome = models.CharField(verbose_name='Nome', max_length=80)
+    nome_social = models.CharField(verbose_name='Nome Social', max_length=80, null=True, blank=True)
+    cpf = models.CharField(verbose_name='CPF', max_length=14, unique=True)
+    telefone = models.CharField(verbose_name='Telefone', max_length=15, blank=True, null=True)
+    endereco = models.CharField(verbose_name='Endereço', max_length=255, blank=True, null=True)
+    numero = models.CharField(verbose_name='Número', max_length=255, blank=True, null=True)
+    cep = models.CharField(verbose_name='CEP', max_length=255, blank=True, null=True)
+    bairro = models.CharField(verbose_name='Bairro', max_length=255, blank=True, null=True)
+    complemento = models.CharField(verbose_name='Complemento', max_length=150, blank=True, null=True)
+    municipio = models.ForeignKey(Municipio, verbose_name='Município', null=True, on_delete=models.PROTECT)
+    data_nascimento = models.DateField(verbose_name='Data de Nascimento', null=True)
+    cns = models.CharField(verbose_name='CNS', max_length=15, null=True)
     perfil = models.ManyToManyField("Perfil", related_name="usuario")
     sexo = models.ForeignKey(
-        Sexo, related_name="usuarios", null=True, on_delete=models.PROTECT, blank=True
+        Sexo, verbose_name='Sexo', related_name="usuarios", null=True, on_delete=models.PROTECT, blank=True
     )
-    user = models.ForeignKey(User, related_name="usuario", on_delete=models.PROTECT)
+    user = models.ForeignKey(User, related_name="usuario", on_delete=models.PROTECT, null=True)
 
     objects = UsuarioQueryset()
 
@@ -451,6 +451,7 @@ class ProfissionalSaude(models.Model):
     )
     estabelecimento = models.ForeignKey(
         EstabelecimentoSaude,
+        verbose_name='Unidade',
         null=True,
         on_delete=models.CASCADE,
     )

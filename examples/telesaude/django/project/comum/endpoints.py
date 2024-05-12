@@ -71,11 +71,12 @@ class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
 class Solicitacoes(endpoints.ListEndpoint[Solicitacao]):
     
     class Meta:
+        modal = False
         icon = "laptop-file"
         verbose_name= 'Teleconsultas'
     
     def get(self):
-        return super().get().all().actions('visualizarsolititacao')
+        return super().get().all().actions('visualizarsolititacao', 'cadastrarsolicitacao')
 
     def check_permission(self):
         return self.check_role('ge')
@@ -102,7 +103,7 @@ class MinhasTeleconsultas(endpoints.ListEndpoint[Solicitacao]):
         verbose_name= 'Teleconsultas'
     
     def get(self):
-        return super().get().all()
+        return super().get().all().actions('visualizarsolititacao')
 
     def check_permission(self):
         return self.request.user.is_authenticated and not self.check_role('ge')
@@ -163,6 +164,22 @@ class ProfissionaisSaudeAreaTematica(endpoints.InstanceEndpoint[AreaTematica]):
     def get(self):
         return self.instance.get_profissonais_saude()
 
+
+class EquipeEstabelecimentoSaude(endpoints.InstanceEndpoint[EstabelecimentoSaude]):
+    class Meta:
+        icon = 'people-line'
+        verbose_name = 'Equipe de Unidade de Saúde'
+
+    def get(self):
+        return (
+            self.serializer()
+            .queryset("Gestores", "gestores")
+            .queryset("Operadores", "operadores")
+            .queryset("Profissionais", "get_profissionais_saude")
+        )
+    
+    def check_permission(self):
+        return True
 
 class AgendaEstabelecimentoSaude(endpoints.InstanceEndpoint[EstabelecimentoSaude]):
     class Meta:
@@ -238,6 +255,8 @@ class SalaVirtual(endpoints.InstanceEndpoint[Solicitacao]):
             .endpoint('Condutas e Enaminhamentos', 'registrarcondutasecanminhamentos', wrap=False)
         )
     
+    def check_permission(self):
+        return self.check_role('ps')
 
 class RegistrarCondutasEcanminhamentos(endpoints.ChildEndpoint):
 

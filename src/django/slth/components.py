@@ -240,13 +240,14 @@ class Footer(dict):
 
 
 class Application(dict):
-    def __init__(self, icon=None, navbar=None, menu=None, footer=None, oauth=()):
+    def __init__(self, icon=None, navbar=None, menu=None, footer=None, oauth=(), sponsors=()):
         self["type"] = "application"
         self["icon"] = icon
         self["navbar"] = navbar
         self["menu"] = menu
         self["footer"] = footer
         self["oauth"] = oauth
+        self["sponsors"] = sponsors
 
 
 class Response(dict):
@@ -281,7 +282,7 @@ class Scheduler(dict):
         end_time=20,
         chucks=2,
         start_day=None,
-        days=7,
+        days=14,
         single_selection=False,
         input_name="schedule",
         readonly=False,
