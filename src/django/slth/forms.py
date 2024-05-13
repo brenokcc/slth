@@ -36,13 +36,16 @@ class FormController:
     def __init__(self, form):
         super().__init__()
         self.form = form
-        self.controls = dict(hide=[], show=[], set={})
+        self.controls = dict(hide=[], show=[], reload=[], set={})
 
     def hide(self, *names):
         self.controls["hide"].extend(names)
 
     def show(self, *names):
         self.controls["show"].extend(names)
+
+    def reload(self, *names):
+        self.controls["reload"].extend(names)
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
@@ -342,14 +345,14 @@ class FormMixin:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:
                     pick = getattr(field, "pick", False)
-                    if isinstance(field.choices, ModelChoiceIterator) and not pick:
+                    if choices_field_name == fname or (isinstance(field.choices, ModelChoiceIterator) and not pick):
                         if choices_field_name == fname:
                             qs = field.choices.queryset
                             qs = self.controller.get_field_queryset(fname, qs)
                             if "term" in self.request.GET:
                                 qs = qs.apply_search(self.request.GET["term"])
                             raise JsonResponseException(
-                                [dict(id=obj.id, value=str(obj).strip()) for obj in qs[0:10]]
+                                [dict(id=obj.id, value=str(obj).strip()) for obj in qs[0:(50 if pick else 25)]]
                             )
                         else:
                             data["choices"] = absolute_url(
@@ -360,7 +363,9 @@ class FormMixin:
                             dict(id=str(k), value=v) for k, v in field.choices
                         ]
                     if pick:
-                        data.update(pick=True)
+                        data.update(pick=absolute_url(
+                            self.request, f"choices={fname}"
+                        ))
 
         attr_name = f"on_{name}_change"
         if hasattr(self._endpoint, attr_name):

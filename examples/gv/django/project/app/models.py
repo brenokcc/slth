@@ -208,8 +208,8 @@ class Especialista(models.Model):
     endereco = models.CharField('Endereço', null=True, blank=True)
     telefone = models.CharField('Telefone', null=True, blank=True)
     email = models.CharField('E-mail', null=True, blank=True)
-    estados = models.ManyToManyField(Estado, verbose_name='Estados', pick=True)
-    assuntos = models.ManyToManyField(Assunto, verbose_name='Assuntos', pick=True)
+    estados = models.ManyToManyField(Estado, verbose_name='Estados')
+    assuntos = models.ManyToManyField(Assunto, verbose_name='Assuntos')
     
 
     class Meta:

@@ -32,16 +32,8 @@ class ForeignKey(ForeignKey):
         super().__init__(to, on_delete or CASCADE, **kwargs)
     
     def formfield(self, *args, **kwargs):
-        field = super().formfield(*args, **kwargs)
-        return field
-
-class ManyToManyField(ManyToManyField):
-    def __init__(self, *args, **kwargs):
-        self.pick = kwargs.pop('pick', False)
-        self.addable = kwargs.pop('addable', False)
-        super().__init__(*args, **kwargs)
-
-    def formfield(self, *args, **kwargs):
+        from .. import forms
+        kwargs.update(form_class=forms.ModelChoiceField, pick=self.pick)
         field = super().formfield(*args, **kwargs)
         return field
 
@@ -70,6 +62,20 @@ class OneToOneField(OneToOneField):
         field.label = self.verbose_name
         field.required2 = not self.blank
         return field
+
+
+class ManyToManyField(ManyToManyField):
+    def __init__(self, *args, **kwargs):
+        self.pick = kwargs.pop('pick', False)
+        self.addable = kwargs.pop('addable', False)
+        super().__init__(*args, **kwargs)
+
+    def formfield(self, *args, **kwargs):
+        from .. import forms
+        kwargs.update(form_class=forms.ModelMultipleChoiceField, pick=self.pick)
+        field = super().formfield(*args, **kwargs)
+        return field
+
 
 class DecimalField(DecimalField):
     def __init__(self, *args, **kwargs):

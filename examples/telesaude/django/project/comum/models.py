@@ -669,13 +669,13 @@ class Solicitacao(models.Model):
     )
 
     area_tematica = models.ForeignKey(
-        AreaTematica, verbose_name='Área', related_name="solicitacoes", on_delete=models.CASCADE
+        AreaTematica, verbose_name='Área', related_name="solicitacoes", on_delete=models.CASCADE, pick=True
     )
     enfoque_solicitacao = models.ForeignKey(
         TipoEnfoqueResposta, related_name="solicitacoes", on_delete=models.CASCADE
     )
     tipo_solicitacao = models.ForeignKey(
-        TipoSolicitacao, verbose_name='Tipo de Atendimento', related_name="solicitacoes", on_delete=models.CASCADE
+        TipoSolicitacao, verbose_name='Tipo de Atendimento', related_name="solicitacoes", on_delete=models.CASCADE, pick=True
     )
     # TODO remover
     ultimo_fluxo = models.OneToOneField(

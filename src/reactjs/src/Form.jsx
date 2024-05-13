@@ -42,8 +42,8 @@ function serialize_form(form){
   const data = new FormData(form);
   for (let [name, value] of Array.from(data.entries())){
     const input = form[name];
-    if (value === '' || input.tagName != "SELECT"){
-      data.delete(name)
+    if (value === '' || !(input.tagName == "SELECT" || input.tagName == undefined )){
+      data.delete(name);
     }
   };
   return new URLSearchParams(data).toString()
@@ -54,7 +54,6 @@ function add_form_params(url, form){
   const sep = url.indexOf("?") < 0 ? "?" : "&";
   const extra = serialize_form(form);
   url = url + (extra ? sep + extra : "");
-  console.log(url)
   return url;
 }
 
@@ -68,11 +67,7 @@ function isImage(url) {
 }
 
 function formChange(input, url) {
-  const form = input.closest("form");
-  const data = new FormData(form);
-  const sep = url.indexOf("?") >= 0 ? "&" : "?";
-  url += sep + new URLSearchParams(data).toString();
-  request("GET", url, formControl);
+  request("GET", add_form_params(url, input.closest("form")), formControl);
 }
 function formHide(name) {
   if (name) {
@@ -89,6 +84,9 @@ function formShow(name) {
     var field = document.querySelector(".form-group." + name);
     if (field) field.style.display = "block";
   }
+}
+function formReload(name){
+  window['reload-'+name+'-field']()
 }
 function formValue(name, value) {
   var group = document.querySelector(".form-group." + name);
@@ -116,6 +114,7 @@ function formControl(controls) {
   if (controls) {
     for (var i = 0; i < controls.hide.length; i++) formHide(controls.hide[i]);
     for (var i = 0; i < controls.show.length; i++) formShow(controls.show[i]);
+    for (var i = 0; i < controls.reload.length; i++) formReload(controls.reload[i]);
     for (var k in controls.set) formValue(k, controls.set[k]);
   }
 }
@@ -721,7 +720,6 @@ function Selector(props) {
         "GET",
         add_form_params(props.data.choices + sep + "term=" + e.target.value, form),
         function callback(options) {
-          console.log(options);
           setOptions(options);
         }
       );
@@ -807,6 +805,8 @@ function Boolean(props) {
 }
 
 function Radio(props) {
+  const [choices, setChoices] = useState(props.data.choices);
+  
   var key = Math.random();
   var field = props.data;
 
@@ -836,11 +836,20 @@ function Radio(props) {
   }
 
   function render() {
-    return field.choices.length > 0 ? (
-      <div className="radio-group">
-        {field.choices.map(
+    window['reload-'+field.name+'-field'] = function(){
+      request(
+        "GET",
+        add_form_params(props.data.pick, document.querySelector(".radio-group."+field.name).closest("form")),
+        function callback(choices) {
+          setChoices(choices);
+        }
+      );
+    }
+    return choices.length > 0 ? (
+      <div className={"radio-group "+field.name}>
+        {choices.map(
           (choice, i) =>
-            (choice.id || choice.id == false) && (
+            (choice.id || choice.id === false) && (
               <div
                 key={key + i}
                 style={{
@@ -869,13 +878,16 @@ function Radio(props) {
         )}
       </div>
     ) : (
+      <div className={"radio-group "+field.name}>
       <i>Nenhuma opção disponível para seleção.</i>
+      </div>
     );
   }
   return render();
 }
 
 function Checkbox(props) {
+  const [choices, setChoices] = useState(props.data.choices);
   var key = Math.random();
   var field = props.data;
   function checked(choice) {
@@ -893,28 +905,48 @@ function Checkbox(props) {
     return check;
   }
 
+  function onClick(e) {
+    if (props.data.onchange) {
+      formChange(e.target, props.data.onchange);
+    }
+  }
+
   function render() {
-    return field.choices.length > 0 ? (
-      <div className="checkbox-group">
-        {field.choices.map((choice, i) => (
-          <div
-            key={key + i}
-            style={{ paddingTop: 10, display: "inline-block", marginRight: 25 }}
-          >
-            <input
-              id={field.name + key + i}
-              type="checkbox"
-              name={field.name}
-              defaultValue={choice.id}
-              defaultChecked={checked(choice)}
-              data-label={toLabelCase(choice.value)}
-            />
-            <label htmlFor={field.name + key + i}>{choice.value}</label>
-          </div>
+    window['reload-'+field.name+'-field'] = function(){
+      request(
+        "GET",
+        add_form_params(props.data.pick, document.querySelector(".checkbox-group."+field.name).closest("form")),
+        function callback(choices) {
+          setChoices(choices);
+        }
+      );
+    }
+    return choices.length > 0 ? (
+      <div className={"checkbox-group "+field.name}>
+        {choices.map((choice, i) => (
+          (choice.id || choice.id === false) && (
+            <div
+              key={key + i}
+              style={{ paddingTop: 10, display: "inline-block", marginRight: 25 }}
+            >
+              <input
+                id={field.name + key + i}
+                type="checkbox"
+                name={field.name}
+                onClick={onClick}
+                defaultValue={choice.id}
+                defaultChecked={checked(choice)}
+                data-label={toLabelCase(choice.value)}
+              />
+              <label htmlFor={field.name + key + i}>{choice.value}</label>
+            </div>
+          )
         ))}
       </div>
     ) : (
-      <i>Nenhuma opção disponível para seleção.</i>
+      <div className={"checkbox-group "+field.name}>
+        <i>Nenhuma opção disponível para seleção.</i>
+      </div>
     );
   }
   return render();

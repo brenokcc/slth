@@ -139,6 +139,11 @@ class CadastrarSolicitacao(endpoints.AddEndpoint[Solicitacao]):
             controller.show('especialista')
         else:
             controller.hide('especialista')
+        controller.reload('area_tematica')
+
+    def get_area_tematica_queryset(self, queryset, values):
+        print(values)
+        return queryset[0: datetime.now().second % 5]
     
     def on_horario_excepcional_change(self, controller, values):
         if values.get('horario_excepcional'):

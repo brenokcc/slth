@@ -210,7 +210,6 @@ class QuerySet(models.QuerySet):
                     for lookup in lookups
                 ]
                 conditions.append(reduce(operator.or_, queries))
-            print(conditions)
             return self.filter(reduce(operator.and_, conditions)) if conditions else self
         return self
     
