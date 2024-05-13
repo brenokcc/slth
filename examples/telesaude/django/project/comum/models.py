@@ -13,7 +13,7 @@ from django.utils.timesince import timesince
 from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User
-from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text
+from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge
 
 
 class CategoriaProfissional(models.Model):
@@ -81,8 +81,8 @@ class AreaTematica(models.Model):
 
     class Meta:
         ordering = ("nome",)
-        verbose_name = "Área Temática"
-        verbose_name_plural = "Áreas Temáticas"
+        verbose_name = "Área"
+        verbose_name_plural = "Áreas"
 
     def get_profissonais_saude(self):
         return ProfissionalSaude.objects.filter(especialidade__area_tematica=self).fields('usuario', 'estabelecimento')
@@ -96,8 +96,9 @@ class AreaTematica(models.Model):
 
 
 class TipoSolicitacao(models.Model):
-    TIPO_SOLICITACAO = ((1, "Síncrona (Vídeo)"), (2, "Assíncrona (Texto)"))
-    nome = models.CharField(choices=TIPO_SOLICITACAO, max_length=30)
+    TELECONSULTA = 1
+    TELETERCONSULTA = 2
+    nome = models.CharField(verbose_name='Nome', max_length=30)
 
     class Meta:
         verbose_name = "Tipo de Serviço"
@@ -339,7 +340,7 @@ class Usuario(models.Model):
     cep = models.CharField(verbose_name='CEP', max_length=255, blank=True, null=True)
     bairro = models.CharField(verbose_name='Bairro', max_length=255, blank=True, null=True)
     complemento = models.CharField(verbose_name='Complemento', max_length=150, blank=True, null=True)
-    municipio = models.ForeignKey(Municipio, verbose_name='Município', null=True, on_delete=models.PROTECT)
+    municipio = models.ForeignKey(Municipio, verbose_name='Município', null=True, on_delete=models.PROTECT, blank=True)
     data_nascimento = models.DateField(verbose_name='Data de Nascimento', null=True)
     cns = models.CharField(verbose_name='CNS', max_length=15, null=True)
     perfil = models.ManyToManyField("Perfil", related_name="usuario")
@@ -610,6 +611,7 @@ class SolicitacaoQuerySet(models.QuerySet):
             .fields(
                 ("area_tematica", "agendado_para", "tipo_solicitacao"),
                 ("solicitante", "estabelecimento", "especialista"),
+                ("get_tags")
             ).limit(5).order_by('-id')
         )
 
@@ -626,9 +628,11 @@ class Solicitacao(models.Model):
 
     solicitante = models.ForeignKey(
         ProfissionalSaude,
+        verbose_name='Responsável',
         related_name="solicitacoes_solicitante",
         on_delete=models.CASCADE,
         null=True,
+        help_text='Profissional de saúde responsável pelo atendimento'
     )
     estabelecimento = models.ForeignKey(
         EstabelecimentoSaude, null=True, on_delete=models.CASCADE
@@ -638,16 +642,18 @@ class Solicitacao(models.Model):
         related_name="solicitacoes_especialista",
         on_delete=models.CASCADE,
         null=True,
+        blank=True,
+        help_text='Profissional de saúde que será consultado pelo profissional responsável pelo atendimento'
     )
 
     area_tematica = models.ForeignKey(
-        AreaTematica, related_name="solicitacoes", on_delete=models.CASCADE
+        AreaTematica, verbose_name='Área', related_name="solicitacoes", on_delete=models.CASCADE
     )
     enfoque_solicitacao = models.ForeignKey(
         TipoEnfoqueResposta, related_name="solicitacoes", on_delete=models.CASCADE
     )
     tipo_solicitacao = models.ForeignKey(
-        TipoSolicitacao, related_name="solicitacoes", on_delete=models.CASCADE
+        TipoSolicitacao, verbose_name='Tipo de Atendimento', related_name="solicitacoes", on_delete=models.CASCADE
     )
     # TODO remover
     ultimo_fluxo = models.OneToOneField(
@@ -657,14 +663,14 @@ class Solicitacao(models.Model):
         on_delete=models.PROTECT,
     )
 
-    cid = models.ManyToManyField(CID, related_name="cids")
-    ciap = models.ManyToManyField(CIAP, related_name="ciaps")
+    cid = models.ManyToManyField(CID, verbose_name='CID', related_name="cids")
+    ciap = models.ManyToManyField(CIAP, verbose_name='CIAP', related_name="ciaps")
 
     data = models.DateTimeField(blank=True)
     assunto = models.CharField(max_length=200)
     duvida = models.TextField(max_length=2000)
     paciente = models.ForeignKey(
-        "Usuario", related_name="solicitacoes_paciente", on_delete=models.PROTECT
+        "Usuario", verbose_name='Paciente', related_name="solicitacoes_paciente", on_delete=models.PROTECT
     )
     duracao = models.DurationField(null=True, default=timedelta(days=0))
     atraso = models.BooleanField(default=False, null=True)
@@ -694,6 +700,9 @@ class Solicitacao(models.Model):
     # Verificando quantas vezes o solicitante acessou a TC
     qtd_acessos = models.IntegerField(default=0)
 
+    motivo_cancelamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
+    motivo_reagendamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
+
     objects = SolicitacaoQuerySet()
 
     class Meta:
@@ -708,13 +717,13 @@ class Solicitacao(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    ("area_tematica", "solicitante"),
+                    ("tipo_solicitacao", "area_tematica"),
                 ),
             )
             .fieldset(
                 "Detalhamento",
                 (
-                    "paciente",
+                    "paciente:cadastrarusuario",
                     "assunto",
                     "duvida",
                     ("cid", "ciap"),
@@ -723,6 +732,8 @@ class Solicitacao(models.Model):
             .fieldset(
                 "Agendamento",
                 (
+                    "solicitante",
+                    "especialista",
                     "horario_profissional_saude",
                     "horario_excepcional",
                     "justificativa_horario_excepcional",
@@ -735,10 +746,12 @@ class Solicitacao(models.Model):
         return (
             super()
             .serializer()
+            .fields('get_tags')
             .actions('anexararquivo', 'salavirtual')
             .fieldset(
                 "Dados Gerais",
                 (
+                    "tipo_solicitacao",
                     ("estabelecimento", "estabelecimento__municipio"),
                     ("agendado_para", "finalizado_em", "duracao_webconf"),
                 )
@@ -763,7 +776,7 @@ class Solicitacao(models.Model):
                             "usuario__nome",
                             ("formacao", "registro_profissional"),
                             ("especialidade", "registro_especialista"),
-                        ), attr="especialista"
+                        ), attr="especialista", condition='especialista'
                     )
                     .fieldset(
                         "Dados da Consulta", (
@@ -778,6 +791,29 @@ class Solicitacao(models.Model):
                 .queryset('Encaminhamentos/Condutas', 'get_condutas_ecaminhamentos')
             .parent()
         )
+    
+    @meta()
+    def get_tags(self):
+        tags = []
+        if self.tipo_solicitacao_id == TipoSolicitacao.TELETERCONSULTA:
+            color = "#265890"
+            icon = 'people-group'
+        else:
+            color = '#5ca05d'
+            icon = 'people-arrows'
+        tag = Badge(color, self.tipo_solicitacao, icon=icon)
+        tags.append(tag)
+
+        if self.finalizado_em:
+            tag = Badge("#5ca05d", 'Finalizada', icon='check')
+        elif self.motivo_reagendamento:
+            tag = Badge("orange", 'Reagendada', icon='calendar')
+        elif self.motivo_cancelamento:
+            tag = Badge("red", 'Cancelada', icon='x')
+        else:
+            tag = Badge("#265890", 'Agendada', icon='clock')
+        tags.append(tag)
+        return tags
     
     @meta('Histórico')
     def get_historico(self):
@@ -884,6 +920,7 @@ class Solicitacao(models.Model):
             self.tipo_solicitacao = TipoSolicitacao.objects.get(pk=2)
         if not self.especialista_id and self.horario_profissional_saude_id:
             self.especialista = self.horario_profissional_saude.profissional_saude
+        if not self.agendado_para and self.horario_profissional_saude_id:
             self.agendado_para = self.horario_profissional_saude.data_hora
         if not self.data:
             self.data = timezone.now()

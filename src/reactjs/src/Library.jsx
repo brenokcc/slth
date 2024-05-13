@@ -174,13 +174,18 @@ function Badge(props) {
     const style = {
       color: "white",
       width: "fit-content",
-      borderRadius: 5,
+      borderRadius: 0,
       textWrap: "nowrap",
       padding: 10,
       whiteSpace: "nowrap",
       backgroundColor: props.data.color,
+      display: "inline-flex",
+      border: "solid 3px white"
     };
-    return <div style={style}>{props.data.label}</div>;
+    return <div style={style}>
+      {props.data.icon && <Icon icon={props.data.icon} style={{marginRight: 5}}/>}
+      {props.data.label}
+    </div>;
   }
   return render();
 }

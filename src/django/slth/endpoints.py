@@ -143,7 +143,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         data = self.get()
         title = self.get_verbose_name()
         if isinstance(data, models.QuerySet):
-            data = data.contextualize(self.request).settitle(title)
+            data = data.contextualize(self.request).settitle(title).apply_lookups(self.request.user)
         elif isinstance(data, Serializer):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):

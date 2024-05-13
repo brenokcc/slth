@@ -118,32 +118,32 @@ class Serializer:
         self.metadata['allow'].extend(actions)
         return self
     
-    def field(self, name, reload=True) -> 'Serializer':
-        self.metadata['content'].append(('field', name, dict(name=name, reload=reload)))
+    def field(self, name, reload=True, condition=None, roles=()) -> 'Serializer':
+        self.metadata['content'].append(('field', name, dict(name=name, reload=reload, condition=condition, roles=roles)))
         return self
         
-    def fields(self, *names) -> 'Serializer':
-        self.metadata['content'].append(('fields', None, dict(names=names)))
+    def fields(self, *names, condition=None, roles=()) -> 'Serializer':
+        self.metadata['content'].append(('fields', None, dict(names=names, condition=condition, roles=roles)))
         return self
     
-    def fieldset(self, title, fields=(), actions=(), attr=None, reload=True) -> 'Serializer':
+    def fieldset(self, title, fields=(), actions=(), attr=None, reload=True, condition=None, roles=()) -> 'Serializer':
         self.metadata['allow'].extend(actions)
-        item = dict(title=title, names=fields, attr=attr, actions=actions, reload=reload)
+        item = dict(title=title, names=fields, attr=attr, actions=actions, reload=reload, condition=condition, roles=roles)
         self.metadata['content'].append(('fieldset', to_snake_case(title), item))
         return self
         
-    def queryset(self, title, name) -> 'Serializer':
-        self.metadata['content'].append(('queryset', name, dict(title=title)))
+    def queryset(self, title, name, condition=None, roles=()) -> 'Serializer':
+        self.metadata['content'].append(('queryset', name, dict(title=title, condition=condition, roles=roles)))
         return self
     
-    def endpoint(self, title, cls, wrap=True) -> 'Serializer':
+    def endpoint(self, title, cls, wrap=True, condition=None, roles=()) -> 'Serializer':
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
-        self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap)))
+        self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap, condition=condition, roles=roles)))
         return self
     
-    def append(self, title, component) -> 'Serializer':
-        self.metadata['content'].append(('component', to_snake_case(title), dict(title=title, component=component)))
+    def append(self, title, component, condition=None, roles=()) -> 'Serializer':
+        self.metadata['content'].append(('component', to_snake_case(title), dict(title=title, component=component, condition=condition, roles=roles)))
     
     def section(self, title) -> 'Serializer':
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title)
@@ -156,7 +156,7 @@ class Serializer:
         return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title, show_title=show_title)
 
     def parent(self) -> 'Serializer':
-        self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self)))
+        self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self, condition=None, roles=())))
         return self.serializer
     
     def contextualize(self, request) -> 'Serializer':
@@ -180,6 +180,20 @@ class Serializer:
     def __str__(self):
         return f'{self.title} / {self.type}'
 
+    def check_condition(self, name):
+        if name:
+            deny = False
+            if name.startswith('not '):
+                deny, name = name.split()
+            attr = getattr(self.obj, name)
+            if callable(attr):
+                attr = attr()
+            return not attr if deny else attr
+        return True
+    
+    def check_role(self, names):
+        from slth.models import Role
+        return self.request.user.is_superuser or not names or Role.objects.filter(username=self.request.user.username, name__in=names).exists()
 
     def to_dict(self, debug=False):
         base_url = absolute_url(self.request)
@@ -217,6 +231,10 @@ class Serializer:
         items = []
         if not self.lazy:
             for i, (datatype, key, item) in enumerate(self.metadata['content']):
+                if not self.check_condition(item['condition']):
+                    continue
+                if not self.check_role(item['roles']):
+                    continue
                 leaf = only and only[-1] == key
                 lazy = i and self.type == 'group' and not leaf
                 data = None

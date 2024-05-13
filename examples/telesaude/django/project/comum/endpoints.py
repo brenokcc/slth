@@ -103,7 +103,11 @@ class MinhasTeleconsultas(endpoints.ListEndpoint[Solicitacao]):
         verbose_name= 'Teleconsultas'
     
     def get(self):
-        return super().get().all().actions('visualizarsolititacao')
+        return (
+            super().get().all().actions('visualizarsolititacao')
+            .lookup('ps', solicitante__usuario__cpf='username')
+            .lookup('ps', especialista__usuario__cpf='username')
+        )
 
     def check_permission(self):
         return self.request.user.is_authenticated and not self.check_role('ge')
@@ -122,18 +126,37 @@ class MeusLocaisAtendimento(endpoints.ListEndpoint[ProfissionalSaude]):
 
 class CadastrarSolicitacao(endpoints.AddEndpoint[Solicitacao]):
     class Meta:
-        verbose_name = 'Cadastrar '
+        verbose_name = 'Cadastrar Atendimento'
 
     def get(self):
         return (
-            super().get().hidden('justificativa_horario_excepcional', 'agendado_para')
+            super().get().hidden('especialista', 'justificativa_horario_excepcional', 'agendado_para')
         )
+    
+    def on_tipo_solicitacao_change(self, controller, values):
+        tipo_solicitacao = values.get('tipo_solicitacao')
+        if tipo_solicitacao and tipo_solicitacao.id == TipoSolicitacao.TELETERCONSULTA:
+            controller.show('especialista')
+        else:
+            controller.hide('especialista')
     
     def on_horario_excepcional_change(self, controller, values):
         if values.get('horario_excepcional'):
             controller.show('justificativa_horario_excepcional', 'agendado_para')
         else:
             controller.hide('justificativa_horario_excepcional', 'agendado_para')
+
+    def get_solicitante_queryset(self, queryset, values):
+        area_tematica = values.get('area_tematica')
+        if area_tematica:
+            return queryset.filter(especialidade__area_tematica=area_tematica)
+        return queryset
+    
+    def get_horario_profissional_saude_queryset(self, queryset, values):
+        solicitante = values.get('solicitante')
+        if solicitante:
+            return queryset.filter(profissional_saude=solicitante)
+        return queryset.none()
     
     def check_permission(self):
         return self.check_role('ge')

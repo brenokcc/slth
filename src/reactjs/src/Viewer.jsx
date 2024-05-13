@@ -8,6 +8,7 @@ import { GridLayout } from "./Layout";
 import toLabelCase from "./Utils";
 import { Icon } from "./Icon.jsx";
 import { StyleSheet} from "./StyleSheet.jsx"
+import Theme from "./Theme.jsx";
 
 function Field(props) {
   function render() {
@@ -385,7 +386,8 @@ function Title(props) {
         align-items: baseline;
       }
       .object-title h1 {
-          margin: 0
+          margin: 0;
+          color: ${Theme.colors.primary};
       }
     `)
     return (

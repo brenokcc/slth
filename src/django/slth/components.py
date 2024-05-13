@@ -67,10 +67,11 @@ class Status(dict):
 
 
 class Badge(dict):
-    def __init__(self, color, label):
+    def __init__(self, color, label, icon=None):
         self["type"] = "badge"
         self["color"] = color
         self["label"] = str(label)
+        self["icon"] = icon
 
 
 class Shell(dict):

@@ -50,6 +50,7 @@ application:
       - estabelecimentossaude
       - profissionaissaude
       - solicitacoes
+    adder:
     search:
     usermenu:
       - icons
@@ -68,7 +69,7 @@ application:
       Municípios: municipios
     building:Estabelecimentos de Saude: estabelecimentossaude
     stethoscope:Profissionais de Saúde:
-      Áreas Temáticas: areastematicas
+      Áreas: areastematicas
       Especialidades: especialidades
       Vínculos Profissionais: profissionaissaude
     users:Pessoas Físicas: usuarios

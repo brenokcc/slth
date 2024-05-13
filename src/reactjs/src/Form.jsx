@@ -691,11 +691,15 @@ function Selector(props) {
   function search(e) {
     clearTimeout(timeout);
     timeout = setTimeout(function () {
+      const form = e.target.closest("form");
+      const data = new FormData(form);
+      for (let [name, value] of Array.from(data.entries())) if (value === '' || name.indexOf("__autocomplete")>0) data.delete(name);
+      const extra = new URLSearchParams(data).toString()
       const sep = props.data.choices.indexOf("?") < 0 ? "?" : "&";
       setSearching(true);
       request(
         "GET",
-        props.data.choices + sep + "term=" + e.target.value,
+        props.data.choices + sep + "term=" + e.target.value + (extra ? "&" + extra : ""),
         function callback(options) {
           setOptions(options);
         }
@@ -815,7 +819,7 @@ function Radio(props) {
       <div className="radio-group">
         {field.choices.map(
           (choice, i) =>
-            choice.id && (
+            (choice.id || choice.id == false) && (
               <div
                 key={key + i}
                 style={{
@@ -1219,7 +1223,7 @@ function Form(props) {
   const id = Math.random();
 
   function renderTitle() {
-    const style = { margin: 0 };
+    const style = { margin: 0, color: Theme.colors.primary};
     return <h1 style={style}>{props.data.title}</h1>;
   }
 
