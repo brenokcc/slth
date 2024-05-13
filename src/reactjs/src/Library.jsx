@@ -576,7 +576,6 @@ function Tooltip(props){
         visibility: visible;
       }
     `)
-    console.log(props.text);
     return (
       <div className="tooltip">{props.children}
         <div className="tooltiptext">{format(props.text)}</div>

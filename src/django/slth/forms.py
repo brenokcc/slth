@@ -281,7 +281,7 @@ class FormMixin:
                     field, DjangoModelMultipleChoiceField
                 ):
                     value = (
-                        [dict(id=obj.id, label=str(obj)) for obj in value]
+                        [dict(id=obj.id, label=str(obj).strip) for obj in value]
                         if value
                         else []
                     )
@@ -294,7 +294,7 @@ class FormMixin:
                     or isinstance(field, DjangoModelChoiceField)
                 ):
                     obj = field.queryset.get(pk=value)
-                    value = dict(id=obj.id, label=str(obj))
+                    value = dict(id=obj.id, label=str(obj).strip())
                 elif isinstance(field, DjangoImageField):
                     value = build_url(self.request, value.url) if value else None
                     extra.update(
@@ -338,7 +338,7 @@ class FormMixin:
             elif ftype == "scheduler":
                 data.update(scheduler=field.scheduler)
             elif ftype == "choice":
-                if name in self.request.GET:
+                if name in self.request.GET and not choices_field_name:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:
                     pick = getattr(field, "pick", False)
@@ -349,7 +349,7 @@ class FormMixin:
                             if "term" in self.request.GET:
                                 qs = qs.apply_search(self.request.GET["term"])
                             raise JsonResponseException(
-                                [dict(id=obj.id, value=str(obj)) for obj in qs[0:10]]
+                                [dict(id=obj.id, value=str(obj).strip()) for obj in qs[0:10]]
                             )
                         else:
                             data["choices"] = absolute_url(

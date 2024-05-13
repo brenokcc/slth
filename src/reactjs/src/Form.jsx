@@ -38,6 +38,26 @@ const INPUT_STYLE = {
   backgroundColor: "white",
 };
 
+function serialize_form(form){
+  const data = new FormData(form);
+  for (let [name, value] of Array.from(data.entries())){
+    const input = form[name];
+    if (value === '' || input.tagName != "SELECT"){
+      data.delete(name)
+    }
+  };
+  return new URLSearchParams(data).toString()
+}
+
+function add_form_params(url, form){
+  //return url;
+  const sep = url.indexOf("?") < 0 ? "?" : "&";
+  const extra = serialize_form(form);
+  url = url + (extra ? sep + extra : "");
+  console.log(url)
+  return url;
+}
+
 function isImage(url) {
   if (url) {
     const extensions = [".png", ".jpeg", ".jpeg", ".gif"];
@@ -175,6 +195,9 @@ function Field(props) {
     if (props.data.action) {
       props.data.action.icon = null;
       props.data.action.modal = true;
+      props.data.action.urlfunc = function(){
+        return add_form_params(props.data.action.url, document.getElementById(id).closest("form"));
+      }
     }
     return (
       <div style={style}>
@@ -692,15 +715,13 @@ function Selector(props) {
     clearTimeout(timeout);
     timeout = setTimeout(function () {
       const form = e.target.closest("form");
-      const data = new FormData(form);
-      for (let [name, value] of Array.from(data.entries())) if (value === '' || name.indexOf("__autocomplete")>0) data.delete(name);
-      const extra = new URLSearchParams(data).toString()
       const sep = props.data.choices.indexOf("?") < 0 ? "?" : "&";
       setSearching(true);
       request(
         "GET",
-        props.data.choices + sep + "term=" + e.target.value + (extra ? "&" + extra : ""),
+        add_form_params(props.data.choices + sep + "term=" + e.target.value, form),
         function callback(options) {
+          console.log(options);
           setOptions(options);
         }
       );

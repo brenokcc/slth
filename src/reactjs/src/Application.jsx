@@ -299,7 +299,7 @@ function Application(props) {
           {window.application.sponsors && window.application.sponsors.length > 0 && (
           <div>
             {window.application.sponsors.map(function (url) {
-              return <img src={url} style={{height: 30, padding: 5}}/>;
+              return <img key={Math.random()} src={url} style={{height: 30, padding: 5}}/>;
             })}
             </div>)
           }

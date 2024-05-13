@@ -12,15 +12,17 @@ function Action(props) {
 
   function onClick(e) {
     e.preventDefault();
+    var url = props.data.url;
+    if (props.data.urlfunc) url = props.data.urlfunc();
     if (props.onClick) {
       if (label) setLabel("Aguarde....");
       props.onClick(e);
     } else {
       if (props.data.modal == false) {
-        window.load(appurl(props.data.url));
+        window.load(appurl(url));
         //document.location.href = url;
       } else {
-        openDialog(props.data.url);
+        openDialog(url);
       }
     }
   }

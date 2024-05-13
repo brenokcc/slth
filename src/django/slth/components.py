@@ -292,15 +292,17 @@ class Scheduler(dict):
         self["single_selection"] = single_selection
         self["input_name"] = input_name
         self["readonly"] = readonly
-        start_day = start_day or date.today()
+        self.end_day = start_day or datetime.now()
+        self.end_day = datetime(self.end_day.year, self.end_day.month, self.end_day.day)
         self.times = []
         for hour in range(start_time, end_time + 1):
             for minute in Scheduler.INTERVALS[chucks]:
                 self.times.append("{}:{}".format(str(hour).rjust(2, "0"), minute))
         self.days = []
         for n in range(0, days):
-            self.days.append(start_day.strftime("%d/%m/%Y"))
-            start_day = start_day + timedelta(days=1)
+            self.days.append(self.end_day.strftime("%d/%m/%Y"))
+            self.end_day = self.end_day + timedelta(days=1)
+        self.end_day = datetime(self.end_day.year, self.end_day.month, self.end_day.day, 23, 59, 59)
         self["slots"] = {}
         for day in self.days:
             self["slots"][day] = {k: None for k in self.times}

@@ -10,7 +10,7 @@ function GridLayout(props) {
       //gridTemplateColumns: "repeat(auto-fit, minmax(" + width + "px, " + (width + 100) + "px))",
       alignItems: props.alignItems || "end",
     };
-    return <div style={style}>{props.children}</div>;
+    return <div key={Math.random()} style={style}>{props.children}</div>;
   }
   return render();
 }

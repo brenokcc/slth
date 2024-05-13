@@ -119,7 +119,7 @@ function Fields(props) {
         if (item.label != "ID" && (props.exclude==null || item.label != props.exclude)) {
           return (
             <div key={Math.random()}>
-              <Field data={item} width={100} />
+              <Field data={item} width={100}/>
             </div>
           );
         }

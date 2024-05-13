@@ -69,7 +69,7 @@ class TipoEnfoqueResposta(models.Model):
 
 class AreaTematicaQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'get_qtd_profissonais_saude').actions('profissionaissaudeareatematica')
+        return self.fields('nome', 'get_qtd_profissonais_saude').actions('profissionaissaudeareatematica', 'agendaareatematica')
 
 
 class AreaTematica(models.Model):
@@ -90,6 +90,28 @@ class AreaTematica(models.Model):
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
         return self.get_profissonais_saude().count()
+    
+    @meta()
+    def get_agenda(self, readonly=True):
+        qs = HorarioProfissionalSaude.objects.filter(
+            profissional_saude__especialidade__area_tematica=self
+        ).order_by('data_hora')
+        start_day = qs.values_list('data_hora', flat=True).first()
+        scheduler = Scheduler(start_day=start_day, readonly=True)
+        qs = qs.filter(data_hora__lt=scheduler.end_day)
+        campos = ("data_hora", "profissional_saude__usuario__nome", "profissional_saude__especialidade__area_tematica__nome")
+        qs1 = qs.filter(solicitacao__isnull=True)
+        qs2 = qs.filter(solicitacao__isnull=False)
+        horarios = {}
+        for i, solicitacoes in enumerate([qs1, qs2]):
+            for data_hora, nome, area in solicitacoes.values_list(*campos):
+                if data_hora not in horarios:
+                    horarios[data_hora] = []
+                profissional = f'{nome} ({area.upper()} )' if area else nome
+                horarios[data_hora].append(Text(profissional, color="#a4e2a4" if i==0 else "#f47c7c"))
+        for data_hora, text in horarios.items():
+            scheduler.append(data_hora, text, icon='stethoscope')
+        return scheduler
 
     def __str__(self):
         return "%s" % self.nome
@@ -732,7 +754,7 @@ class Solicitacao(models.Model):
             .fieldset(
                 "Agendamento",
                 (
-                    "solicitante",
+                    "solicitante:consultaragenda",
                     "especialista",
                     "horario_profissional_saude",
                     "horario_excepcional",

@@ -228,6 +228,35 @@ class AgendaProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
     
     def check_permission(self):
         return True
+    
+
+class AgendaAreaTematica(endpoints.InstanceEndpoint[AreaTematica]):
+    class Meta:
+        icon = 'clock'
+        verbose_name = 'Agenda da Área'
+    
+    def get(self):
+        return self.serializer().fields(
+            "nome"
+        ).fieldset('Agenda', ('get_agenda',))
+    
+    def check_permission(self):
+        return True
+    
+
+class ConsultarAgenda(endpoints.Endpoint):
+    class Meta:
+        icon = 'clock'
+        verbose_name = 'Consultar Agenda'
+
+    def get(self):
+        area_tematica = self.request.GET.get('area_tematica')
+        if area_tematica:
+            return AreaTematica.objects.get(pk=area_tematica).get_agenda()
+        return Scheduler()
+    
+    def check_permission(self):
+        return True
 
 
 class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
