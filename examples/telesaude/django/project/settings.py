@@ -31,7 +31,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
-    'project.comum',
+    'project.app',
     'slth',
     'whitenoise.runserver_nostatic',
     'django.contrib.auth',

@@ -1,0 +1,19 @@
+header, header ul, header input, header .fa-solid {
+    background-color: #265890 !important;
+    color: white !important;
+}
+header .brand span{
+    display: none;
+}
+aside .menu .item:hover{
+    background-color: #f1e000;
+}
+
+.radio-group.horario_profissional_saude > div {
+    background-color: rgb(92, 160, 93);
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+    border: solid;
+    width: 180px;
+}

@@ -393,9 +393,9 @@ function Counter(props) {
   function render() {
     return (
       <div>
-        <h2>{props.data.title}</h2>
+        <h2 align="center">{props.data.title}</h2>
         <div
-          style={{ fontSize: "12rem", textAlign: "center", color: "#5470c6" }}
+          style={{ fontSize: "8rem", textAlign: "center", color: "#5470c6" }}
         >
           {props.data.value}
         </div>

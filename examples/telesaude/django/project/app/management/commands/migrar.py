@@ -1,5 +1,5 @@
 from django.db import transaction
-from project.comum.models import ProfissionalSaude, ProfissionalVinculo, Solicitacao
+from project.comum.models import ProfissionalSaude, ProfissionalVinculo, Atendimento
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
@@ -7,11 +7,11 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     def handle(self, *args, **options):
         with transaction.atomic():
-            for solicitacao in Solicitacao.objects.all():
-                solicitacao.solicitante = solicitacao.vinculo.profissional
-                solicitacao.estabelecimento = solicitacao.vinculo.estabelecimento
-                solicitacao.especialista = solicitacao.get_especialista()
-                solicitacao.save()
+            for atendimento in Atendimento.objects.all():
+                atendimento.profissional = atendimento.vinculo.profissional
+                atendimento.estabelecimento = atendimento.vinculo.estabelecimento
+                atendimento.especialista = atendimento.get_especialista()
+                atendimento.save()
             for vinculo in ProfissionalVinculo.objects.all():
                 profissional = vinculo.profissional
                 if profissional.estabelecimento_id:

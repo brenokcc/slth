@@ -69,7 +69,7 @@ function PushWebNotification(props) {
   }
   function render() {
     if (
-      window.Notification == null ||
+      true || window.Notification == null ||
       window.Notification.permission !== "granted"
     ) {
       return (

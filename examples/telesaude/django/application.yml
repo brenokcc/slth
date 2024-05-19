@@ -2,7 +2,7 @@ application:
   lang: pt-br
   title: Telessaúde
   subtitle: Sistema de Telessaúde de Campo Grande
-  icon: /static/images/logo.svg
+  icon: /static/images/icon.png
   logo: /static/images/logo.svg
   version: 1.0.5
   sponsors:
@@ -32,48 +32,51 @@ application:
     gu: Gestor de Unidade
     ou: Operador de Unidade
     ps: Profissinal de Saúde
+    pf: Pessoa Física
   index: dashboard
   dashboard:
     toolbar:
-      - usuarios
+      - pessoafisicas
       - estabelecimentossaude
       - profissionaissaude
-      - solicitacoes
+      - atendimentos
     actions:
     top:
     center:
-      - solicitacoes
+      - atendimentos
       - meuslocaisatendimento
       - minhasteleconsultas
     boxes:
-      - usuarios
+      - pessoafisicas
       - estabelecimentossaude
       - profissionaissaude
-      - solicitacoes
+      - atendimentos
+      - estatistica
     adder:
+      - fazeralgo
     search:
     usermenu:
-      - icons
+      #- icons
       - users
       - logout
     tools:
     settings:
   menu:
-    Cadastros Gerais:
-      Cids: cid
-      Ciaps: ciap
-      Tipos de Solicitacão: tipossolicitacao
-      Estados: unidadesfederativas
+    list:Cadastros Gerais:
+      Cids: cids
+      Ciaps: ciaps
       Níveis de Formacão: niveisformacao
       Sexos: sexos
+      Tipos de Atendimento: tiposatendimento
+      Estados: unidadesfederativas
       Municípios: municipios
     building:Estabelecimentos de Saude: estabelecimentossaude
     stethoscope:Profissionais de Saúde:
-      Áreas: areastematicas
+      Áreas: areass
       Especialidades: especialidades
       Vínculos Profissionais: profissionaissaude
-    users:Pessoas Físicas: usuarios
-    laptop-file:Teleconsultas: solicitacoes
+    users:Pessoas Físicas: pessoafisicas
+    laptop-file:Teleconsultas: atendimentos
     file-signature:Certificados Digitais: certificadosdigitais
   theme:
     colors:

@@ -12,6 +12,7 @@ application:
   index: consultar
   dashboard:
     toolbar:
+     - consultar
     actions:
       - login
     top:

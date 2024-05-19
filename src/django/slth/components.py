@@ -253,11 +253,12 @@ class Application(dict):
 
 class Response(dict):
 
-    def __init__(self, message=None, redirect=None, store=None):
+    def __init__(self, message=None, redirect=None, store=None, **kwargs):
         self["type"] = "response"
         self["message"] = message
-        self["redirect"] = redirect
+        self["redirect"] = redirect or '..'
         self["store"] = store or {}
+        self.update(**kwargs)
 
 
 class IconSet(dict):

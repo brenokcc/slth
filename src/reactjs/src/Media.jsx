@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import Icon from "./Icon";
+import { showMessage } from "./Message";
 
 function WebConf(props) {
   var peer = null;
   var localStream = null;
   var remoteStream = null;
+  var connected = false;
+  var interval = null;
   var getUserMedia =
     navigator.getUserMedia ||
     navigator.webkitGetUserMedia ||
@@ -30,6 +33,7 @@ function WebConf(props) {
     peer = new Peer("123456" + props.data.caller.replaceAll(".", ""));
     peer.on("open", function (id) {
       document.getElementById("callerid").innerHTML = props.data.caller;
+      start()
     });
     peer.on("call", function (call) {
       getUserMedia(
@@ -55,12 +59,17 @@ function WebConf(props) {
           call.on("stream", function (stream) {
             remoteStream = stream;
             document.getElementById("video1").srcObject = remoteStream;
+            connected = true;
           });
           call.on("close", function () {
-            stop();
+            //stop();
+            console.log('Closed!');
+            connected = false;
           });
           peer.on("error", function (err) {
-            stop();
+            //stop();
+            console.log('Error!');
+            connected = false;
           });
         },
         function (err) {
@@ -76,9 +85,23 @@ function WebConf(props) {
       } else if (err.type == "network") {
         alert("Problema na conexão do usuário.");
       } else if (err.type == "peer-unavailable") {
-        alert("Usuário indisponível.");
+        console.log('Usuário indisponível!');
+        connected = false;
       }
     });
+    interval = setInterval(function(){
+      if(connected){
+        showMessage("Em conexão com "+props.data.receiver+".");
+      } else {
+        showMessage("Tentando estabeler conexão com "+props.data.receiver+"...");
+        start();
+      }
+    }, 15000);
+    return function(){
+      clearInterval(interval);
+      stop();
+      showMessage("Desconectado!");
+    }
   }, []);
 
   function pause() {
@@ -102,15 +125,17 @@ function WebConf(props) {
     stop_track(remoteStream, "video");
     localStream = null;
     remoteStream = null;
-    document.getElementById("video1").srcObject = null;
-    document.getElementById("video2").srcObject = null;
+    const video1 = document.getElementById("video1");
+    const video2 = document.getElementById("video2");
+    if (video1) video1.srcObject = null;
+    if (video2) video2.srcObject = null;
     console.log("Stopped!");
   }
 
   function stop_track(stream, kind) {
     if (stream != null)
       stream.getTracks().forEach((track) => {
-        if (track.readyState == "live" && track.kind === kind) {
+        if (track.kind === kind) {
           track.stop();
         }
       });
@@ -134,10 +159,14 @@ function WebConf(props) {
       });
   }
 
-  function maximize() {
+  function plus() {
     var video = document.getElementById("video1");
-    if (video.style.width == "") video.style.width = "400px";
-    else video.style.width = "";
+    video.style.width = video.getClientRects()[0].width + 100 + "px";
+  }
+
+  function minus() {
+    var video = document.getElementById("video1");
+    video.style.width = video.getClientRects()[0].width - 100 + "px";
   }
 
   function call() {
@@ -149,18 +178,23 @@ function WebConf(props) {
     call.on("stream", function (stream) {
       remoteStream = stream;
       document.getElementById("video1").srcObject = remoteStream;
+      connected = true;
     });
     call.on("close", function () {
-      stop();
+      //stop();
+      console.log('Closed!');
+      connected = false;
     });
     peer.on("error", function (err) {
-      stop();
+      //stop();
+      console.log('Error!');
+      connected = false;
     });
   }
 
   function start() {
-    if (localStream != null && remoteStream == null) return call();
-    if (localStream != null && remoteStream != null) return resume();
+    if (localStream != null && !connected) return call();
+    //if (localStream != null && remoteStream != null) return resume();
     getUserMedia(
       {
         video: { width: { exact: 320 }, height: { exact: 240 } },
@@ -210,10 +244,10 @@ function WebConf(props) {
         <video id="video1" style={video1} playsInline autoPlay></video>
         <video id="video2" style={video2} playsInline autoPlay></video>
         <div style={controls}>
-          <Icon style={icon} onClick={start} icon="play" />
           <Icon style={icon} onClick={pause} icon="pause" />
           <Icon style={icon} onClick={stop} icon="stop" />
-          <Icon style={icon} onClick={maximize} icon="maximize" />
+          <Icon style={icon} onClick={plus} icon="search-plus" />
+          <Icon style={icon} onClick={minus} icon="search-minus" />
         </div>
       </div>
     );

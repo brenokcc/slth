@@ -1,8 +1,14 @@
 import { ChartFactory } from "./Chart";
 import format from "./Formatter";
+import StyleSheet from "./StyleSheet";
 import toLabelCase from "./Utils";
 
 function Statistics(props) {
+  StyleSheet(`
+    .statistics .odd {
+      background-color: #EEE;
+    }
+  `);
   function render1D() {
     var rows = [];
     for (var i = 0; i < props.data.series.length; i++) {
@@ -22,20 +28,23 @@ function Statistics(props) {
         {props.data.title && (
           <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
         )}
-        <table style={{ width: "100%" }}>
+        <table style={{ width: "100%", borderSpacing:0 }}>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row, j) => (
               <tr key={Math.random()}>
                 {row.map((v, i) =>
                   i == 0 ? (
                     <th
                       key={Math.random()}
-                      style={{ textAlign: "left", lineHeight: "2rem" }}
+                      style={{ textAlign: "left", lineHeight: "2rem", padding: 5 }}
+                      className={j % 2 == 0 ? "even" : "odd"}
                     >
                       {v}
                     </th>
                   ) : (
-                    <td key={Math.random()}>{format(v)}</td>
+                    <td key={Math.random()} className={j % 2 == 0 ? "even" : "odd"}>
+                      {format(v)}
+                    </td>
                   )
                 )}
               </tr>
@@ -69,7 +78,7 @@ function Statistics(props) {
         }
       }
       if (row.length > 2) {
-        if (i == 0) headers.push("TOTAL");
+        if (i == 0) headers.push("");
         row.push(total);
       }
       rows.push(row);
@@ -89,33 +98,30 @@ function Statistics(props) {
         {props.data.title && (
           <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
         )}
-        <table style={{ width: "100%" }}>
+        <table style={{ width: "100%", borderSpacing: 0 }}>
           {headers && (
             <thead>
               <tr>
                 {headers.map((k) => (
-                  <th key={Math.random()}>{k}</th>
+                  <th className="bold" key={Math.random()} style={{textAlign: "left", padding: 5}}>{k}</th>
                 ))}
               </tr>
             </thead>
           )}
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row, j) => (
               <tr key={Math.random()}>
                 {row.map((v, i) =>
                   i == 0 ? (
-                    <th key={Math.random()}>{v}</th>
+                    <th className={j % 2 == 0 ? "even" : "odd"} key={Math.random()} style={{textAlign: "left", padding: 5}}>{v}</th>
                   ) : (
                     <td
                       align="center"
-                      style={{
-                        backgroundColor:
-                          i == row.length - 1 &&
-                          headers &&
-                          headers[headers.length - 1] == "TOTAL"
-                            ? "var(--info-color)"
-                            : "inherite",
-                      }}
+                      className={
+                        (i == row.length - 1 &&
+                        headers &&
+                        headers[headers.length - 1] == "" ? "bold" : "") + " " + (j % 2 == 0 ? "even" : "odd")
+                      }
                       key={Math.random()}
                     >
                       {format(v)}
@@ -126,11 +132,11 @@ function Statistics(props) {
             ))}
             {tfoot.length > 0 && (
               <tr key={Math.random()}>
-                <th>TOTAL</th>
+                <th></th>
                 {tfoot.map((total) => (
                   <td
                     align="center"
-                    style={{ backgroundColor: "var(--info-color)" }}
+                    className="bold"
                     key={Math.random()}
                   >
                     {format(total)}{" "}

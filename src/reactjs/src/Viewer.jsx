@@ -468,7 +468,7 @@ function Section(props) {
     const style = { backgroundColor: "white" };
     return props.data.data.map(function (item, i) {
       return (
-        <div style={style}>
+        <div style={style} key={Math.random()}>
           <ComponentFactory key={Math.random()} data={item} />
         </div>
       );

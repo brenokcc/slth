@@ -151,7 +151,10 @@ class Endpoint(metaclass=EnpointMetaclass):
             if self.request.method == "POST" or self.request.GET.get("form") == title:
                 try:
                     self.cleaned_data = form.submit()
-                    return self.post()
+                    if form._message or form._redirect or form._dispose:
+                        return Response(form._message, form._redirect, dispose=form._dispose)
+                    else:
+                        return self.post()
                 except ValidationError as e:
                     raise JsonResponseException(
                         dict(type="error", text="\n".join(e.messages), errors={})
@@ -160,6 +163,8 @@ class Endpoint(metaclass=EnpointMetaclass):
                 data = form
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
+        elif self.request.method == "POST" and not data:
+            return self.post()
         return data
 
     def serialize(self):
@@ -714,14 +719,11 @@ class PushSubscribe(Endpoint):
     def post(self):
         data = json.loads(self.request.POST.get("subscription"))
         device = self.request.META.get("HTTP_USER_AGENT", "")
-        qs = PushSubscription.objects.filter(user=User.objects.first(), device=device)
-        (
+        qs = PushSubscription.objects.filter(user=self.request.user, device=device)
+        if qs.exists():
             qs.update(data=data)
-            if qs.exists()
-            else PushSubscription.objects.create(
-                user=User.objects.first(), data=data, device=device
-            )
-        )
+        else:
+            PushSubscription.objects.create(user=self.request.user, data=data, device=device)
         return Response()
 
     def check_permission(self):
@@ -734,17 +736,21 @@ class PushSubscriptions(ListEndpoint[PushSubscription]):
 
 
 class SendPushNotification(ChildInstanceEndpoint):
+    title = forms.CharField(label='Título')
     message = forms.CharField(label="Texto", widget=forms.Textarea())
+    url = forms.CharField(label='URL', required=False)
 
     class Meta:
         icon = "mail-bulk"
         verbose_name = "Enviar Notificação"
 
     def get(self):
-        return self.formfactory().fields("message")
+        return self.formfactory().fields("title", "message", "url").initial(
+            title='Mais uma notificação', message='Corpo da notificação', url='http://localhost:8000/app/dashboard/'
+        )
 
     def post(self):
-        send_push_web_notification(self.instance, self.cleaned_data["message"])
+        send_push_web_notification(self.instance, self.cleaned_data["title"], self.cleaned_data["message"], url=self.cleaned_data["url"])
         return Response(message="Notificação enviada com sucesso.")
 
 

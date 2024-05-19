@@ -236,6 +236,7 @@ function QuerySet(props) {
 
   function renderData() {
     if (data.data.length > 0) {
+      if (data.render == null && window.innerWidth < 800) data.renderer = "rows";
       if (data.renderer) {
         if(data.renderer=="cards"){
           return (
@@ -301,6 +302,7 @@ function QuerySet(props) {
     const input = form.querySelector("input[name=page]");
     if(input) input.value = page;
     reload();
+    scrollTop();
   }
 
   function renderPaginator() {
@@ -324,10 +326,11 @@ function QuerySet(props) {
   }
 
   function scrollTop(){
-    const rect = document.getElementById(props.data.id).getBoundingClientRect();
-    console.log(rect);
+    const y = document.getElementById(props.data.id).getBoundingClientRect().top + window.scrollY;
+    console.log(y);
+    console.log(props.data.id)
     window.scrollTo(
-      { top: rect.x,  behavior: 'smooth' }
+      { top: y,  behavior: 'smooth' }
     );
   }
 
@@ -343,10 +346,10 @@ function QuerySet(props) {
     if ((data.bi || data.data.length >= 0) && (searching || filtering)) {
       const field = {
         name: "q",
-        value: "",
         mask: null,
         type: "text",
         label: "Palavras-chaves",
+        value: data.q
       };
       return (
         <div style={style}>
@@ -397,7 +400,6 @@ function QuerySet(props) {
     request("GET", url, function (data) {
       setData(data);
       showLoader(false);
-      scrollTop();
     });
   }
 

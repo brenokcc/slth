@@ -66,9 +66,9 @@ class Statistics(object):
     def calc(self):
         self._values_dict = {}
         if self.y:
-            values_list = self.qs.values_list(self.x, self.y).annotate(self.func(self.z))
+            values_list = self.qs.values_list(self.x, self.y).order_by(self.x, self.y).annotate(self.func(self.z))
         else:
-            values_list = self.qs.values_list(self.x).annotate(self.func(self.z))
+            values_list = self.qs.values_list(self.x).order_by(self.x).annotate(self.func(self.z))
 
         self._xfield = self.qs.model.get_field(self.x.replace('__year', '').replace('__month', ''))
         if self._xdict == {}:

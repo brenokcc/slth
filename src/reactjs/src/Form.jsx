@@ -5,7 +5,7 @@ import { toLabelCase } from "./Utils";
 import { closeDialog, openDialog } from "./Modal";
 import { ComponentFactory } from "./Root.jsx";
 import { showMessage, Info } from "./Message";
-import { request, response } from "./Request.jsx";
+import { request, appurl } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
 import { Button } from "./Button.jsx";
@@ -42,9 +42,11 @@ function serialize_form(form){
   const data = new FormData(form);
   for (let [name, value] of Array.from(data.entries())){
     const input = form[name];
-    if (value === '' || !(input.tagName == "SELECT" || input.tagName == undefined )){
-      data.delete(name);
-    }
+    if (input.tagName == "SELECT" && value !== '') continue;
+    if (input.tagName == undefined && value !== '') continue;
+    if (input.type == "radio" && value !== '') continue;
+    if (input.type == "checkbox" && value !== '') continue;
+    data.delete(name);
   };
   return new URLSearchParams(data).toString()
 }
@@ -200,8 +202,8 @@ function Field(props) {
     }
     return (
       <div style={style}>
-        <label className={props.data.required ? "bold" : ""}>
-          {props.data.label}
+        <label className="bold">
+          {props.data.label} {props.data.required ? "*" : ""}
         </label>
         {props.data.action && (
           <Action data={props.data.action} style={{ padding: 0 }} />
@@ -856,6 +858,7 @@ function Radio(props) {
                   paddingTop: 10,
                   display: "inline-block",
                   marginRight: 25,
+                  width: window.innerWidth > 800 ? "auto" : "100%"
                 }}
               >
                 <input
@@ -927,7 +930,7 @@ function Checkbox(props) {
           (choice.id || choice.id === false) && (
             <div
               key={key + i}
-              style={{ paddingTop: 10, display: "inline-block", marginRight: 25 }}
+              style={{ paddingTop: 10, display: "inline-block", marginRight: 25, width: window.innerWidth > 800 ? "auto" : "100%" }}
             >
               <input
                 id={field.name + key + i}
@@ -1381,9 +1384,27 @@ function Form(props) {
           ).style.display = "inline-block";
         }
         if (data.type == "response") {
-          closeDialog();
-          reloadState();
-          return response(data);
+          if (data.store) {
+            Object.keys(data.store).map(function (k) {
+              if (data.store[k]) localStorage.setItem(k, data.store[k]);
+              else localStorage.removeItem(k, data.store[k]);
+            });
+          }
+          if (data.redirect && data.redirect.length > 2) {
+            if (data.message) localStorage.setItem("message", data.message);
+            document.location.href = appurl(data.redirect);
+          } else {
+            if (data.message) showMessage(data.message);
+            if (data.redirect == ".."){
+              if(document.getElementsByTagName("dialog").length == 0) history.back();
+              else closeDialog();
+            }
+            if (data.redirect == "."){
+              form.reset();
+            }
+            if (data.dispose) form.style.display = "none";
+            reloadState();
+          }
         } else if (data.type == "error") {
           var message = data.text;
           console.log(data);

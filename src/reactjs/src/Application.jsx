@@ -29,14 +29,14 @@ function Floating(props) {
     return (
       <>
         <div
-          style={{ ...style, ...{ bottom: 80 } }}
+          style={{ ...style, ...{ bottom: 100 } }}
           onClick={() => history.back()}
         >
           <Icon icon="arrow-left" style={icon} />
         </div>
         <div
           style={{ ...style, ...{ bottom: 20 } }}
-          onClick={() => window.scrollTo(0, 0)}
+          onClick={() => window.scrollTo({ top: 0,  behavior: 'smooth' })}
         >
           <Icon icon="arrow-up" style={icon} />
         </div>
@@ -52,7 +52,7 @@ function Content(props) {
   window.loaddata = (data) => setData(data);
 
   function render() {
-    const style = { minHeight: 400, margin: 20 };
+    const style = { minHeight: 400, margin: window.innerWidth > 800 ? 20 : 5 };
     return (
       <div style={style} id="container">
         <ComponentFactory key={Math.random()} data={data} />
@@ -86,8 +86,9 @@ function Application(props) {
   }
 
   function onLogoClick(e) {
+    const link = e.target.tagName == "A" ? e.target : e.target.closest('a');
     e.preventDefault();
-    window.load(e.target.href);
+    window.load(link.href);
   }
 
   function renderHeader() {
@@ -177,7 +178,7 @@ function Application(props) {
                 return null;
               } else {
                 return (
-                  <div>
+                  <div key={Math.random()}>
                     <Action key={Math.random()} data={action} primary />
                   </div>
                 );
@@ -188,7 +189,7 @@ function Application(props) {
             props.data.oauth.length > 0 &&
             props.data.navbar.user == null &&
             props.data.oauth.map(function (oauth) {
-              return <Link href={oauth.url}>{oauth.label}</Link>;
+              return <Link key={Math.random()} href={oauth.url} style={{marginRight: 10}}>{oauth.label}</Link>;
             })}
 
           {props.data.navbar.tools.length > 0 && (
@@ -267,16 +268,21 @@ function Application(props) {
   }
 
   function renderBreadcrumbs() {
-    const style = { margin: 15 };
+    const style = { margin: 15, display: "flex", justifyContent: "space-between" };
     const icon = { color: Theme.colors.primary };
     return (
       props.data.navbar &&
       props.data.navbar.user && (
         <div style={style}>
-          <Link href="/app/dashboard/" style={{ marginRight: 10 }}>
-            <Icon icon="home" style={icon} />
-          </Link>
-          Área Administrativa
+          <div>
+            <Link href="/app/dashboard/" style={{ marginRight: 10 }}>
+              <Icon icon="home" style={icon} />
+            </Link>
+            Área Administrativa
+          </div>
+          <div>
+            {props.data.navbar.user}
+          </div>
         </div>
       )
     );
@@ -284,7 +290,7 @@ function Application(props) {
 
   function renderMain() {
     return (
-      <main style={{ flexGrow: 6, minWidth: "400px" }}>
+      <main style={{ flexGrow: 6 }}>
         {renderBreadcrumbs()}
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>

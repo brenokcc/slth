@@ -25,6 +25,9 @@ class QuerySet(models.QuerySet):
         self.request = None
         super().__init__(*args, **kwargs)
 
+    def total(self, x=None):
+        return self.values_list(x).order_by(x).distinct().count() if x else self.count()
+
     def counter(self, x=None, y=None, title=None, chart=None):
         return Statistics(self, title=title, chart=chart).count(x=x, y=y) if x else super().count()
 
@@ -299,7 +302,7 @@ class QuerySet(models.QuerySet):
                 aggregation['value'] = str(aggregation['value']).replace('.', ',')
             aggregations.append(aggregation)
 
-        data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=total, icon=None, actions=actions, filters=filters, search=search)
+        data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=total, icon=None, actions=actions, filters=filters, search=search, q=self.request.GET.get('q'))
         if renderer:
             data.update(renderer=renderer)
         if reloadable:

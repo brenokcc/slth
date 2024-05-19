@@ -15,6 +15,9 @@ class FormFactory:
         self._empty = False
         self._method = method
         self._hidden= []
+        self._redirect = None
+        self._message = None
+        self._dispose = False
 
     def _append_field(self, field_name):
         if ':' in field_name:
@@ -79,6 +82,16 @@ class FormFactory:
     def hidden(self, *names):
         self._hidden.extend(names)
         return self
+    
+    def onsuccess(self, message=None, redirect=None, dispose=False):
+        if message:
+            self._message = message
+        if redirect:
+            self._redirect = redirect
+        if dispose:
+            self._dispose = dispose
+            self._redirect = '.'
+        return self
 
     def form(self, endpoint):
         from .forms import ModelForm, Form
@@ -96,6 +109,9 @@ class FormFactory:
         form._method = self._method
         form._info = self._info
         form._actions = self._actions
+        form._message = self._message
+        form._redirect = self._redirect
+        form._dispose = self._dispose
         for name in self._fieldlist:
             if name not in form.fields:
                 form.fields[name] = getattr(endpoint, name)

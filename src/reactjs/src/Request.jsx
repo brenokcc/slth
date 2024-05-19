@@ -1,7 +1,19 @@
 import { showMessage } from "./Message";
 
 function Response(props) {
-  return response(props.data);
+  const data = props.data;
+  if (data.store) {
+    Object.keys(data.store).map(function (k) {
+      if (data.store[k]) localStorage.setItem(k, data.store[k]);
+      else localStorage.removeItem(k, data.store[k]);
+    });
+  }
+  if (data.redirect && data.redirect.length > 2) {
+    if (data.message) localStorage.setItem("message", data.message);
+    document.location.href = appurl(data.redirect);
+  } else {
+    if (data.message) showMessage(data.message);
+  }
 }
 
 function buildurl(path) {
@@ -73,20 +85,5 @@ function request(method, path, callback, data) {
     });
 }
 
-function response(data) {
-  if (data.store) {
-    Object.keys(data.store).map(function (k) {
-      if (data.store[k]) localStorage.setItem(k, data.store[k]);
-      else localStorage.removeItem(k, data.store[k]);
-    });
-  }
-  if (data.redirect) {
-    if (data.message) localStorage.setItem("message", data.message);
-    document.location.href = appurl(data.redirect);
-  } else {
-    if (data.message) showMessage(data.message);
-  }
-}
-
-export { Response, apiurl, appurl, request, response };
+export { Response, apiurl, appurl, request };
 export default request;

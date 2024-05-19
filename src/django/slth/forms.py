@@ -83,6 +83,7 @@ class FormController:
         getattr(self.form._endpoint, f"on_{field_name}_change")(self, self.values())
         return self.controls
 
+
     def get_field_queryset(self, fname, qs):
         method_attr = None
         method_name = f"get_{fname}_queryset"
@@ -92,10 +93,7 @@ class FormController:
             self.form.instance, method_name
         ):
             method_attr = getattr(self.form.instance, method_name)
-
-        if method_attr:
-            qs = method_attr(qs, self.values())
-        return qs
+        return method_attr(qs, self.values()) if method_attr else qs
 
     def values(self):
         data = dict(**self.controls["set"])
@@ -284,7 +282,7 @@ class FormMixin:
                     field, DjangoModelMultipleChoiceField
                 ):
                     value = (
-                        [dict(id=obj.id, label=str(obj).strip) for obj in value]
+                        [dict(id=obj.id, label=str(obj).strip()) for obj in value]
                         if value
                         else []
                     )
@@ -359,9 +357,15 @@ class FormMixin:
                                 self.request, f"choices={fname}"
                             )
                     else:
-                        data["choices"] = [
-                            dict(id=str(k), value=v) for k, v in field.choices
-                        ]
+                        if isinstance(field.choices, ModelChoiceIterator):
+                            data["choices"] = [
+                                dict(id=obj.id, value=str(obj).strip())
+                                for obj in self.controller.get_field_queryset(fname, field.choices.queryset)
+                            ]
+                        else:
+                            data["choices"] = [
+                                dict(id=str(k), value=v) for k, v in field.choices
+                            ]
                     if pick:
                         data.update(pick=absolute_url(
                             self.request, f"choices={fname}"
@@ -491,6 +495,9 @@ class Form(DjangoForm, FormMixin):
         self._display = []
         self._endpoint = endpoint
         self._info = None
+        self._message = None
+        self._redirect = None
+        self._dispose = False
         self._values = {}
         self._title = type(self).__name__
         self._actions = {}
@@ -523,6 +530,9 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._display = []
         self._endpoint = endpoint
         self._info = None
+        self._message = None
+        self._redirect = None
+        self._dispose = False
         self._values = {}
         self._title = type(self).__name__
         self._actions = {}

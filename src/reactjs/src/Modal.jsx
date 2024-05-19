@@ -115,7 +115,7 @@ function Dialog(props) {
   }
 
   const style = {
-    minWidth: "50%",
+    minWidth: window.innerWidth < 800 ? "calc(100% - 60px)" : 800,
     display: data ? "block" : "none",
     maxWidth: 800,
     top: window.scrollY + 40,
@@ -140,7 +140,7 @@ function IDialog(props) {
 
   function render() {
     const style = {
-      minWidth: "50%",
+      minWidth: window.innerWidth < 800 ? "calc(100% - 60px)" : 800,
       display: "block",
       maxWidth: 800,
       top: window.scrollY + 40,
