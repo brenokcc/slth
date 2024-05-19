@@ -391,13 +391,13 @@ function Title(props) {
       }
     `)
     return (
-      <div className="object-title">
+      <div className="object-title" style={{flexDirection: window.innerWidth > 800 ? "row" : "column"}}>
         {props.data.title && (
           <h1 data-label={toLabelCase(props.data.title)}>
             {props.data.title}
           </h1>
         )}
-        <ObjectActions data={props.data} />
+        <div style={{margin: 10}}><ObjectActions data={props.data} /></div>
       </div>
     );
   }
@@ -487,16 +487,27 @@ function Section(props) {
 }
 
 function Tabs(props) {
+  StyleSheet(`
+    .noscroll::-webkit-scrollbar {
+      display: none;
+    }
+    .noscroll {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+  `)
   const [active, setActive] = useState(0);
   function render() {
     return (
       <div
+        className="noscroll"
         style={{
           display: "inline-block",
           textAlign: "center",
           width: "100%",
           margin: "auto",
           marginBottom: 20,
+          overflowX: "auto",
         }}
       >
         {props.data.map(function (item, i) {

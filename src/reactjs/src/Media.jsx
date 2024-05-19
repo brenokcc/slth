@@ -28,19 +28,33 @@ function WebConf(props) {
       );
     },
   };
+  const constraints = {
+    video: {
+      width: { exact: 320 },
+      height: { exact: 240 },
+      frameRate: { ideal: 5, max: 10 }
+    },
+    audio: true,
+  }
 
-  useEffect(() => {
+  function connect() {
+    console.log('Trying to connect...');
     peer = new Peer("123456" + props.data.caller.replaceAll(".", ""));
     peer.on("open", function (id) {
       document.getElementById("callerid").innerHTML = props.data.caller;
       start()
+      interval = setInterval(function(){
+        if(connected){
+          showMessage("Em conexão com "+props.data.receiver+".");
+        } else {
+          showMessage("Tentando estabeler conexão com "+props.data.receiver+"...");
+          start();
+        }
+      }, 15000);
     });
     peer.on("call", function (call) {
       getUserMedia(
-        {
-          video: { width: { exact: 320 }, height: { exact: 240 } },
-          audio: true,
-        },
+        constraints,
         function (stream) {
           localStream = stream;
           var video = document.getElementById("video2");
@@ -66,11 +80,6 @@ function WebConf(props) {
             console.log('Closed!');
             connected = false;
           });
-          peer.on("error", function (err) {
-            //stop();
-            console.log('Error!');
-            connected = false;
-          });
         },
         function (err) {
           console.log("Failed to get local stream", err);
@@ -83,20 +92,17 @@ function WebConf(props) {
       } else if (err.type == "invalid-id") {
         alert("Usuário inexistente.");
       } else if (err.type == "network") {
-        alert("Problema na conexão do usuário.");
+        connected = false;
+        console.log("Problema na conexão do usuário. Tentando novamente em 5 segundos.");
+        setTimeout(connect, 5000);
       } else if (err.type == "peer-unavailable") {
         console.log('Usuário indisponível!');
         connected = false;
       }
     });
-    interval = setInterval(function(){
-      if(connected){
-        showMessage("Em conexão com "+props.data.receiver+".");
-      } else {
-        showMessage("Tentando estabeler conexão com "+props.data.receiver+"...");
-        start();
-      }
-    }, 15000);
+  }
+  useEffect(() => {
+    connect();
     return function(){
       clearInterval(interval);
       stop();
@@ -130,6 +136,7 @@ function WebConf(props) {
     if (video1) video1.srcObject = null;
     if (video2) video2.srcObject = null;
     console.log("Stopped!");
+    connected = false;
   }
 
   function stop_track(stream, kind) {
@@ -171,44 +178,29 @@ function WebConf(props) {
 
   function call() {
     var call = peer.call(
-      "123456" + props.data.receiver.replaceAll(".", ""),
+      "123456789" + props.data.receiver.replaceAll(".", "").replaceAll("-", ""),
       localStream,
       options
     );
-    call.on("stream", function (stream) {
-      remoteStream = stream;
-      document.getElementById("video1").srcObject = remoteStream;
-      connected = true;
-    });
-    call.on("close", function () {
-      //stop();
-      console.log('Closed!');
-      connected = false;
-    });
-    peer.on("error", function (err) {
-      //stop();
-      console.log('Error!');
-      connected = false;
-    });
+    if(call){
+      call.on("stream", function (stream) {
+        remoteStream = stream;
+        document.getElementById("video1").srcObject = remoteStream;
+        connected = true;
+      });
+      call.on("close", function () {
+        //stop();
+        console.log('Closed!');
+        connected = false;
+      });
+    }
   }
 
   function start() {
     if (localStream != null && !connected) return call();
-    //if (localStream != null && remoteStream != null) return resume();
+    if (localStream != null) return;
     getUserMedia(
-      {
-        video: { width: { exact: 320 }, height: { exact: 240 } },
-        audio: {
-          autoGainControl: false,
-          channelCount: 2,
-          echoCancellation: false,
-          latency: 0,
-          noiseSuppression: false,
-          sampleRate: 48000,
-          sampleSize: 16,
-          volume: 1.0,
-        },
-      },
+      constraints,
       function (stream) {
         localStream = stream;
         var video = document.getElementById("video2");
@@ -234,20 +226,21 @@ function WebConf(props) {
   function render() {
     var player = { width: "fit-content", margin: "auto" };
     var text = { position: "absolute", color: "white", padding: "5px" };
-    var icon = { color: "white", backgroundColor: "black", padding: 2 };
+    var icon = { color: "white", backgroundColor: "black", paddingLeft: 15, paddingRight: 15 };
     var controls = { position: "absolute", marginTop: "-30px" };
     var video1 = { backgroundColor: "black" };
     var video2 = { visibility: "hidden", width: "0px" };
+    //<Icon style={icon} onClick={pause} icon="pause" />
+    //<Icon style={icon} onClick={stop} icon="stop" />
     return (
       <div style={player}>
         <div id="callerid" style={text}></div>
         <video id="video1" style={video1} playsInline autoPlay></video>
-        <video id="video2" style={video2} playsInline autoPlay></video>
+        <video id="video2" style={video2} playsInline autoPlay muted="muted"></video>
         <div style={controls}>
-          <Icon style={icon} onClick={pause} icon="pause" />
-          <Icon style={icon} onClick={stop} icon="stop" />
           <Icon style={icon} onClick={plus} icon="search-plus" />
           <Icon style={icon} onClick={minus} icon="search-minus" />
+          <Icon style={icon} onClick={()=>document.location.reload()} icon="undo" />
         </div>
       </div>
     );

@@ -52,10 +52,11 @@ function Action(props) {
     var style = {
       padding: 12,
       textDecoration: "none",
-      //whiteSpace: "nowrap",
+      whiteSpace: "nowrap",
       borderRadius: 5,
       margin: 5,
       minWidth: 50,
+      lineHeight: props.data.icon ? "4rem" : "auto",
     };
     if (props.primary) {
       style.backgroundColor = Theme.colors.primary;

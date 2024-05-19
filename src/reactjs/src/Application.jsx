@@ -10,6 +10,7 @@ import { PushWebNotification } from "./Notification.jsx";
 import toLabelCase from "./Utils.jsx";
 import Link from "./Link.jsx";
 import { Theme } from "./Theme";
+import detectSwipe from "./Gestures.jsx";
 
 function Floating(props) {
   function render() {
@@ -78,6 +79,11 @@ function Application(props) {
         menu.style.display = window.innerWidth < SMALL_WIDTH ? "none" : "block";
       }
     });
+
+    detectSwipe(document.querySelector('main'), function(e, direction){
+      console.log(e, direction);
+    });
+
   }, []);
 
   function toggleMenu() {
@@ -290,7 +296,7 @@ function Application(props) {
 
   function renderMain() {
     return (
-      <main style={{ flexGrow: 6 }}>
+      <main id="main" style={{width: "100vw"}}>
         {renderBreadcrumbs()}
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>
@@ -321,10 +327,8 @@ function Application(props) {
         <header>{renderHeader()}</header>
         <div
           style={{
-            overflowX: "hide",
             width: "100%",
             display: "flex",
-            overflow: "hidden",
             minHeight: window.innerHeight - 70,
           }}
         >
