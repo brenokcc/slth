@@ -494,6 +494,7 @@ function Tabs(props) {
     .noscroll {
       -ms-overflow-style: none;  /* IE and Edge */
       scrollbar-width: none;  /* Firefox */
+      min-height: 2rem;
     }
   `)
   const [active, setActive] = useState(0);

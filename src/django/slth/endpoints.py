@@ -788,3 +788,8 @@ class EditProfile(Endpoint):
 
     def check_permission(self):
         return self.request.user.is_authenticated
+
+
+class About(PublicEndpoint):
+    def get(self):
+        return dict(version=APPLICATON["version"])

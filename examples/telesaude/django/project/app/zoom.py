@@ -25,7 +25,7 @@ def create_meeting(topic):
         print(url, headers)
         response = requests.post(url, headers=headers).json()
         print(response)
-        data = {"topic": topic}
+        data = {"topic": topic, "settings": {"join_before_host": True}}
         url = 'https://api.zoom.us/v2/users/me/meetings'
         token = response.get('access_token')
         headers = {'authorization': 'Bearer ' + token, 'content-type': 'application/json'}
