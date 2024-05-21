@@ -1,5 +1,5 @@
 from slth import endpoints
-from slth.components import Scheduler, WebConf
+from slth.components import Scheduler, ZoomMeet
 from .models import *
 from slth import forms
 
@@ -293,6 +293,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Sala Virtual'
 
     def get(self):
+        self.instance.check_webconf()
         return (
             self.serializer().actions('anexararquivo')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -321,16 +322,10 @@ class RegistrarCondutasEcanminhamentos(endpoints.ChildEndpoint):
 
 class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
     def get(self):
-        caller = self.request.user.username
-        if self.request.user.username == self.instance.profissional.pessoafisica.cpf:
-            receiver = self.instance.paciente.cpf
-        else:
-            receiver = self.instance.profissional.pessoafisica.cpf
-        print(self.request.user.username, caller, receiver, 9999)
-        return WebConf(caller, receiver)
+        return ZoomMeet(self.instance.numero_webconf, self.instance.senha_webconf, self.request.user.username)
     
     def check_permission(self):
-        return self.request.user.username in (
+        return self.request.user.is_superuser or self.request.user.username in (
             self.instance.profissional.pessoafisica.cpf, self.instance.especialista.pessoafisica.cpf if self.instance.especialista_id else '', self.instance.paciente.cpf
         )
 

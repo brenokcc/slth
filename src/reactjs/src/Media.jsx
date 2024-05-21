@@ -28,18 +28,10 @@ function WebConf(props) {
       );
     },
   };
-  const constraints = {
-    video: {
-      width: { exact: 320 },
-      height: { exact: 240 },
-      frameRate: { ideal: 5, max: 10 }
-    },
-    audio: true,
-  }
 
   function connect() {
     console.log('Trying to connect...');
-    peer = new Peer("123456" + props.data.caller.replaceAll(".", ""));
+    peer = new Peer("999123" + props.data.caller.replaceAll(".", "").replaceAll("-", ""));
     peer.on("open", function (id) {
       document.getElementById("callerid").innerHTML = props.data.caller;
       start()
@@ -53,38 +45,29 @@ function WebConf(props) {
       }, 15000);
     });
     peer.on("call", function (call) {
-      getUserMedia(
-        constraints,
-        function (stream) {
-          localStream = stream;
-          var video = document.getElementById("video2");
-          video.addEventListener(
-            "loadedmetadata",
-            function (e) {
-              video.style.width = this.videoWidth / 4 + "px";
-              video.style.height = this.videoHeight / 4 + "px";
-              video.style.marginLeft = -this.videoWidth / 4 + "px";
-              video.style.visibility = "visible";
-            },
-            false
-          );
-          video.srcObject = localStream;
-          call.answer(stream);
-          call.on("stream", function (stream) {
-            remoteStream = stream;
-            document.getElementById("video1").srcObject = remoteStream;
-            connected = true;
-          });
-          call.on("close", function () {
-            //stop();
-            console.log('Closed!');
-            connected = false;
-          });
-        },
-        function (err) {
-          console.log("Failed to get local stream", err);
-        }
-      );
+        var video = document.getElementById("video2");
+        video.addEventListener(
+          "loadedmetadata",
+          function (e) {
+            video.style.width = this.videoWidth / 4 + "px";
+            video.style.height = this.videoHeight / 4 + "px";
+            video.style.marginLeft = -this.videoWidth / 4 + "px";
+            video.style.visibility = "visible";
+          },
+          false
+        );
+        video.srcObject = localStream;
+        call.answer(localStream);
+        call.on("stream", function (stream) {
+          remoteStream = stream;
+          document.getElementById("video1").srcObject = remoteStream;
+          connected = true;
+        });
+        call.on("close", function () {
+          //stop();
+          console.log('Closed!');
+          connected = false;
+        });
     });
     peer.on("error", function (err) {
       if (err.type == "browser-incompatible") {
@@ -178,7 +161,7 @@ function WebConf(props) {
 
   function call() {
     var call = peer.call(
-      "123456789" + props.data.receiver.replaceAll(".", "").replaceAll("-", ""),
+      "999123" + props.data.receiver.replaceAll(".", "").replaceAll("-", ""),
       localStream,
       options
     );
@@ -200,7 +183,15 @@ function WebConf(props) {
     if (localStream != null && !connected) return call();
     if (localStream != null) return;
     getUserMedia(
-      constraints,
+      {
+        video: true,
+        audio: {
+          autoGainControl: false,
+          echoCancellation: false,
+          googGainControl: false,
+          noiseSuppression: false,
+        },
+      },
       function (stream) {
         localStream = stream;
         var video = document.getElementById("video2");
@@ -224,10 +215,11 @@ function WebConf(props) {
   }
 
   function render() {
+    return <iframe width="100%" height={700} style={{ border: 0 }} src="https://us05web.zoom.us/j/82130251231?pwd=o46UhcNlDRq13oO1maHiaRLVOaxxnZ.1" allow="camera; microphone; display-capture"></iframe>
     var player = { width: "fit-content", margin: "auto" };
     var text = { position: "absolute", color: "white", padding: "5px" };
-    var icon = { color: "white", backgroundColor: "black", paddingLeft: 15, paddingRight: 15 };
-    var controls = { position: "absolute", marginTop: "-30px" };
+    var icon = { color: "white", paddingLeft: 15, paddingRight: 15 };
+    var controls = { position: "absolute", marginTop: "-26px", backgroundColor: "black" };
     var video1 = { backgroundColor: "black" };
     var video2 = { visibility: "hidden", width: "0px" };
     //<Icon style={icon} onClick={pause} icon="pause" />
@@ -236,7 +228,7 @@ function WebConf(props) {
       <div style={player}>
         <div id="callerid" style={text}></div>
         <video id="video1" style={video1} playsInline autoPlay></video>
-        <video id="video2" style={video2} playsInline autoPlay muted="muted"></video>
+        <video id="video2" style={video2} playsInline autoPlay></video>
         <div style={controls}>
           <Icon style={icon} onClick={plus} icon="search-plus" />
           <Icon style={icon} onClick={minus} icon="search-minus" />

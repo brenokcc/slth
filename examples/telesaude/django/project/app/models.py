@@ -652,12 +652,25 @@ class Atendimento(models.Model):
     motivo_cancelamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
     motivo_reagendamento = models.TextField(verbose_name='Motivo do Cancelamento', null=True)
 
+    numero_webconf = models.CharField(verbose_name='Número da WebConf', null=True)
+    senha_webconf = models.CharField(verbose_name='Senha da WebConf', null=True)
+    limite_webconf = models.DateTimeField(verbose_name='Limite da WebConf', null=True)
+
     objects = AtendimentoQuerySet()
 
     class Meta:
         icon = "laptop-file"
         verbose_name = "Teleconsulta"
         verbose_name_plural = "Teleconsultas"
+
+    def check_webconf(self):
+        from . import zoom
+        if self.limite_webconf is None or self.limite_webconf < datetime.now():
+            number, password, limit = zoom.create_meeting('Atendimento #{}'.format(self.id))
+            self.numero_webconf = number
+            self.senha_webconf = password
+            self.limite_webconf = limit
+            self.save()
 
     def formfactory(self):
         return (
@@ -702,8 +715,9 @@ class Atendimento(models.Model):
                 (
                     ("tipo", "estabelecimento", "estabelecimento__municipio"),
                     ("agendado_para", "finalizado_em", "duracao_webconf"),
-                )
+                ) 
             )
+            .fieldset("Web Conferência", (("numero_webconf", "senha_webconf", "limite_webconf"),))
             .group()
                 .section('Detalhamento')
                     .fieldset(

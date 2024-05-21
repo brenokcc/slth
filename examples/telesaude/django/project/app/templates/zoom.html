@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Zoom WebSDK CDN</title>
+    <meta charset="utf-8" />
+    <meta name="format-detection" content="telephone=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta http-equiv="origin-trial" content="">
+</head>
+
+<body>
+    <script src="https://source.zoom.us/3.6.1/lib/vendor/react.min.js"></script>
+    <script src="https://source.zoom.us/3.6.1/lib/vendor/react-dom.min.js"></script>
+    <script src="https://source.zoom.us/3.6.1/lib/vendor/redux.min.js"></script>
+    <script src="https://source.zoom.us/3.6.1/lib/vendor/redux-thunk.min.js"></script>
+    <script src="https://source.zoom.us/3.6.1/lib/vendor/lodash.min.js"></script>
+    <script src="https://source.zoom.us/3.6.1/zoom-meeting-3.6.1.min.js"></script>
+    <style>
+        ._footer__leave-btn-container, .wr-main-content{
+            display: none !important;
+        }
+    </style>
+    <script>
+        function parseQuery() {
+            return (function () {
+            var href = window.location.href;
+            var queryString = href.substr(href.indexOf("?"));
+            var query = {};
+            var pairs = (queryString[0] === "?"
+                ? queryString.substr(1)
+                : queryString
+            ).split("&");
+            for (var i = 0; i < pairs.length; i += 1) {
+                var pair = pairs[i].split("=");
+                query[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || "");
+            }
+            return query;
+            })();
+        }
+        const data = parseQuery();
+		window.addEventListener("DOMContentLoaded", function (event) {
+		  console.log("DOM fully loaded and parsed");
+		  const ZOOM_SDK_KEY = "{{ ZOOM_SDK_KEY }}";
+		  const ZOOM_SDK_SEC = "{{ ZOOM_SDK_SEC }}";
+		  var meetingConfig = {};
+		  meetingConfig.mn = parseInt(data.number);
+		  meetingConfig.name = data.name;
+		  meetingConfig.role = 0;
+		  meetingConfig.email = "";
+		  meetingConfig.lang = "pt-PT";
+		  meetingConfig.china = 0;
+		  meetingConfig.pwd = data.password;
+          console.log(meetingConfig);
+		  //testTool.setCookie("meeting_number", meetingConfig.mn);
+		  //testTool.setCookie("meeting_pwd", meetingConfig.pwd);
+		  ZoomMtg.generateSDKSignature({
+		    meetingNumber: meetingConfig.mn,
+		    sdkKey: ZOOM_SDK_KEY,
+		    sdkSecret: ZOOM_SDK_SEC,
+		    role: meetingConfig.role,
+		    success: function (res) {
+		      console.log(res);
+		      meetingConfig.signature = res;
+		      meetingConfig.sdkKey = ZOOM_SDK_KEY;
+		      console.log(meetingConfig);
+			  websdkready(meetingConfig);
+		    },
+		  });
+ 
+		});
+
+		function websdkready(meetingConfig) { 
+
+		  console.log(JSON.stringify(ZoomMtg.checkSystemRequirements()));
+
+  
+		  ZoomMtg.preLoadWasm();
+		  ZoomMtg.prepareWebSDK();
+
+		  function beginJoin(signature) {
+		    ZoomMtg.i18n.load(meetingConfig.lang);
+		    ZoomMtg.init({
+		      leaveUrl: meetingConfig.leaveUrl,
+		      webEndpoint: meetingConfig.webEndpoint,
+		      disableCORP: !window.crossOriginIsolated, // default true
+		      // disablePreview: false, // default false
+		      externalLinkPage: "./externalLinkPage.html",
+		      success: function () {
+		        console.log(meetingConfig);
+		        console.log("signature", signature);
+		        ZoomMtg.join({
+		          meetingNumber: meetingConfig.mn,
+		          userName: meetingConfig.name,
+		          signature: signature,
+		          sdkKey: meetingConfig.sdkKey,
+		          userEmail: meetingConfig.email,
+		          passWord: meetingConfig.pwd,
+		          success: function (res) {
+		            ZoomMtg.getAttendeeslist({});
+		            ZoomMtg.getCurrentUser({
+		              success: function (res) {
+		                console.log("success getCurrentUser", res.result.currentUser);
+		              },
+		            });
+		          },
+		          error: function (res) {
+		            console.log(res);
+		          },
+		        });
+		      },
+		      error: function (res) {
+		        console.log(res);
+		      },
+		    });
+
+		    ZoomMtg.inMeetingServiceListener("onUserJoin", function (data) {
+		      console.log("inMeetingServiceListener onUserJoin", data);
+		    });
+
+		    ZoomMtg.inMeetingServiceListener("onUserLeave", function (data) {
+		      console.log("inMeetingServiceListener onUserLeave", data);
+		    });
+
+		    ZoomMtg.inMeetingServiceListener("onUserIsInWaitingRoom", function (data) {
+		      console.log("inMeetingServiceListener onUserIsInWaitingRoom", data);
+		    });
+
+		    ZoomMtg.inMeetingServiceListener("onMeetingStatus", function (data) {
+		      console.log("inMeetingServiceListener onMeetingStatus", data);
+		    });
+		  }
+
+		  beginJoin(meetingConfig.signature);
+		}
+    </script>
+</body>
+
+</html>

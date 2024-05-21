@@ -9,6 +9,7 @@ import { Application } from "./Application";
 import { Response, request, apiurl } from "./Request";
 import { IconSet } from "./Icon";
 import { WebConf } from "./Media";
+import { ZoomMeet } from "./Meeting";
 import {
   Image,
   Banner,
@@ -96,6 +97,7 @@ ComponentFactory.register(Timeline, "Timeline");
 ComponentFactory.register(Scheduler, "Scheduler");
 ComponentFactory.register(WebConf, "WebConf");
 ComponentFactory.register(Text, "Text");
+ComponentFactory.register(ZoomMeet, "ZoomMeet");
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);

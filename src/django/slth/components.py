@@ -207,6 +207,12 @@ class WebConf(dict):
         self["caller"] = caller
         self["receiver"] = receiver
 
+class ZoomMeet(dict):
+    def __init__(self, number, password, name):
+        self["type"] = "zoommeet"
+        self["number"] = number
+        self["password"] = password
+        self["name"] = name
 
 class Navbar(dict):
     def __init__(self, title, subtitle=None, logo=None, user=None):
