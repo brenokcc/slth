@@ -27,7 +27,7 @@ application:
     g: Gestor de Unidade Organizacional
     o: Operador de Unidade Organizacional
     ps: Profissinal de Saúde
-    pf: Pessoa Física
+    p: Paciente
   index: dashboard
   dashboard:
     toolbar:
@@ -37,12 +37,11 @@ application:
     actions:
     top:
     center:
-      - atendimentos
-      - meuslocaisatendimento
-      - meusatendimentos
+      - meusvinculos
+      - calendarioatendimentos
     boxes:
       - pessoasfisicas
-      - unidadesorganizacionais
+      - nucleos
       - unidades
       - profissionaissaude
       - atendimentos
@@ -58,8 +57,8 @@ application:
     settings:
   menu:
     list:Cadastros Gerais:
-      Cids: cids
-      Ciaps: ciaps
+      CIDs: cids
+      CIAPs: ciaps
       Níveis de Formacão: niveisformacao
       Sexos: sexos
       Tipos de Atendimento: tiposatendimento
@@ -67,12 +66,12 @@ application:
       Municípios: municipios
       Áreas: areas
       Especialidades: especialidades
-    building-user:Unidades Organizacionais: unidadesorganizacionais
+    building-user:Núcleos de Telesaúde: nucleos
     building:Unidades de Saúde: unidades
     stethoscope:Profissionais de Saúde: profissionaissaude
     users:Pessoas Físicas: pessoafisicas
     laptop-file:Teleconsultas: atendimentos
-    file-signature:Certificados Digitais: certificadosdigitais
+    #file-signature:Certificados Digitais: certificadosdigitais
   theme:
     colors:
       primary: "#265890"

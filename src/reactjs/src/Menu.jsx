@@ -24,7 +24,7 @@ function Menu() {
             <Link
               dataLabel="Editar Perfil"
               href="/api/editprofile/"
-              style={{ textDecoration: "none" }}
+              style={{ textDecoration: "none"}}
             >
               {window.application.menu.user}
             </Link>
@@ -90,7 +90,7 @@ function Menu() {
           <Link
             href={item.url}
             dataLabel={toLabelCase(item.label)}
-            style={{ textDecoration: "none" }}
+            style={{ textDecoration: "none", display: "block", width: "100%" }}
           >
             {level == 0 && (
               <Icon icon={item.icon || "dot-circle"} style={iconStyle} />

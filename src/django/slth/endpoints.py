@@ -58,15 +58,17 @@ class EnpointMetaclass(type):
         if "AdminEndpoint" in bases_names[0:1]:
             model = cls.__orig_bases__[0].__args__[0]
             items = (
-                ("Cadastrar", AddEndpoint[model], "plus"),
-                ("Editar", EditEndpoint[model], "pen"),
-                ("Visualizar", ViewEndpoint[model], "eye"),
-                ("Excluir", DeleteEndpoint[model], "trash"),
+                ("Cadastrar", AddEndpoint[model], "plus", "add"),
+                ("Editar", EditEndpoint[model], "pen", "edit"),
+                ("Visualizar", ViewEndpoint[model], "eye", "view"),
+                ("Excluir", DeleteEndpoint[model], "trash", "delete"),
             )
-            for prefix, base, icon in items:
+            for prefix, base, icon, action in items:
                 endpoint = types.new_class(f"{prefix}{model.__name__}", (base,), {})
+                endpoint.__admin__ = cls
+                endpoint.__action__ = action
                 endpoint.check_permission = lambda self: (
-                    cls().instantiate(self.request, self).check_permission()
+                    getattr(self.__admin__.instantiate(self.request, self), f'check_{self.__action__}_permission')()
                 )
                 endpoint.Meta = type(
                     "Meta",
@@ -291,6 +293,18 @@ class AdminEndpoint(Generic[T], ModelEndpoint):
             for prefix in ("cadastrar", "visualizar", "editar", "excluir")
         ]
         return self.model.objects.all().actions(*actions)
+    
+    def check_add_permission(self):
+        return self.check_permission()
+    
+    def check_view_permission(self):
+        return self.check_permission()
+    
+    def check_edit_permission(self):
+        return self.check_permission()
+    
+    def check_delete_permission(self):
+        return self.check_permission()
 
 
 class ListEndpoint(Generic[T], ModelEndpoint):
@@ -628,7 +642,8 @@ class Application(PublicEndpoint):
             subtitle=APPLICATON["subtitle"],
             logo=logo,
             user=user,
-            search=False
+            search=False,
+            roles=' | '.join((str(role) for role in self.objects('slth.role').filter(username=self.request.user.username)))
         )
         for entrypoint in ["actions", "usermenu", "adder", "settings", "tools", "toolbar"]:
             if APPLICATON["dashboard"][entrypoint]:

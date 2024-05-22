@@ -45,6 +45,9 @@ class FormController:
     def show(self, *names):
         self.controls["show"].extend(names)
 
+    def visible(self, visible, *names):
+        self.show(*names) if visible else self.hide(*names)
+
     def reload(self, *names):
         self.controls["reload"].extend(names)
 
@@ -94,7 +97,8 @@ class FormController:
             self.form.instance, method_name
         ):
             method_attr = getattr(self.form.instance, method_name)
-        return method_attr(qs, self.values()) if method_attr else qs
+        queryset = method_attr(qs, self.values()) if method_attr else qs
+        return queryset.apply_lookups(self.form.request.user)
 
     def values(self):
         data = dict(**self.controls["set"])

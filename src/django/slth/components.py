@@ -215,7 +215,7 @@ class ZoomMeet(dict):
         self["name"] = name
 
 class Navbar(dict):
-    def __init__(self, title, subtitle=None, logo=None, user=None, search=False):
+    def __init__(self, title, subtitle=None, logo=None, user=None, search=False, roles=None):
         self["type"] = "navbar"
         self["title"] = title
         self["subtitle"] = subtitle
@@ -228,6 +228,7 @@ class Navbar(dict):
         self["actions"] = []
         self["toolbar"] = []
         self["search"] = search
+        self["roles"] = roles
 
     def add_action(self, entrypoint, name, url, modal=True, icon=None):
         self[entrypoint].append(dict(name=name, url=url, modal=modal, icon=icon))

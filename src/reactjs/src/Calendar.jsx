@@ -178,16 +178,9 @@ function Calendar(props){
                                     )
                                 }
                                 >
-                                <div className="number" style={{backgroundColor: Theme.colors.primary}}>
-                                    <span
-                                    style={{
-                                        textDecoration: item.selected
-                                        ? "underline"
-                                        : "normal",
-                                    }}
-                                    >
+                                <div className="number" style={{backgroundColor: Theme.colors.primary, textDecoration: item.selected ? "underline" : "normal", display: "inline-block"}}>
+      
                                     {item.total}
-                                    </span>
                                 </div>
                                 </div>
                             )}

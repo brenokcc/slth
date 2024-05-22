@@ -206,7 +206,7 @@ function Field(props) {
           {props.data.label} {props.data.required ? "*" : ""}
         </label>
         {props.data.action && (
-          <Action data={props.data.action} style={{ padding: 0 }} />
+          <Action data={props.data.action} style={{ padding: 0, margin:0 }} />
         )}
       </div>
     );
@@ -881,8 +881,8 @@ function Radio(props) {
         )}
       </div>
     ) : (
-      <div className={"radio-group "+field.name}>
-      <i>Nenhuma opção disponível para seleção.</i>
+      <div className={"radio-group empty "+field.name}>
+        <Info data={{text: "Nenhuma opção disponível para seleção.",}}></Info>
       </div>
     );
   }
@@ -947,8 +947,8 @@ function Checkbox(props) {
         ))}
       </div>
     ) : (
-      <div className={"checkbox-group "+field.name}>
-        <i>Nenhuma opção disponível para seleção.</i>
+      <div className={"checkbox-group empty "+field.name}>
+        <Info data={{text: "Nenhuma opção disponível para seleção.",}}></Info>
       </div>
     );
   }

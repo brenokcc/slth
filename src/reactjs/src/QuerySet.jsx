@@ -243,9 +243,7 @@ function QuerySet(props) {
             <GridLayout width={300} alignItems="start">
               {data.data.map(function (item) {
                 item.type = data.renderer;
-                return <div key={Math.random()}>
-                  <ComponentFactory data={item} />
-                </div>;
+                return <ComponentFactory data={item} key={Math.random()}/>;
               })}
           </GridLayout>
           )

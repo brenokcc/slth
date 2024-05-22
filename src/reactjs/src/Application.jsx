@@ -286,7 +286,7 @@ function Application(props) {
             </Link>
             Área Administrativa
           </div>
-          <div>
+          <div title={props.data.navbar.roles}>
             {props.data.navbar.user}
           </div>
         </div>

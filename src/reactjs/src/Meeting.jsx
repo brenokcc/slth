@@ -6,7 +6,7 @@ function ZoomMeet(props){
         position: relative;
         width: 100%;
         overflow: hidden;
-        padding-top: 100%;
+        padding-top: ${window.innerWidth > 800 ? 50 : 100}%;
       }
       .responsive-iframe {
         position: absolute;
