@@ -220,7 +220,7 @@ function Application(props) {
               </Dropdown>
             </div>
           )}
-          {window.innerWidth > 800 && props.data.navbar.user && (
+          {window.innerWidth > 800 && props.data.navbar.user && props.data.navbar.search && (
             <div>
               <Selector
                 data={selector}

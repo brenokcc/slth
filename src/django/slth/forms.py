@@ -28,6 +28,7 @@ MASKS = dict(
     cpf="999.999.999-99",
     cnpj="99.999.999/9999-99",
     telefone="(99) 99999-9999",
+    cep='99.999-990'
 )
 
 
@@ -274,7 +275,11 @@ class FormMixin:
                 value = self._values[name]
                 value = value.pk if isinstance(value, Model) else value
             else:
-                value = field.initial or self.initial.get(name)
+                value = None
+                if self.instance is None or self.instance.id is None:
+                    value = field.initial
+                else:
+                    value = self.initial.get(name)
                 if callable(value):
                     value = value()
 

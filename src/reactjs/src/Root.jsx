@@ -143,6 +143,7 @@ window.load = function (url) {
     }
     request("GET", apiurl(url), function (data) {
       window.loaddata(data);
+      window.scrollTo({ top: 0,  behavior: 'smooth' });
     });
   } else {
     document.location.href = url;

@@ -628,6 +628,7 @@ class Application(PublicEndpoint):
             subtitle=APPLICATON["subtitle"],
             logo=logo,
             user=user,
+            search=False
         )
         for entrypoint in ["actions", "usermenu", "adder", "settings", "tools", "toolbar"]:
             if APPLICATON["dashboard"][entrypoint]:

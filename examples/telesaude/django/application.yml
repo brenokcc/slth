@@ -24,17 +24,14 @@ application:
         username: sub
         email: email
   groups:
-    ge: Gestor Estadual
-    gm: Gestor Municipal
-    gu: Gestor de Unidade
-    ou: Operador de Unidade
+    g: Gestor de Unidade Organizacional
+    o: Operador de Unidade Organizacional
     ps: Profissinal de Saúde
     pf: Pessoa Física
   index: dashboard
   dashboard:
     toolbar:
-      - pessoafisicas
-      - estabelecimentossaude
+      - pessoasfisicas
       - profissionaissaude
       - atendimentos
     actions:
@@ -42,10 +39,11 @@ application:
     center:
       - atendimentos
       - meuslocaisatendimento
-      - minhasteleconsultas
+      - meusatendimentos
     boxes:
-      - pessoafisicas
-      - estabelecimentossaude
+      - pessoasfisicas
+      - unidadesorganizacionais
+      - unidades
       - profissionaissaude
       - atendimentos
       - estatistica
@@ -67,11 +65,11 @@ application:
       Tipos de Atendimento: tiposatendimento
       Estados: unidadesfederativas
       Municípios: municipios
-    building:Estabelecimentos de Saude: estabelecimentossaude
-    stethoscope:Profissionais de Saúde:
-      Áreas: areass
+      Áreas: areas
       Especialidades: especialidades
-      Vínculos Profissionais: profissionaissaude
+    building-user:Unidades Organizacionais: unidadesorganizacionais
+    building:Unidades de Saúde: unidades
+    stethoscope:Profissionais de Saúde: profissionaissaude
     users:Pessoas Físicas: pessoafisicas
     laptop-file:Teleconsultas: atendimentos
     file-signature:Certificados Digitais: certificadosdigitais

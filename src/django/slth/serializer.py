@@ -322,6 +322,7 @@ class Serializer:
                     if leaf: raise JsonResponseException(data)
                 elif datatype == 'serializer':
                     serializer = item['serializer']
+                    serializer.request = serializer.serializer.request
                     serializer.lazy = lazy
                     if not only or key in only:
                         serializer.lazy = False

@@ -7,17 +7,17 @@ from slth import forms
 
 class CIDs(endpoints.AdminEndpoint[CID]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
 
 class CIAPs(endpoints.AdminEndpoint[CIAP]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
 
-class Areass(endpoints.AdminEndpoint[Area]):
+class Areas(endpoints.AdminEndpoint[Area]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
 
 class TiposAtendimento(endpoints.AdminEndpoint[TipoAtendimento]):
@@ -26,7 +26,7 @@ class TiposAtendimento(endpoints.AdminEndpoint[TipoAtendimento]):
 
 class UnidadesFederativas(endpoints.AdminEndpoint[Estado]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
 
 class Sexos(endpoints.AdminEndpoint[Sexo]):
@@ -35,26 +35,37 @@ class Sexos(endpoints.AdminEndpoint[Sexo]):
 
 class Municipios(endpoints.AdminEndpoint[Municipio]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
-
-class EstabelecimentosSaude(endpoints.AdminEndpoint[Unidade]):
+class UnidadesOrganizacionais(endpoints.AdminEndpoint[UnidadeOrganizacional]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
+
+class Unidades(endpoints.AdminEndpoint[Unidade]):
+    def check_permission(self):
+        return self.check_role('g')
 
 
 class Especialidades(endpoints.AdminEndpoint[Especialidade]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
 
-class PessoaFisicas(endpoints.AdminEndpoint[PessoaFisica]):
+class PessoasFisicas(endpoints.AdminEndpoint[PessoaFisica]):
+    def get(self):
+        return super().get().actions(add='cadastrarpessoafisica')
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
+
+
+class CadastrarPessoaFisica(endpoints.AddEndpoint[PessoaFisica]):
+    def check_permission(self):
+        return self.check_role('g', 'o')
+
 
 class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g', 'o')
 
 
 class Atendimentos(endpoints.ListEndpoint[Atendimento]):
@@ -65,10 +76,10 @@ class Atendimentos(endpoints.ListEndpoint[Atendimento]):
         verbose_name= 'Teleconsultas'
     
     def get(self):
-        return super().get().all().actions('visualizaratendimento', 'cadastraratendimento', 'delete')
+        return super().get().all().actions('visualizaratendimento', 'cadastraratendimento')
 
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g', 'o')
     
 
 class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
@@ -82,25 +93,25 @@ class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
         )
 
     def check_permission(self):
-        return self.check_role('ge', 'ps') or self.instance.paciente.cpf == self.request.user.username
+        return self.check_role('g', 'ps') or self.instance.paciente.cpf == self.request.user.username
 
     
 
-class MinhasTeleconsultas(endpoints.ListEndpoint[Atendimento]):
+class MeusAtendimentos(endpoints.ListEndpoint[Atendimento]):
     
     class Meta:
-        verbose_name= 'Teleconsultas'
+        verbose_name= 'Meus Atendimentos'
     
     def get(self):
         return (
             super().get().all().actions('visualizaratendimento')
-            .lookup('ps', profissional__pessoafisica__cpf='username')
-            #.lookup('ps', especialista__pessoafisica__cpf='username')
+            .lookup('ps', profissional__pessoa_fisica__cpf='username')
+            #.lookup('ps', especialista__pessoa_fisica__cpf='username')
             .lookup('pf', paciente__cpf='username')
         )
 
     def check_permission(self):
-        return self.request.user.is_authenticated and not self.check_role('ge')
+        return self.request.user.is_authenticated and self.get().apply_lookups(self.request.user).exists()
 
 class MeusLocaisAtendimento(endpoints.ListEndpoint[ProfissionalSaude]):
     
@@ -108,7 +119,7 @@ class MeusLocaisAtendimento(endpoints.ListEndpoint[ProfissionalSaude]):
         verbose_name= 'Vínculos'
     
     def get(self):
-        return super().get().filter(pessoafisica__cpf=self.request.user).fields('estabelecimento', 'especialidade').actions("definirhorarioprofissionalsaude")
+        return super().get().filter(pessoa_fisica__cpf=self.request.user).fields('uo', 'especialidade').actions("definirhorarioprofissionalsaude")
 
     def check_permission(self):
         return self.check_role('ps')
@@ -116,12 +127,18 @@ class MeusLocaisAtendimento(endpoints.ListEndpoint[ProfissionalSaude]):
 
 class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
     class Meta:
+        icon = 'plus'
+        modal = False
         verbose_name = 'Cadastrar Atendimento'
 
     def get(self):
         return (
             super().get().hidden('especialista', 'justificativa_horario_excepcional', 'agendado_para')
         )
+    
+    def get_unidade_queryset(self, queryset, values):
+        print(7777)
+        return queryset
     
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
@@ -155,13 +172,13 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         return queryset.none()
     
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g', 'o')
 
 
 
 class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
     def check_permission(self):
-        return self.check_role('ge')
+        return self.check_role('g')
 
 
 class ProfissionaisSaudeEspecialidade(endpoints.InstanceEndpoint[Especialidade]):
@@ -216,7 +233,7 @@ class AgendaProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
     def get(self):
         return self.serializer().fieldset(
             "Dados do Profissional",
-            ("pessoafisica", ("estabelecimento", "especialidade")),
+            ("pessoa_fisica", ("uo", "especialidade")),
         ).fieldset('Agenda', ('get_agenda',))
     
     def check_permission(self):
@@ -263,7 +280,7 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
             self.formfactory()
             .display(
                 "Dados do Profissional",
-                ("pessoafisica", ("estabelecimento", "especialidade")),
+                ("pessoa_fisica", ("uo", "especialidade")),
             )
             .fields()
         )
@@ -282,7 +299,7 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
         return super().post()
     
     def check_permission(self):
-        return self.check_role('ge') or self.instance.pessoafisica.cpf == self.request.user.username
+        return self.check_role('g', 'o') or self.instance.pessoa_fisica.cpf == self.request.user.username
 
 
 class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
@@ -298,15 +315,16 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
             self.serializer().actions('anexararquivo')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
             .queryset('Anexos', 'get_anexos_webconf')
-            .endpoint('Condutas e Enaminhamentos', 'registrarcondutasecanminhamentos', wrap=False)
+            .endpoint('Condutas e Enaminhamentos', 'registrarecanminhamentoscondutas', wrap=False)
         )
     
     def check_permission(self):
         return self.check_role('ps') or self.instance.paciente.cpf == self.request.user.username
 
-class RegistrarCondutasEcanminhamentos(endpoints.ChildEndpoint):
+class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
 
     class Meta:
+        icon = 'file-signature'
         verbose_name = 'Registrar Condutas e Enaminhamentos'
 
     def get(self):
@@ -315,9 +333,19 @@ class RegistrarCondutasEcanminhamentos(endpoints.ChildEndpoint):
         ).first()
         if instance is None:
             instance = EncaminhamentosCondutas(
-                atendimento=self.source, responsavel=self.source.especialista
+                atendimento=self.source,
+                responsavel=ProfissionalSaude.objects.get(
+                    pessoa_fisica__cpf=self.request.user.username
+                )
             )
-        return self.formfactory(instance).fields('subjetivo', 'objetivo', 'avaliacao', 'plano')
+        return (
+            self.formfactory(instance)
+            .fieldset('Método SOAP', ('subjetivo', 'objetivo', 'avaliacao', 'plano'))
+            .fieldset('Outras Informações', ('comentario', 'encaminhamento', 'conduta'))
+        )
+    
+    def check_permission(self):
+        return self.check_role('ps')
 
 
 class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
@@ -326,7 +354,7 @@ class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
     
     def check_permission(self):
         return self.request.user.is_superuser or self.request.user.username in (
-            self.instance.profissional.pessoafisica.cpf, self.instance.especialista.pessoafisica.cpf if self.instance.especialista_id else '', self.instance.paciente.cpf
+            self.instance.profissional.pessoa_fisica.cpf, self.instance.especialista.pessoa_fisica.cpf if self.instance.especialista_id else '', self.instance.paciente.cpf
         )
 
 class AnexarArquivo(endpoints.ChildEndpoint):
@@ -335,7 +363,7 @@ class AnexarArquivo(endpoints.ChildEndpoint):
         verbose_name = 'Anexar Arquivo'
 
     def get(self):
-        autor = PessoaFisica.objects.filter(cpf=self.request.user.username).first() or self.source.especialista.pessoafisica
+        autor = PessoaFisica.objects.filter(cpf=self.request.user.username).first() or self.source.especialista.pessoa_fisica
         instance = AnexoAtendimento(atendimento=self.source, autor=autor)
         return self.formfactory(instance).fields('arquivo')
     
@@ -358,7 +386,7 @@ class Estatistica(endpoints.PublicEndpoint):
         return (
             Atendimento.objects
             .filters(
-                'area', 'estabelecimento__municipio', 'estabelecimento', 'profissional', 'especialista', ''
+                'area', 'uo__municipio', 'uo', 'profissional', 'especialista', ''
             )
             .bi(
                 ('get_total', 'get_total_profissioinais', 'get_total_pacientes'),
@@ -369,5 +397,5 @@ class Estatistica(endpoints.PublicEndpoint):
         )
     
     def check_permission(self):
-        return self.check_role('ge', 'gm', 'gu')
+        return self.check_role('g', 'gm', 'gu')
 

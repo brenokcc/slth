@@ -57,7 +57,7 @@ class Area(models.Model):
         verbose_name_plural = "Áreas"
 
     def get_profissonais_saude(self):
-        return ProfissionalSaude.objects.filter(especialidade__area=self).fields('pessoafisica', 'estabelecimento')
+        return ProfissionalSaude.objects.filter(especialidade__area=self).fields('pessoa_fisica', 'uo', 'get_tags')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -71,7 +71,7 @@ class Area(models.Model):
         start_day = qs.values_list('data_hora', flat=True).first()
         scheduler = Scheduler(start_day=start_day, readonly=True)
         qs = qs.filter(data_hora__lt=scheduler.end_day)
-        campos = ("data_hora", "profissional_saude__pessoafisica__nome", "profissional_saude__especialidade__area__nome")
+        campos = ("data_hora", "profissional_saude__pessoa_fisica__nome", "profissional_saude__especialidade__area__nome")
         qs1 = qs.filter(atendimento__isnull=True)
         qs2 = qs.filter(atendimento__isnull=False)
         horarios = {}
@@ -107,15 +107,10 @@ class EstadoQuerySet(models.QuerySet):
         return self.search('sigla', 'nome', 'codigo')
 
 
-@role('ge', username='gestores__cpf', estado='pk')
 class Estado(models.Model):
     codigo = models.CharField(max_length=2, unique=True)
     sigla = models.CharField(max_length=2, unique=True)
     nome = models.CharField(max_length=60, unique=True)
-
-    gestores = models.ManyToManyField(
-        "app.PessoaFisica", verbose_name="Gestores", blank=True
-    )
 
     objects = EstadoQuerySet()
 
@@ -144,18 +139,10 @@ class MunicipioQuerySet(models.QuerySet):
         return self.search('nome', 'codigo').filters('estado')
 
 
-@role('gm', username='gestores__cpf', municipio='pk')
 class Municipio(models.Model):
     estado = models.ForeignKey(Estado, on_delete=models.CASCADE)
-    codigo = models.CharField(max_length=6, unique=True)
+    codigo = models.CharField(max_length=7, unique=True)
     nome = models.CharField(max_length=60)
-
-    gestores = models.ManyToManyField(
-        "app.PessoaFisica",
-        verbose_name="Gestores",
-        blank=True,
-        related_name="municipios_gerenciados",
-    )
 
     objects = MunicipioQuerySet()
 
@@ -171,15 +158,13 @@ class UnidadeQuerySet(models.QuerySet):
     def all(self):
         return (
             self.search("cnes", "nome")
-            .fields("foto", ("cnes", "get_qtd_profissonais_saude"),  "municipio")
+            .fields("foto", "cnes",  "municipio")
             .filters("municipio").actions('agendaunidade', 'equipeunidade').cards()
         )
 
-@role('gu', username='gestores__cpf', unidade='pk')
-@role('ou', username='gestores__cpf', unidade='pk')
 class Unidade(models.Model):
     foto = models.ImageField(
-        verbose_name="Foto", null=True, blank=True, upload_to="estabelecimentos_saude", width=200
+        verbose_name="Foto", null=True, blank=True, upload_to="unidades", width=300
     )
 
     cnes = models.CharField(verbose_name="CNES", max_length=12, null=True, blank=True)
@@ -196,17 +181,6 @@ class Unidade(models.Model):
     latitude = models.CharField(verbose_name="Latitude", null=True, blank=True)
     longitude = models.CharField(verbose_name="Longitude", null=True, blank=True)
 
-    gestores = models.ManyToManyField(
-        "app.PessoaFisica", verbose_name="Gestores", blank=True
-    )
-
-    operadores = models.ManyToManyField(
-        "app.PessoaFisica",
-        verbose_name="Operadores",
-        blank=True,
-        related_name="estabelecimentos_operados",
-    )
-
     objects = UnidadeQuerySet()
 
     class Meta:
@@ -219,14 +193,8 @@ class Unidade(models.Model):
             super()
             .serializer().actions('edit')
             .fieldset("Dados Gerais", ("nome", ("cnes", "municipio")))
-            .group()
-                .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
-                .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
-                .queryset("Gestores", "get_gestores")
-                .queryset("Operadores", "get_operadores")
-                .queryset("Profissionais", "get_profissionais_saude")
-            .parent()
-            .fieldset("Agenda dos Próximos Dias", ("get_agenda",))
+            .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
+            .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
         )
 
     def formfactory(self):
@@ -236,11 +204,10 @@ class Unidade(models.Model):
             .fieldset("Dados Gerais", ("foto", "nome", ("cnes", "municipio")))
             .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
             .fieldset("Geolocalização", (("latitude", "longitude"),))
-            .fieldset("Recursos Humanos", ("gestores", "operadores"))
         )
 
     def __str__(self):
-        return "%s - %s" % (self.cnes, self.nome)
+        return self.nome
     
     @meta()
     def get_foto(self):
@@ -248,43 +215,6 @@ class Unidade(models.Model):
     
     def get_mapa(self):
         return Map(self.latitude, self.longitude)
-
-    @meta('Profissionais de Saúde')
-    def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all().filters('especialidade')
-    
-    @meta('Qtd. de Profissionais')
-    def get_qtd_profissonais_saude(self):
-        return self.profissionalsaude_set.count()
-
-    @meta('Gestores')
-    def get_gestores(self):
-        return self.gestores.all()
-    
-    @meta('Operadores')
-    def get_operadores(self):
-        return self.operadores.all()
-
-    @meta()
-    def get_agenda(self, readonly=True):
-        qs = HorarioProfissionalSaude.objects.filter(
-            profissional_saude__estabelecimento=self
-        )
-        start_day = qs.values_list('data_hora', flat=True).first()
-        scheduler = Scheduler(start_day=start_day, readonly=True)
-        campos = ("data_hora", "profissional_saude__pessoafisica__nome", "profissional_saude__especialidade__area__nome")
-        qs1 = qs.filter(atendimento__isnull=True)
-        qs2 = qs.filter(atendimento__isnull=False)
-        horarios = {}
-        for i, atendimentos in enumerate([qs1, qs2]):
-            for data_hora, nome, area in atendimentos.values_list(*campos):
-                if data_hora not in horarios:
-                    horarios[data_hora] = []
-                profissional = f'{nome} ({area.upper()} )' if area else nome
-                horarios[data_hora].append(Text(profissional, color="#a4e2a4" if i==0 else "#f47c7c"))
-        for data_hora, text in horarios.items():
-            scheduler.append(data_hora, text, icon='stethoscope')
-        return scheduler
 
 
 class EspecialidadeQuerySet(models.QuerySet):
@@ -302,12 +232,12 @@ class Especialidade(models.Model):
     cbo = models.CharField(verbose_name="Código", max_length=6, unique=True)
     nome = models.CharField(max_length=150)
 
-    area = models.ForeignKey(Area, verbose_name='Área Temática', on_delete=models.CASCADE, null=True, blank=True)
+    area = models.ForeignKey(Area, verbose_name='Área', on_delete=models.CASCADE, null=True, blank=True)
 
     objects = EspecialidadeQuerySet()
 
     def get_profissonais_saude(self):
-        return self.profissionalsaude_set.fields('pessoafisica', 'estabelecimento')
+        return self.profissionalsaude_set.fields('pessoa_fisica', 'uo', 'get_tags')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -339,7 +269,7 @@ class PessoaFisica(models.Model):
     complemento = models.CharField(verbose_name='Complemento', max_length=150, blank=True, null=True)
     municipio = models.ForeignKey(Municipio, verbose_name='Município', null=True, on_delete=models.PROTECT, blank=True)
     data_nascimento = models.DateField(verbose_name='Data de Nascimento', null=True)
-    cns = models.CharField(verbose_name='CNS', max_length=15, null=True)
+    cns = models.CharField(verbose_name='CNS', max_length=15, null=True, blank=True)
 
     sexo = models.ForeignKey(Sexo, verbose_name='Sexo', null=True, on_delete=models.PROTECT, blank=True)
 
@@ -412,31 +342,111 @@ class PessoaFisica(models.Model):
         else:
             return "Não informada"
 
+
+class UnidadeOrganizacionalQuerySet(models.QuerySet):
+    def all(self):
+        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude')
+
+
+@role('g', username='gestores__cpf', uo='pk')
+@role('o', username='operadores__cpf', uo='pk')
+class UnidadeOrganizacional(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+    gestores = models.ManyToManyField(PessoaFisica, verbose_name="Gestores", blank=True)
+    operadores = models.ManyToManyField(PessoaFisica, verbose_name="Operadores", blank=True, related_name='r2')
+
+    # Atuação
+    estados = models.ManyToManyField(Estado, verbose_name='Estados', blank=True)
+    municipios = models.ManyToManyField(Municipio, verbose_name='Municípios', blank=True)
+    unidades = models.ManyToManyField(Unidade, verbose_name='Unidades', blank=True)
+
+    objects = UnidadeOrganizacionalQuerySet()
+
+    class Meta:
+        icon = "building-user"
+        verbose_name = "Unidade Organizacional"
+        verbose_name_plural = "Unidades Organizacionais"
+
+    def formfactory(self):
+        return (
+            super()
+            .formfactory()
+            .fieldset("Dados Gerais", ("nome", 'gestores:cadastrarpessoafisica', 'operadores:cadastrarpessoafisica'))
+            .fieldset("Atuação", ("estados", "municipios", "unidades",),)
+        )
+
+    def serializer(self):
+        return (
+            super()
+            .serializer()
+            .fieldset("Dados Gerais", ("nome", 'gestores'))
+            .fieldset("Atuação", ("estados", "municipios", "unidades",),)
+            .queryset('Profissionais de Saúde', 'get_profissionais_saude')
+        )
+    
+    @meta('Profissionais de Saúde')
+    def get_profissionais_saude(self):
+        return self.profissionalsaude_set.all().filters('especialidade', 'get_tags')
+    
+    @meta('Qtd. de Profissionais')
+    def get_qtd_profissonais_saude(self):
+        return self.profissionalsaude_set.count()
+
+    @meta('Gestores')
+    def get_gestores(self):
+        return self.gestores.all()
+    
+    @meta('Operadores')
+    def get_operadores(self):
+        return self.operadores.all()
+
+    @meta()
+    def get_agenda(self, readonly=True):
+        qs = HorarioProfissionalSaude.objects.filter(
+            profissional_saude__unidade_organizacional=self
+        )
+        start_day = qs.values_list('data_hora', flat=True).first()
+        scheduler = Scheduler(start_day=start_day, readonly=True)
+        campos = ("data_hora", "profissional_saude__pessoa_fisica__nome", "profissional_saude__especialidade__area__nome")
+        qs1 = qs.filter(atendimento__isnull=True)
+        qs2 = qs.filter(atendimento__isnull=False)
+        horarios = {}
+        for i, atendimentos in enumerate([qs1, qs2]):
+            for data_hora, nome, area in atendimentos.values_list(*campos):
+                if data_hora not in horarios:
+                    horarios[data_hora] = []
+                profissional = f'{nome} ({area.upper()} )' if area else nome
+                horarios[data_hora].append(Text(profissional, color="#a4e2a4" if i==0 else "#f47c7c"))
+        for data_hora, text in horarios.items():
+            scheduler.append(data_hora, text, icon='stethoscope')
+        return scheduler
+    
+    def __str__(self):
+        return self.nome
+
 class ProfissionalSaudeQueryset(models.QuerySet):
     def all(self):
         return (
-            self.search("pessoafisica__nome", "pessoafisica__cpf")
+            self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
             .filters(
-                "estabelecimento",
+                "uo",
                 "especialidade",
             )
             .fields(
-                "estabelecimento",
-                "especialidade",
+                ("uo", "especialidade"), 'get_tags',
             )
             .actions("agendaprofissionalsaude", "definirhorarioprofissionalsaude")
         ).cards()
-
-@role('ps', username='pessoafisica__cpf', unidade='estabelecimento')
+@role('ps', username='pessoa_fisica__cpf', uo='uo')
 class ProfissionalSaude(models.Model):
-    pessoafisica = models.ForeignKey(
+    pessoa_fisica = models.ForeignKey(
         PessoaFisica,
         on_delete=models.PROTECT,
         verbose_name="Profissional",
     )
-    estabelecimento = models.ForeignKey(
-        Unidade,
-        verbose_name='Unidade',
+    uo = models.ForeignKey(
+        UnidadeOrganizacional,
+        verbose_name='Unidade Organizacional',
         null=True,
         on_delete=models.CASCADE,
     )
@@ -455,37 +465,41 @@ class ProfissionalSaude(models.Model):
     perceptor = models.BooleanField(default=False)
     ativo = models.BooleanField(default=False)
 
+    teleconsultor = models.BooleanField(verbose_name='Teleconsultor', default=True)
+    teleinterconsultor = models.BooleanField(verbose_name='Teleinterconsultor', default=True)
+
     objects = ProfissionalSaudeQueryset()
 
     class Meta:
         icon = "stethoscope"
         verbose_name = "Vínculo Profissional"
         verbose_name_plural = "Vínculos Profissionais"
-        search_fields = 'pessoafisica__cpf', 'pessoafisica__nome'
+        search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
 
     def formfactory(self):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", (("estabelecimento", "pessoafisica"),))
+            .fieldset("Dados Gerais", (("uo", "pessoa_fisica:cadastrarpessoafisica"),))
             .fieldset(
                 "Dados Profissionais",
                 (("registro_profissional", "especialidade", "registro_especialista"),),
             )
             .fieldset(
-                "Outras Informações",
+                "Informações Adicionais",
                 (
                     ("programa_provab", "programa_mais_medico"),
                     ("residente", "perceptor"),
                 ),
             )
+            .fieldset("Atuação", (("teleconsultor", "teleinterconsultor"),))
         )
 
     def serializer(self):
         return (
             super()
             .serializer()
-            .fieldset("Dados Gerais", (("estabelecimento", "pessoafisica"),))
+            .fieldset("Dados Gerais", (("uo", "pessoa_fisica"),))
             .fieldset(
                 "Dados Profissionais",
                 (("registro_profissional", "especialidade", "registro_especialista"),),
@@ -497,15 +511,25 @@ class ProfissionalSaude(models.Model):
                     ("residente", "perceptor"),
                 ),
             )
+            .fieldset("Atuação", (("teleconsultor", "teleinterconsultor"),))
             .fieldset("Agenda dos Próximos Dias", ("get_agenda",))
         )
 
     def __str__(self):
         return "%s (CPF: %s / CRM: %s)" % (
-            self.pessoafisica.nome,
-            self.pessoafisica.cpf,
+            self.pessoa_fisica.nome,
+            self.pessoa_fisica.cpf,
             self.registro_profissional,
         )
+    
+    @meta()
+    def get_tags(self):
+        tags = []
+        if self.teleconsultor:
+            tags.append(Badge('#265890', 'Teleconsultor', 'people-group'))
+        if self.teleinterconsultor:
+            tags.append(Badge('#5ca05d', 'Teleinterconsultor', 'people-arrows'))
+        return tags
 
     @meta(None)
     def get_agenda(self, readonly=True):
@@ -517,10 +541,10 @@ class ProfissionalSaude(models.Model):
             scheduler.append(data_hora, f'Solicitação #{atendimento}' if atendimento else None, icon='stethoscope')
         qs2 = HorarioProfissionalSaude.objects.filter(
             data_hora__gte=date.today(),
-            profissional_saude__pessoafisica__cpf=self.pessoafisica.cpf
+            profissional_saude__pessoa_fisica__cpf=self.pessoa_fisica.cpf
         ).exclude(profissional_saude=self.pk)
-        for data_hora, estabelecimento in qs2.values_list("data_hora", "profissional_saude__estabelecimento__nome"):
-            scheduler.append(data_hora, estabelecimento, icon='x')
+        for data_hora, uo in qs2.values_list("data_hora", "profissional_saude__uo__nome"):
+            scheduler.append(data_hora, uo, icon='x')
         return scheduler
 
 
@@ -546,12 +570,12 @@ class HorarioProfissionalSaude(models.Model):
 class AtendimentoQuerySet(models.QuerySet):
     def all(self):
         return (
-            self.filters("area", "paciente", "profissional", "especialista")
+            self.filters("area", "unidade", "paciente", "profissional", "especialista")
             .calendar("agendado_para")
             .fields(
                 ("area", "agendado_para", "tipo"),
-                ("profissional", "estabelecimento", "especialista"),
-                ("get_tags")
+                ("unidade", "profissional", "paciente"),
+                "especialista", "get_tags"
             ).limit(5).order_by('-id')
         )
     
@@ -581,7 +605,7 @@ class AtendimentoQuerySet(models.QuerySet):
     
     @meta('Atendimentos por Especialidade e Unidade')
     def get_total_por_area_e_unidade(self):
-        return self.counter('area', 'estabelecimento')
+        return self.counter('area', 'unidade')
 
 
 class Atendimento(models.Model):
@@ -592,7 +616,7 @@ class Atendimento(models.Model):
         on_delete=models.CASCADE,
         null=True, pick=True,
     )
-    estabelecimento = models.ForeignKey(
+    unidade = models.ForeignKey(
         Unidade, null=True, on_delete=models.CASCADE
     )
     especialista = models.ForeignKey(
@@ -616,8 +640,8 @@ class Atendimento(models.Model):
     ciap = models.ManyToManyField(CIAP, verbose_name='CIAP')
 
     data = models.DateTimeField(blank=True)
-    assunto = models.CharField(max_length=200)
-    duvida = models.TextField(max_length=2000)
+    assunto = models.CharField(verbose_name='Assunto',max_length=200)
+    duvida = models.TextField(verbose_name='Dúvida/Queixa', max_length=2000)
     paciente = models.ForeignKey(
         "PessoaFisica", verbose_name='Paciente', related_name="atendimentos_paciente", on_delete=models.PROTECT
     )
@@ -679,7 +703,7 @@ class Atendimento(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    "estabelecimento", "tipo", "area",
+                    "unidade", "tipo", "area",
                 ),
             )
             .fieldset(
@@ -709,16 +733,16 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('anexararquivo', 'salavirtual')
+            .actions('salavirtual')
             .fieldset(
                 "Dados Gerais",
                 (
-                    ("tipo", "estabelecimento", "estabelecimento__municipio"),
+                    ("tipo", "unidade", "unidade__municipio"),
                     ("agendado_para", "finalizado_em", "duracao_webconf"),
                 ) 
             )
-            .fieldset("Web Conferência", (("numero_webconf", "senha_webconf", "limite_webconf"),))
-            .group()
+            .fieldset("Web Conferência", (("numero_webconf", "senha_webconf", "limite_webconf"),), roles=('su',))
+            .group().actions('anexararquivo', 'registrarecanminhamentoscondutas')
                 .section('Detalhamento')
                     .fieldset(
                         "Dados do Paciente", (
@@ -727,15 +751,14 @@ class Atendimento(models.Model):
                         ), attr="paciente"
                     )
                     .fieldset(
-                        "Dados do Solicitante", (
-                            "pessoafisica__nome",
+                        "Dados do Responsável", (
+                            ("pessoa_fisica__nome", "pessoa_fisica__cpf"),
                             ("registro_profissional", "especialidade", "registro_especialista"),
                         ), attr="profissional"
                     )
                     .fieldset(
                         "Dados do Especialista", (
-                            "pessoafisica__nome",
-                            ("formacao", "registro_profissional"),
+                            ("pessoa_fisica__nome", "pessoa_fisica__cpf"),
                             ("especialidade", "registro_especialista"),
                         ), attr="especialista", condition='especialista'
                     )
@@ -748,7 +771,7 @@ class Atendimento(models.Model):
                     )
                 .parent()
                 .queryset('Anexos', 'get_anexos')
-                .queryset('Encaminhamentos/Condutas', 'get_condutas_ecaminhamentos')
+                .queryset('Encaminhamentos/Condutas', 'get_condutas_ecaminhamentos', roles=('ps',))
             .parent()
         )
     
@@ -787,48 +810,11 @@ class Atendimento(models.Model):
     def get_condutas_ecaminhamentos(self):
         return self.encaminhamentoscondutas_set.fields('data', 'subjetivo', 'objetivo', 'plano').timeline()
 
-    def get_token_paciente(self):
-        signer = Signer()
-        data_hora = datetime.now()
-        dados = "{}".format(self.pk)
-        return binascii.hexlify(signer.sign(dados).encode()).decode()
-
-    @classmethod
-    def parse_token_paciente(cls, token):
-        signer = Signer()
-        return signer.unsign(binascii.unhexlify(token.encode()).decode())
-
-    @property
-    def tempo_decorrido(self):
-        try:
-            resposta = self.resposta
-            if resposta.finalizada:
-                return timesince(self.data, self.resposta.data)
-            else:
-                return timesince(self.data, timezone.now())
-        except Exception as e:
-            return timesince(self.data, timezone.now())
-
     @meta('Duração')
     def duracao_webconf(self):
         if self.finalizado_em and self.agendado_para:
             return timesince(self.agendado_para, self.finalizado_em)
         return "-"
-
-    @property
-    def tempo_restante(self):
-        return timesince(timezone.now(), self.data + timedelta(hours=72))
-
-    @property
-    def status_atual(self):
-        return self.ultimo_fluxo.status_novo.get_status_display()
-
-    @property
-    def comentario_devolucao(self):
-        if self.ultimo_fluxo.status_novo.status == "devolvida":
-            return self.ultimo_fluxo.comentario
-
-        return None
 
 
     def __str__(self):
@@ -896,11 +882,11 @@ class AvaliacaoAtendimento(models.Model):
 
     atendimento = models.ForeignKey(Atendimento, on_delete=models.PROTECT)
 
-    satisfacao = models.IntegerField(choices=SATISFACAO)
-    respondeu_duvida = models.IntegerField(choices=RESPONDEU_DUVIDA)
-    evitou_encaminhamento = models.IntegerField(choices=EVITOU_ENCAMINHAMENTO)
-    mudou_conduta = models.IntegerField(choices=MUDOU_CONDUTA)
-    recomendaria = models.BooleanField(choices=SIM_NAO_CHOICES, default=None)
+    satisfacao = models.IntegerField(verbose_name='Grau de Satisfação', choices=SATISFACAO)
+    respondeu_duvida = models.IntegerField(verbose_name='Respondeu a Dúvida/Problema', choices=RESPONDEU_DUVIDA)
+    evitou_encaminhamento = models.IntegerField(verbose_name='Evitou Encaminhamento', choices=EVITOU_ENCAMINHAMENTO)
+    mudou_conduta = models.IntegerField(verbose_name='Mudou Conduta', choices=MUDOU_CONDUTA)
+    recomendaria = models.BooleanField(verbose_name='Recomendaria', choices=SIM_NAO_CHOICES, default=None)
     data = models.DateTimeField(auto_now_add=True, null=True)
 
     class Meta:

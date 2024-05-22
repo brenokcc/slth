@@ -92,7 +92,7 @@ function ActionSet(props) {
         }}
       >
         {props.data.map(function (action) {
-          return <Action key={Math.random()} data={action} default compact />;
+          return <Action key={Math.random()} data={action} default compact={window.innerWidth > 800 ? false : true} />;
         })}
       </div>
     );
@@ -554,6 +554,10 @@ function Group(props) {
     );
   }
 
+  function renderActions() {
+    return <ActionSet data={props.data.actions} />;
+  }
+
   function renderTabs() {
     return <Tabs data={props.data.data} loadContent={loadContent} />;
   }
@@ -592,6 +596,7 @@ function Group(props) {
       props.data.data.length > 0 && (
         <div className="reloadable" id={id}>
           {renderTitle()}
+          {renderActions()}
           {renderTabs()}
           {renderContent()}
           {renderSeparator()}
