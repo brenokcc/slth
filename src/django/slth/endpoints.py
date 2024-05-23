@@ -437,7 +437,7 @@ class Delete(ChildInstanceEndpoint):
 
 
 class Login(PublicEndpoint):
-    username = forms.CharField(label="Username")
+    username = forms.CharField(label="Username", mask=getattr(settings, 'USERNAME_MASK', None))
     password = forms.CharField(label="Senha")
 
     class Meta:

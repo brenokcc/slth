@@ -180,7 +180,8 @@ function Badge(props) {
       whiteSpace: "nowrap",
       backgroundColor: props.data.color,
       display: "inline-flex",
-      border: "solid 3px white"
+      border: "solid 3px white",
+      lineHeight: "1rem"
     };
     return <div style={style}>
       {props.data.icon && <Icon icon={props.data.icon} style={{marginRight: 5}}/>}

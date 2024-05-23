@@ -38,13 +38,15 @@ application:
     top:
     center:
       - meusvinculos
-      - calendarioatendimentos
+      - proximosatendimentosprofissionalsaude
+      - proximosatendimentospaciente
     boxes:
       - pessoasfisicas
       - nucleos
       - unidades
       - profissionaissaude
       - atendimentos
+      - agendaatendimentos
       - estatistica
     adder:
       - fazeralgo
@@ -68,7 +70,7 @@ application:
       Especialidades: especialidades
     building-user:Núcleos de Telesaúde: nucleos
     building:Unidades de Saúde: unidades
-    stethoscope:Profissionais de Saúde: profissionaissaude
+    # stethoscope:Profissionais de Saúde: profissionaissaude
     users:Pessoas Físicas: pessoafisicas
     laptop-file:Teleconsultas: atendimentos
     #file-signature:Certificados Digitais: certificadosdigitais

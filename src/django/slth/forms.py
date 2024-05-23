@@ -648,6 +648,15 @@ class ImageField(ImageField):
         super().__init__(*args, **kwargs)
 
 
+class CharField(CharField):
+
+    def __init__(self, *args, **kwargs):
+        self.mask = kwargs.pop("mask", None)
+        super().__init__(*args, **kwargs)
+
+    
+
+
 class ChoiceField(ChoiceField):
 
     def __init__(self, *args, **kwargs):

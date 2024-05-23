@@ -125,6 +125,8 @@ USE_THOUSAND_SEPARATOR = False
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
+USERNAME_MASK = '999.999.999-99'
+
 LOGGING_ = {
     'version': 1,
     'filters': {

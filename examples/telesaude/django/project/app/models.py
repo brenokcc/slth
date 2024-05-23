@@ -108,9 +108,9 @@ class EstadoQuerySet(models.QuerySet):
 
 
 class Estado(models.Model):
-    codigo = models.CharField(max_length=2, unique=True)
-    sigla = models.CharField(max_length=2, unique=True)
-    nome = models.CharField(max_length=60, unique=True)
+    codigo = models.CharField(verbose_name='Código IBGE', max_length=2, unique=True)
+    sigla = models.CharField(verbose_name='Sigla', max_length=2, unique=True)
+    nome = models.CharField(verbose_name='Nome', max_length=60, unique=True)
 
     objects = EstadoQuerySet()
 
@@ -140,9 +140,9 @@ class MunicipioQuerySet(models.QuerySet):
 
 
 class Municipio(models.Model):
-    estado = models.ForeignKey(Estado, on_delete=models.CASCADE)
-    codigo = models.CharField(max_length=7, unique=True)
-    nome = models.CharField(max_length=60)
+    estado = models.ForeignKey(Estado, verbose_name='Estado', on_delete=models.CASCADE)
+    codigo = models.CharField(max_length=7, verbose_name='Código IBGE', unique=True)
+    nome = models.CharField(verbose_name='Nome', max_length=60)
 
     objects = MunicipioQuerySet()
 
@@ -159,7 +159,7 @@ class UnidadeQuerySet(models.QuerySet):
         return (
             self.search("cnes", "nome")
             .fields("foto", "cnes",  "municipio")
-            .filters("municipio").cards()
+            .filters("municipio__estado", "municipio").cards()
         )
 
 class Unidade(models.Model):
@@ -490,15 +490,16 @@ class ProfissionalSaude(models.Model):
     registro_especialista = models.CharField(
         "Registro Especialista", max_length=30, blank=True, null=True
     )
-    programa_provab = models.BooleanField(default=False)
-    programa_mais_medico = models.BooleanField(default=False)
-    residente = models.BooleanField(default=False)
-    perceptor = models.BooleanField(default=False)
+    programa_provab = models.BooleanField(verbose_name='Programa PROVAB', default=False)
+    programa_mais_medico = models.BooleanField(verbose_name='Programa Mais Médico', default=False)
+    residente = models.BooleanField(verbose_name='Residente', default=False)
+    perceptor = models.BooleanField(verbose_name='Perceptor', default=False)
     ativo = models.BooleanField(default=False)
 
     teleconsultor = models.BooleanField(verbose_name='Teleconsultor', default=True)
     teleinterconsultor = models.BooleanField(verbose_name='Teleinterconsultor', default=True)
 
+    pode_atualizar_agenda = models.BooleanField(verbose_name='Pode Atualizar Agenda', default=True, help_text='Marque essa opção caso o profissional possa informar os dias e horários de seus atendimentos.')
     informar_atuacao = models.BooleanField(verbose_name='Informar atuação', help_text='Marque essa opção caso o profissional vá atuar em unidades diferentes daquelas definidas para o núcleo.', default=False)
     estados = models.ManyToManyField(Estado, verbose_name='Estados', blank=True)
     municipios = models.ManyToManyField(Municipio, verbose_name='Municípios', blank=True)
@@ -508,8 +509,8 @@ class ProfissionalSaude(models.Model):
 
     class Meta:
         icon = "stethoscope"
-        verbose_name = "Vínculo Profissional"
-        verbose_name_plural = "Vínculos Profissionais"
+        verbose_name = "Profissional de Saúde"
+        verbose_name_plural = "Profissionais de Saúde"
         search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
 
     def formfactory(self):
@@ -529,7 +530,7 @@ class ProfissionalSaude(models.Model):
                 ),
             )
             .fieldset("Função do Profissional", (("teleconsultor", "teleinterconsultor"),))
-            .fieldset("Atuação do Profissional", ('informar_atuacao', "estados", "municipios", "unidades",),)
+            .fieldset("Atuação do Profissional", (('pode_atualizar_agenda', 'informar_atuacao'), "estados", "municipios", "unidades",),)
             .hidden("estados", "municipios", "unidades")
         )
 
@@ -550,7 +551,7 @@ class ProfissionalSaude(models.Model):
                 ),
             )
             .fieldset("Função", (("teleconsultor", "teleinterconsultor"),))
-            .fieldset("Atuação", ('informar_atuacao', "estados", "municipios", "unidades",),)
+            .fieldset("Atuação", (('pode_atualizar_agenda', 'informar_atuacao'), "estados", "municipios", "unidades",),)
         )
 
     def __str__(self):
@@ -859,6 +860,8 @@ class Atendimento(models.Model):
             return timesince(self.agendado_para, self.finalizado_em)
         return "-"
 
+    def get_agendado_para(self):
+        return Badge("#5ca05d", self.agendado_para.strftime('%d/%m/%Y %H:%M'), icon='clock')
 
     def __str__(self):
         return "%s - %s" % (self.id, self.assunto)

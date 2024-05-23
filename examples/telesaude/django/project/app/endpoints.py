@@ -42,9 +42,12 @@ class Nucleos(endpoints.AdminEndpoint[Nucleo]):
         return super().get().lookup(gestores__cpf='username')
     
     def check_permission(self):
-        return self.check_role('g')
+        return self.check_role('a', 'g')
     
     def check_add_permission(self):
+        return self.check_role('a')
+    
+    def check_delete_permission(self):
         return self.check_role('a')
 
 class Unidades(endpoints.AdminEndpoint[Unidade]):
@@ -132,6 +135,7 @@ class Atendimentos(endpoints.ListEndpoint[Atendimento]):
 
 class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
     class Meta:
+        icon = 'eye'
         modal = False
         verbose_name = 'Acessar '
 
@@ -143,20 +147,40 @@ class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
     def check_permission(self):
         return self.check_role('g', 'ps') or self.instance.paciente.cpf == self.request.user.username
 
-    
 
-class CalendarioAtendimentos(endpoints.ListEndpoint[Atendimento]):
+class ProximosAtendimentosProfissionalSaude(endpoints.ListEndpoint[Atendimento]):
+    class Meta:
+        verbose_name= 'Próximos Atendimentos'
+
+    def get(self):
+        return super().get().fields('paciente', 'assunto', 'get_agendado_para').actions('visualizaratendimento').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
+    
+    def check_permission(self):
+        return self.check_role('ps')
+
+
+class ProximosAtendimentosPaciente(endpoints.ListEndpoint[Atendimento]):
+    class Meta:
+        verbose_name= 'Próximos Atendimentos'
+
+    def get(self):
+        return super().get().fields('profissional', 'assunto', 'get_agendado_para').actions('visualizaratendimento').lookup('p', paciente__cpf='username')
+    
+    def check_permission(self):
+        return self.check_role('p')
+
+class AgendaAtendimentos(endpoints.ListEndpoint[Atendimento]):
     
     class Meta:
-        verbose_name= 'Atendimentos'
+        icon = 'calendar-days'
+        verbose_name= 'Agenda de Atendimentos'
     
     def get(self):
         return (
             super().get().all().actions('cadastraratendimento', 'visualizaratendimento')
             .lookup('g', profissional__nucleo__gestores__cpf='username')
             .lookup('o', profissional__nucleo__operadores__cpf='username')
-            .lookup('ps', profissional__pessoa_fisica__cpf='username')
-            #.lookup('ps', especialista__pessoa_fisica__cpf='username')
+            .lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
             .lookup('p', paciente__cpf='username')
             .calendar("agendado_para")
         )
@@ -237,11 +261,10 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
             print(profissional)
             qs = queryset.filter(profissional_saude=profissional).disponiveis()
             if especialista:
-                print(especialista)
                 qs = qs.filter(data_hora__in=(
                     queryset.filter(profissional_saude=especialista).disponiveis().values_list('data_hora', flat=True)
                 ))
-            return qs
+            return qs.order_by('data_hora')
         return queryset.none()
     
     def check_permission(self):
