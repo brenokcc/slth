@@ -29,7 +29,6 @@ from .exceptions import JsonResponseException
 from .utils import build_url, append_url
 from .models import PushSubscription, Profile, User
 from slth.queryset import QuerySet
-from .notifications import send_push_web_notification
 from slth import APPLICATON, ENDPOINTS
 from . import oauth
 
@@ -715,7 +714,7 @@ class Manifest(PublicEndpoint):
                 "display": "standalone",
                 "icons": [
                     {
-                        "src": build_url(self.request, APPLICATON["logo"]),
+                        "src": build_url(self.request, APPLICATON["icon"]),
                         "sizes": "192x192",
                         "type": "image/png",
                     }
@@ -761,12 +760,10 @@ class SendPushNotification(ChildInstanceEndpoint):
         verbose_name = "Enviar Notificação"
 
     def get(self):
-        return self.formfactory().fields("title", "message", "url").initial(
-            title='Mais uma notificação', message='Corpo da notificação', url='http://localhost:8000/app/dashboard/'
-        )
+        return self.formfactory().fields("title", "message", "url")
 
     def post(self):
-        send_push_web_notification(self.instance, self.cleaned_data["title"], self.cleaned_data["message"], url=self.cleaned_data["url"])
+        self.instance.send_push_notification(self.cleaned_data["title"], self.cleaned_data["message"], url=self.cleaned_data["url"])
         return Response(message="Notificação enviada com sucesso.")
 
 

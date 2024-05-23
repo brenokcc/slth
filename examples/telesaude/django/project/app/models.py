@@ -624,6 +624,9 @@ class AtendimentoQuerySet(models.QuerySet):
             ).limit(5).order_by('-id')
         )
     
+    def proximos(self):
+        return self.filter(agendado_para__gte=datetime.now())
+    
     @meta('Total de Atendimentos')
     def get_total(self):
         return self.total()
@@ -777,7 +780,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('salavirtual', 'finalizaratendimento')
+            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento')
             .fieldset(
                 "Dados Gerais",
                 (

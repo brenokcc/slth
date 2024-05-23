@@ -118,6 +118,31 @@ class CadastrarProfissionalSaude(endpoints.AddEndpoint[ProfissionalSaude]):
     def check_permission(self):
         return self.check_role('a', 'g')
 
+class EnviarNotificacaoAtendimento(endpoints.ChildEndpoint):
+
+    class Meta:
+        icon = "mail-bulk"
+        verbose_name = 'Enviar Notificações'
+
+    def get(self):
+        return super().formfactory().fields()
+    
+    def post(self):
+        usernames = []
+        usernames.append(self.source.paciente.cpf)
+        usernames.append(self.source.profissional.pessoa_fisica.cpf)
+        if self.source.especialista_id:
+            usernames.append(self.source.especialista.pessoa_fisica.cpf)
+        title = 'Lembrete de tele-atendimento'
+        message = 'Você possui um tele-atendimento agendado para {}.'.format(self.source.agendado_para.strftime('%d/%m/%Y as %H:%M'))
+        url = f'/app/visualizaratendimento/{self.source.pk}/'
+        print(title, message, url)
+        for user in self.objects('slth.user').filter(username__in=usernames):
+            user.send_push_notification(title, message, url=url)
+        return super().post()
+    
+    def check_permission(self):
+        return self.request.user.is_superuser
 
 class Atendimentos(endpoints.ListEndpoint[Atendimento]):
     
@@ -153,7 +178,7 @@ class ProximosAtendimentosProfissionalSaude(endpoints.ListEndpoint[Atendimento])
         verbose_name= 'Próximos Atendimentos'
 
     def get(self):
-        return super().get().fields('paciente', 'assunto', 'get_agendado_para').actions('visualizaratendimento').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
+        return super().get().proximos().fields('paciente', 'assunto', 'get_agendado_para').actions('visualizaratendimento').lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
     
     def check_permission(self):
         return self.check_role('ps')
@@ -164,7 +189,7 @@ class ProximosAtendimentosPaciente(endpoints.ListEndpoint[Atendimento]):
         verbose_name= 'Próximos Atendimentos'
 
     def get(self):
-        return super().get().fields('profissional', 'assunto', 'get_agendado_para').actions('visualizaratendimento').lookup('p', paciente__cpf='username')
+        return super().get().proximos().fields('profissional', 'assunto', 'get_agendado_para').actions('visualizaratendimento').lookup('p', paciente__cpf='username')
     
     def check_permission(self):
         return self.check_role('p')
@@ -258,7 +283,6 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         profissional = values.get('profissional')
         especialista = values.get('especialista')
         if profissional:
-            print(profissional)
             qs = queryset.filter(profissional_saude=profissional).disponiveis()
             if especialista:
                 qs = qs.filter(data_hora__in=(

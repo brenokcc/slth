@@ -8,6 +8,7 @@ from django.apps import apps
 from datetime import datetime
 from django.utils.html import strip_tags
 from django.core.mail import EmailMultiAlternatives
+from .notifications import send_push_web_notification
 from slth import APPLICATON
 
 class RoleQuerySet(models.QuerySet):
@@ -79,6 +80,7 @@ class PushSubscription(models.Model):
     data = models.JSONField(verbose_name='Dados da Inscrição')
 
     class Meta:
+        icon = "mail-bulk"
         verbose_name = 'Inscrição de Notificação'
         verbose_name_plural = 'Inscrições de Notificação'
 
@@ -183,6 +185,9 @@ class User(User):
     @meta('Inscrições de Notificação')
     def get_push_subscriptions(self):
         return self.pushsubscription_set.fields('device')
+    
+    def send_push_notification(self, title, message, url=None):
+        send_push_web_notification(self, title, message, url=url)
     
     @meta('Papéis')
     def get_roles(self):
