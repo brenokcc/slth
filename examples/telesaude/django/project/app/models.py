@@ -192,8 +192,8 @@ class Unidade(models.Model):
         return (
             super()
             .serializer().actions('edit')
-            .fieldset("Dados Gerais", ("nome", ("cnes", "municipio")))
-            .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
+            .fieldset("Dados Gerais", (("nome", "cnes"),))
+            .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
         )
 
@@ -201,8 +201,8 @@ class Unidade(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", ("foto", "nome", ("cnes", "municipio")))
-            .fieldset("Endereço", ("logradouro", ("numero", "bairro", "cep")))
+            .fieldset("Dados Gerais", (("nome", "cnes"),))
+            .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"),))
         )
 

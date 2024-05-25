@@ -38,10 +38,11 @@ const INPUT_STYLE = {
   backgroundColor: "white",
 };
 
-function serialize_form(form){
+function serialize_form(form, input_name){
   const data = new FormData(form);
   for (let [name, value] of Array.from(data.entries())){
     const input = form[name];
+    if (input_name == name) continue;
     if (input.tagName == "SELECT" && value !== '') continue;
     if (input.tagName == undefined && value !== '') continue;
     if (input.type == "radio" && value !== '') continue;
@@ -51,10 +52,10 @@ function serialize_form(form){
   return new URLSearchParams(data).toString()
 }
 
-function add_form_params(url, form){
+function add_form_params(url, form, input_name){
   //return url;
   const sep = url.indexOf("?") < 0 ? "?" : "&";
-  const extra = serialize_form(form);
+  const extra = serialize_form(form, input_name);
   url = url + (extra ? sep + extra : "");
   return url;
 }
@@ -69,7 +70,7 @@ function isImage(url) {
 }
 
 function formChange(input, url) {
-  request("GET", add_form_params(url, input.closest("form")), formControl);
+  request("GET", add_form_params(url, input.closest("form"), input.name), formControl);
 }
 function formHide(name) {
   if (name) {

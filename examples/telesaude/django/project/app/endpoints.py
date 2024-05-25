@@ -1,3 +1,4 @@
+import os
 from slth import endpoints
 from slth.components import Scheduler, ZoomMeet
 from .models import *
@@ -65,6 +66,24 @@ class Unidades(endpoints.AdminEndpoint[Unidade]):
     
     def check_view_permission(self):
         return self.check_role('a')
+    
+
+class CadastrarUnidade(endpoints.AddEndpoint[Unidade]):
+    class Meta:
+        verbose_name = 'Cadastrar Unidade'
+
+    def on_cep_change(self, controller, values):
+        import requests
+        cep = values.get('cep')
+        if cep:
+            dados = requests.get('{}{}'.format(os.environ['CEP_API_URL'], cep.replace('.', '').replace('-', ''))).json()
+            sigla, nome, codigo = dados['estado'], dados['estado_info']['nome'], dados['estado_info']['codigo_ibge']
+            estado = Estado.objects.get_or_create(sigla=sigla, codigo=codigo, nome=nome)[0]
+            nome, codigo = dados['cidade'], dados['cidade_info']['codigo_ibge']
+            municipio = Municipio.objects.get_or_create(estado=estado, codigo=codigo, nome=nome)[0]
+            controller.set(bairro=dados['bairro'])
+            controller.set(logradouro=dados['logradouro'])
+            controller.set(municipio=municipio)
 
 
 class Especialidades(endpoints.AdminEndpoint[Especialidade]):
