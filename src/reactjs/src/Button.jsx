@@ -1,6 +1,7 @@
 import { Icon, Spin } from "./Icon";
 import toLabelCase from "./Utils";
 import { Theme } from "./Theme";
+import StyleSheet from "./StyleSheet";
 
 function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
   function renderContent() {
@@ -22,16 +23,20 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
   }
 
   function render() {
+    StyleSheet(`
+      .button{
+        padding: 12px;
+        text-decoration: none;
+        white-space: nowrap;
+        border-radius: 5px;
+        margin: 5px;
+        cursor: pointer;
+        width: fit-content;
+        text-wrap: nowrap;
+      }
+    `)
     const style = {
-      padding: 12,
-      textDecoration: "none",
-      whiteSpace: "nowrap",
-      borderRadius: 5,
-      margin: 5,
-      cursor: "pointer",
       display: display || "block",
-      width: "fit-content",
-      textWrap: "nowrap",
     };
     if (primary) {
       style.backgroundColor = Theme.colors.primary;
@@ -43,6 +48,7 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
     return (
       <a
         id={id}
+        className="button"
         style={style}
         data-label={toLabelCase(label || icon)}
         onClick={(e) => {

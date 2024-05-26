@@ -89,6 +89,12 @@ class ModelMixin(object):
     
     def formfactory(self) -> FormFactory:
         return FormFactory(self)
+    
+    def pre_save(self):
+        pass
+
+    def post_save(self):
+        pass
 
 
 ___new___ = ModelBase.__new__

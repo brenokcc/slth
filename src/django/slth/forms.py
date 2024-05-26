@@ -469,6 +469,7 @@ class FormMixin:
             with transaction.atomic():
                 self.cleaned_data = data
                 if isinstance(self, DjangoModelForm):
+                    self.instance.pre_save()
                     for inline_field_name in inline_fields:
                         for obj in self.cleaned_data[inline_field_name]:
                             obj.save()
@@ -483,6 +484,7 @@ class FormMixin:
                         for obj in self.cleaned_data[inline_field_name]:
                             if hasattr(obj, "deleting"):
                                 obj.delete()
+                    self.instance.post_save()
                 return self.cleaned_data
 
     def settitle(self, title):

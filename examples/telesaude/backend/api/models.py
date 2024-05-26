@@ -394,10 +394,10 @@ class Nucleo(models.Model):
             super()
             .serializer().actions('edit')
             .fieldset("Dados Gerais", ("nome", 'gestores'))
-            .fieldset("Atuação", ("estados", "municipios", "unidades",),)
             .group('Detalhamento')
+                .fieldset("Atuação", ("estados", "municipios", "unidades",),)
                 .queryset('Profissionais de Saúde', 'get_profissionais_saude')
-                .queryset('Unidades de Atuação', 'get_unidades_atuacao')
+                .queryset('Unidades Atendidas', 'get_unidades_atuacao')
             .parent()
         )
     
@@ -568,11 +568,13 @@ class ProfissionalSaude(models.Model):
     def get_agenda(self, readonly=True):
         scheduler = Scheduler(readonly=readonly)
         qs = self.horarioprofissionalsaude_set.filter(data_hora__gte=date.today()).order_by('data_hora')
-        for data_hora, atendimento in qs.values_list("data_hora", "atendimento"):
-            scheduler.append(data_hora, f'Teleconsulta #{atendimento}' if atendimento else None, icon='people-arrows')
-        for data_hora, atendimento in qs.values_list("data_hora", "atendimento2"):
+        for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_profissional_saude", "atendimentos_profissional_saude__especialista_id"):
+            descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
+            scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
+        for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_especialista", "atendimentos_especialista__especialista_id"):
             if atendimento:
-                scheduler.append(data_hora, f'Teleinterconsulta #{atendimento}' if atendimento else None, icon='people-group')
+                descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
+                scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
         qs2 = HorarioProfissionalSaude.objects.filter(data_hora__gte=date.today(),profissional_saude__pessoa_fisica__cpf=self.pessoa_fisica.cpf
         ).exclude(profissional_saude=self.pk)
         for data_hora, nucleo in qs2.values_list("data_hora", "profissional_saude__nucleo__nome"):
@@ -583,7 +585,11 @@ class ProfissionalSaude(models.Model):
 
 class HorarioProfissionalQuerySet(models.QuerySet):
     def disponiveis(self):
-        return self.filter(atendimento__isnull=True, data_hora__gte=datetime.now())
+        return self.filter(
+            atendimentos_profissional_saude__isnull=True,
+            atendimentos_especialista__isnull=True,
+            data_hora__gte=datetime.now()
+        )
 
 
 class HorarioProfissionalSaude(models.Model):
@@ -653,7 +659,7 @@ class AtendimentoQuerySet(models.QuerySet):
 class Atendimento(models.Model):
     profissional = models.ForeignKey(
         ProfissionalSaude,
-        verbose_name='Responsável',
+        verbose_name='Profissional Responsável',
         related_name="atendimentos_profissional",
         on_delete=models.CASCADE,
         null=True, pick=True,
@@ -688,20 +694,20 @@ class Atendimento(models.Model):
     )
     duracao = models.IntegerField(verbose_name='Duração', null=True)
 
-    horario_profissional_saude = models.ForeignKey(
-        HorarioProfissionalSaude,
-        verbose_name="Horário",
-        on_delete=models.SET_NULL,
-        null=True, pick=True
-    )
-    horario_especialista = models.ForeignKey(
-        HorarioProfissionalSaude,
-        verbose_name="Horário",
-        on_delete=models.SET_NULL,
-        null=True, related_name='atendimento2'
-    )
-    # horarios_profissional_saude = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True)
-    # horarios_especialista = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True)
+    # horario_profissional_saude = models.ForeignKey(
+    #     HorarioProfissionalSaude,
+    #     verbose_name="Horário",
+    #     on_delete=models.SET_NULL,
+    #     null=True, pick=True
+    # )
+    # horario_especialista = models.ForeignKey(
+    #     HorarioProfissionalSaude,
+    #     verbose_name="Horário",
+    #     on_delete=models.SET_NULL,
+    #     null=True, related_name='atendimento2'
+    # )
+    horarios_profissional_saude = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_profissional_saude', pick=True)
+    horarios_especialista = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_especialista')
     horario_excepcional = models.BooleanField(
         verbose_name="Horário Excepcional",
         default=False,
@@ -763,7 +769,7 @@ class Atendimento(models.Model):
                 (
                     "profissional:consultaragenda",
                     "especialista",
-                    "horario_profissional_saude",
+                    "horarios_profissional_saude",
                     "horario_excepcional",
                     "justificativa_horario_excepcional",
                     "agendado_para",
@@ -868,16 +874,20 @@ class Atendimento(models.Model):
         return "%s - %s" % (self.id, self.assunto)
 
     def save(self, *args, **kwargs):
-        if not self.agendado_para and self.horario_profissional_saude_id:
-            self.agendado_para = self.horario_profissional_saude.data_hora
         if not self.data:
             self.data = timezone.now()
-        if not self.horario_especialista_id and self.especialista_id:
-            self.horario_especialista = self.especialista.horarioprofissionalsaude_set.get(
-                data_hora=self.horario_profissional_saude.data_hora
-            )
         super(Atendimento, self).save(*args, **kwargs)
 
+    def post_save(self):
+        if not self.agendado_para and self.horarios_profissional_saude.exists():
+            self.agendado_para = self.horarios_profissional_saude.order_by('data_hora').first().data_hora
+            self.save()
+        if self.especialista_id and not self.horarios_especialista.exists():
+            for horario in self.horarios_profissional_saude.all():
+                self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(
+                    data_hora=horario.data_hora
+                ))
+        
 
 class AnexoAtendimento(models.Model):
     atendimento = models.ForeignKey(

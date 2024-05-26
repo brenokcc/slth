@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import "./Root";
 import { appurl } from "./Request";
 import { Theme } from "./Theme";
+import StyleSheet from "./StyleSheet";
 
 function Action(props) {
   const id = props.id || Math.random();
@@ -49,13 +50,17 @@ function Action(props) {
   }
 
   function render() {
+    StyleSheet(`
+      .action{
+        padding: 12px;
+        text-decoration: none;
+        white-space: nowrap;
+        border-radius: 5px;
+        margin: 5px;
+        min-width: 50px;
+      }
+    `)
     var style = {
-      padding: 12,
-      textDecoration: "none",
-      whiteSpace: "nowrap",
-      borderRadius: 5,
-      margin: 5,
-      minWidth: 50,
       lineHeight: props.data.icon ? "4rem" : "auto",
     };
     if (props.primary) {
@@ -74,6 +79,7 @@ function Action(props) {
     return (
       <a
         id={id}
+        className="action"
         href={appurl(props.data.url) || "#"}
         onClick={onClick}
         style={style}
@@ -88,13 +94,13 @@ function Action(props) {
 
 function Dropdown(props) {
   function getListElement(e) {
-    var dropdown = e.target.parentNode.querySelector(".dropdown");
+    var dropdown = e.target.parentNode.querySelector(".dropdown ul");
     if (dropdown == null) {
-      dropdown = e.target.parentNode.parentNode.querySelector(".dropdown");
+      dropdown = e.target.parentNode.parentNode.querySelector(".dropdown ul");
     }
     if (dropdown == null) {
       dropdown =
-        e.target.parentNode.parentNode.parentNode.querySelector(".dropdown");
+        e.target.parentNode.parentNode.parentNode.querySelector(".dropdown ul");
     }
     return dropdown;
   }
@@ -106,7 +112,7 @@ function Dropdown(props) {
       const rect = e.target.getBoundingClientRect();
       // the user clicks in the icon
       document
-        .querySelectorAll(".dropdown")
+        .querySelectorAll(".dropdown ul")
         .forEach((dropdown) => (dropdown.style.display = "none"));
       dropdown.style.left = rect.left - 150 + rect.width + "px";
       dropdown.style.display = "block";
@@ -118,36 +124,43 @@ function Dropdown(props) {
     dropdown.style.display = "none";
   }
   function render() {
-    const ul = {
-      padding: 0,
-      position: "absolute",
-      width: 150,
-      left: 0,
-      textAlign: "center",
-      backgroundColor: "white",
-      boxShadow: "15px 15px 10px -15px #DDD",
-      display: "none",
-    };
-    const li = { listStyleType: "none", padding: 10 };
+    StyleSheet(`
+      .dropdown > div {
+        cursor: pointer;
+      }
+      .dropdown ul{
+        padding: 0px;
+        position: absolute;
+        width: 150px;
+        left: 0px;
+        text-align: center;
+        background-color: white;
+        box-shadow: 15px 15px 10px -15px #DDD;
+        display: none;
+      }
+      .dropdown li{
+        list-style-type: none;
+        padding: 10px;
+      }
+    `)
     return (
-      <>
+      <div className="dropdown">
         <div
           onClick={onClick}
-          style={{ cursor: "pointer" }}
           data-label={toLabelCase(props.dataLabel)}
         >
           {props.children}
         </div>
         {props.actions && props.actions.length > 0 && (
-          <ul style={ul} onMouseLeave={onMouseLeave} className="dropdown">
+          <ul onMouseLeave={onMouseLeave}>
             {props.actions.map((action) => (
-              <li style={li} key={Math.random()}>
+              <li key={Math.random()}>
                 <Action data={action} style={{ padding: 0 }} />
               </li>
             ))}
           </ul>
         )}
-      </>
+      </div>
     );
   }
   return render();

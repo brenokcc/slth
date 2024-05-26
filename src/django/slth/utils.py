@@ -1,4 +1,6 @@
-from django.conf import settings
+from django.template import Template, Context
+from django.template.engine import Engine
+
 
 def build_url(request, path=None):
     return path or request.path if request else ''
@@ -30,3 +32,7 @@ def append_url(url, *querystrings):
     if params:
         url = '{}?{}'.format(url, '&'.join([f'{k}={v}' for k, v in params.items()]))
     return url
+
+
+def parse_string_template(template, **data):
+    return Template(template, engine=Engine()).render(Context(data))

@@ -289,7 +289,7 @@ class Scheduler(dict):
     def __init__(
         self,
         start_time=7,
-        end_time=20,
+        end_time=23,
         chucks=2,
         start_day=None,
         days=14,

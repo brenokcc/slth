@@ -288,12 +288,12 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         return queryset.none()
     
     def on_profissional_change(self, controller, values):
-        controller.reload('horario_profissional_saude')
+        controller.reload('horarios_profissional_saude')
 
     def on_especialista_change(self, controller, values):
-        controller.reload('horario_profissional_saude')
+        controller.reload('horarios_profissional_saude')
 
-    def get_horario_profissional_saude_queryset(self, queryset, values):
+    def get_horarios_profissional_saude_queryset(self, queryset, values):
         profissional = values.get('profissional')
         especialista = values.get('especialista')
         if profissional:
