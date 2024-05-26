@@ -414,6 +414,7 @@ function Scheduler(props) {
   const BLOCKED = "rgb(246, 123, 135)";
   const SELECT = [];
   const DESELECT = []
+  const WEEKDAYS = ["DOM", "SEG", "TER", "QAR", "QUI", "SEX", "SAB"]
 
   function bgColor(value) {
     if (props.data.readonly){
@@ -447,16 +448,26 @@ function Scheduler(props) {
       return;
     }
     if (mouseDown && e.target.style.backgroundColor != BLOCKED) {
-      if (e.target.style.backgroundColor == FREE){
-        e.target.style.backgroundColor = SELECTED;
-        console.log('MARCOU', e.target.dataset.day, e.target.dataset.time);
-        SELECT.push([e.target.dataset.day, e.target.dataset.time]);
-      } else {
-        e.target.style.backgroundColor = FREE;
-        console.log('DEMARCOU', e.target.dataset.day, e.target.dataset.time);
-        DESELECT.push([e.target.dataset.day, e.target.dataset.time]);
+      const dayTokens = e.target.dataset.day.split("/");
+      const timeTokens = e.target.dataset.time.split(":");
+      const date = new Date(parseInt(dayTokens[2], 10), parseInt(dayTokens[1], 10) -1 , parseInt(dayTokens[0], 10), parseInt(timeTokens[0], 10), parseInt(timeTokens[1], 10));
+      if (date > new Date()) {
+        if (e.target.style.backgroundColor == FREE){
+          e.target.style.backgroundColor = SELECTED;
+          console.log('MARCOU', e.target.dataset.day, e.target.dataset.time);
+          SELECT.push([e.target.dataset.day, e.target.dataset.time]);
+        } else {
+          e.target.style.backgroundColor = FREE;
+          console.log('DEMARCOU', e.target.dataset.day, e.target.dataset.time);
+          DESELECT.push([e.target.dataset.day, e.target.dataset.time]);
+        }
       }
     }
+  }
+
+  function getWeekDay(date){
+    const tokens = date.split("/");
+    return WEEKDAYS[new Date(parseInt(tokens[2], 10), parseInt(tokens[1], 10) -1 , parseInt(tokens[0], 10)).getDay()]
   }
 
   function getSelections() {
@@ -494,7 +505,7 @@ function Scheduler(props) {
               {props.data.matrix[0].map(function (value) {
                 return (
                   <th className="bold" key={Math.random()} style={cell}>
-                    {value.text}
+                    {getWeekDay(value.text)}<br/>{value.text}
                   </th>
                 );
               })}

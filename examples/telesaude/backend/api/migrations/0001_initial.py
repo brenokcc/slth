@@ -33,10 +33,10 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('data', models.DateTimeField(blank=True)),
-                ('assunto', slth.db.models.CharField(max_length=200, verbose_name='Assunto')),
+                ('assunto', slth.db.models.CharField(max_length=200, verbose_name='Motivo')),
                 ('duvida', slth.db.models.TextField(max_length=2000, verbose_name='Dúvida/Queixa')),
                 ('duracao', slth.db.models.IntegerField(null=True, verbose_name='Duração')),
-                ('horario_excepcional', models.BooleanField(default=False, help_text='Marque essa opção caso deseje agendar em um horário fora da agenda do profissional.', verbose_name='Horário Exceptional')),
+                ('horario_excepcional', models.BooleanField(default=False, help_text='Marque essa opção caso deseje agendar em um horário fora da agenda do profissional.', verbose_name='Horário Excepcional')),
                 ('justificativa_horario_excepcional', slth.db.models.TextField(blank=True, help_text='Obrigatório para agendamentos em horário excepcional.', null=True, verbose_name='Justificativa do Horário')),
                 ('agendado_para', models.DateTimeField(blank=True, null=True, verbose_name='Data de Início')),
                 ('finalizado_em', models.DateTimeField(blank=True, null=True, verbose_name='Data de Término')),

@@ -223,6 +223,7 @@ function Timeline(props) {
       justifyContent: "space-between",
       marginTop: 10,
       alignItems: "flex-end",
+      
     };
     const info = {
       maxWidth: 100,
@@ -236,7 +237,7 @@ function Timeline(props) {
     };
     return (
       <div style={style}>
-        <div style={info}>{props.data.data[1].value}</div>
+        <div className="bold" style={info}>{props.data.data[1].value}</div>
         <div style={circle}></div>
       </div>
     );

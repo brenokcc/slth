@@ -312,10 +312,7 @@ class PessoaFisica(models.Model):
                     ("sexo", "telefone"),
                 ),
             )
-            .fieldset(
-                "Endereço",
-                ("endereco", ("numero", "cep"), ("bairro", "municipio"), "complemento"),
-            )
+            .fieldset("Endereço", (("cep", "bairro"), "endereco", ("numero", "municipio")))
         )
 
     def serializer(self):
@@ -330,10 +327,7 @@ class PessoaFisica(models.Model):
                     ("sexo", "telefone"),
                 ),
             )
-            .fieldset(
-                "Endereço",
-                ("endereco", ("numero", "cep"), ("bairro", "municipio"), "complemento"),
-            )
+            .fieldset("Endereço", (("cep", "bairro"), "endereco", ("numero", "municipio")))
         )
 
     def get_nome(self):
@@ -687,7 +681,7 @@ class Atendimento(models.Model):
     ciap = models.ManyToManyField(CIAP, verbose_name='CIAP')
 
     data = models.DateTimeField(blank=True)
-    assunto = models.CharField(verbose_name='Assunto',max_length=200)
+    assunto = models.CharField(verbose_name='Motivo',max_length=200)
     duvida = models.TextField(verbose_name='Dúvida/Queixa', max_length=2000)
     paciente = models.ForeignKey(
         "PessoaFisica", verbose_name='Paciente', related_name="atendimentos_paciente", on_delete=models.PROTECT
@@ -706,8 +700,10 @@ class Atendimento(models.Model):
         on_delete=models.SET_NULL,
         null=True, related_name='atendimento2'
     )
+    # horarios_profissional_saude = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True)
+    # horarios_especialista = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True)
     horario_excepcional = models.BooleanField(
-        verbose_name="Horário Exceptional",
+        verbose_name="Horário Excepcional",
         default=False,
         help_text="Marque essa opção caso deseje agendar em um horário fora da agenda do profissional.",
     )
@@ -818,7 +814,7 @@ class Atendimento(models.Model):
                     )
                 .parent()
                 .queryset('Anexos', 'get_anexos')
-                .queryset('Encaminhamentos/Condutas', 'get_condutas_ecaminhamentos', roles=('ps',))
+                .queryset('Encaminhamentos', 'get_condutas_ecaminhamentos', roles=('ps',))
             .parent()
         )
     
@@ -855,7 +851,9 @@ class Atendimento(models.Model):
     
     @meta('Encaminhamentos e Condutas')
     def get_condutas_ecaminhamentos(self):
-        return self.encaminhamentoscondutas_set.fields('data', 'subjetivo', 'objetivo', 'plano').timeline()
+        return self.encaminhamentoscondutas_set.fields(
+            'data', 'subjetivo', 'objetivo', 'avaliacao', 'plano', 'comentario', 'encaminhamento', 'conduta'
+        ).timeline()
 
     @meta('Duração')
     def duracao_webconf(self):
