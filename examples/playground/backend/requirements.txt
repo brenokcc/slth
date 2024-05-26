@@ -1,1 +1,2 @@
-pyslth
+slthlib
+slthcore

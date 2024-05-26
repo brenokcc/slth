@@ -1,0 +1,1 @@
+from slth import endpoints

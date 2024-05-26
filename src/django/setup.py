@@ -1,16 +1,13 @@
 import os
 from setuptools import find_packages, setup
 
-install_requires = open('requirements.txt').read().splitlines()
+install_requires = []
 
 setup(
-    name='pyslth',
-    version='0.5.0',
-    packages=find_packages(exclude=('xxx', 'xxx.*')),
+    name='slthcore',
+    version='0.0.3',
+    packages=find_packages(),
     install_requires=install_requires,
-    extras_require={
-        'dev': []
-    },
     include_package_data=True,
     license='BSD License',
     description='API generator based on yml file',

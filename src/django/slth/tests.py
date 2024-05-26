@@ -56,6 +56,9 @@ class HttpData:
     def clear(self):
         self.data.clear()
 
+    def urlencode(self):
+        return ''
+
 class HttpRequest:
     def __init__(self, querystring=None, data=None):
         self.path = ''

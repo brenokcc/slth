@@ -1,7 +1,7 @@
 **/backend/static
 **/django/static/
 src/django/slth/cmd/init/boilerplate/package-lock.json
-pyslth.egg-info
+slthcore.egg-info
 django/static
 media
 src/django/slth/static/js/react.min.js

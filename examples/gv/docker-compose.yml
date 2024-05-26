@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     build:
-      context: django
+      context: backend
       dockerfile: Dockerfile
     restart: always
     volumes:

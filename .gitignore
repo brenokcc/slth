@@ -1,7 +1,8 @@
 **/backend/static
 **/django/static/
 src/django/slth/cmd/init/boilerplate/package-lock.json
-pyslth.egg-info
+slthcore.egg-info
+slthcore.egg-info
 PKG-INFO
 SOURCES.txt
 media

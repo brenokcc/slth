@@ -9,4 +9,4 @@ ADD run.sh .
 ADD test.sh .
 ADD project project
 ADD application.yml .
-RUN pip install -U pyslth
+RUN pip install -U slthcore

@@ -75,7 +75,7 @@
 		"scope": "python",
 		"prefix": "None",
 		"body": [
-			"class $1(AdminEndpoint[$2]):",
+			"class $1(endpoints.AdminEndpoint[$2]):",
 			"    class Meta:",
 			"        verbose_name = '$3'",
 			"",
@@ -90,7 +90,7 @@
 		"prefix": "AddEndpoint",
 		"body": [
 			"",
-			"class Cadastrar$1(AddEndpoint[$2]):",
+			"class Cadastrar$1(endpoints.AddEndpoint[$2]):",
 			"    class Meta:",
 			"        verbose_name = 'Cadastrar $3'",
 			"",
@@ -108,7 +108,7 @@
 		"prefix": "EditEndpoint",
 		"body": [
 			"",
-			"class Editar$1(EditEndpoint[$2]):",
+			"class Editar$1(endpoints.EditEndpoint[$2]):",
 			"    class Meta:",
 			"        verbose_name = 'Editar $3'",
 			"",
@@ -126,7 +126,7 @@
 		"prefix": "ViewEndpoint",
 		"body": [
 			"",
-			"class Visualizar$1(ViewEndpoint[$2]):",
+			"class Visualizar$1(endpoints.ViewEndpoint[$2]):",
 			"    class Meta:",
 			"        verbose_name = 'Visualizar $3'",
 			"",
@@ -144,7 +144,7 @@
 		"prefix": "DeleteEndpoint",
 		"body": [
 			"",
-			"class Excluir$1(DeleteEndpoint[$2]):",
+			"class Excluir$1(endpoints.DeleteEndpoint[$2]):",
 			"    class Meta:",
 			"        verbose_name = 'Excluir $3'",
 			"",
