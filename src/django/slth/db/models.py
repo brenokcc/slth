@@ -2,7 +2,10 @@ from uuid import uuid1
 from django.db.models import Model as DjangoModel
 from django.db.models import *
 from django.utils.translation import gettext_lazy as _
+from . import generic
 from .. import ModelMixin
+
+GenericField = generic.GenericField
 
 class CharField(CharField):
     def __init__(self, *args, **kwargs):
@@ -138,3 +141,11 @@ class ImageField(ImageField):
 class Model(DjangoModel, ModelMixin):
     class Meta:
         abstract = True
+
+class Filter:
+
+    def get_label(self):
+        return None
+    
+    def choices(self, queryset):
+        return queryset

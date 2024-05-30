@@ -31,7 +31,7 @@ def to_snake_case(name):
     return slugify(name).replace('-', '_')
 
 
-def serialize(obj, primitive=False, request=None):
+def serialize(obj, primitive=False, request=None, logging=False):
     if obj is None:
         return None
     elif isinstance(obj, dict):
@@ -54,9 +54,15 @@ def serialize(obj, primitive=False, request=None):
     elif isinstance(obj, list):
         return [serialize(obj) for obj in obj]
     elif isinstance(obj, Model):
-        return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
+        if logging:
+            return f'{obj.pk}:{str(obj)}'
+        else:
+            return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
-        return [str(obj) for obj in obj.filter()] if primitive else obj.serialize()
+        if logging:
+            return [f'{obj.pk}:{str(obj)}' for obj in obj.filter()]
+        else:
+            return [str(obj) for obj in obj.filter()] if primitive else obj.serialize()
     elif isinstance(obj, ImageFieldFile) or isinstance(obj, FieldFile):
         return str(obj)
     elif hasattr(obj, 'serialize'):

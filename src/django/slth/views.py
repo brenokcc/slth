@@ -1,9 +1,10 @@
 
+import json
 import sys
 import slth
 import socket
 import traceback
-from django.conf import settings
+
 from .models import Token
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +14,7 @@ from .utils import build_url
 from slth import APPLICATON
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache, cache_control
+
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
@@ -41,14 +43,21 @@ def dispatcher(request, **kwargs):
             if cls:
                 try:
                     endpoint = cls(*kwargs.values()).contextualize(request)
-                    if True or endpoint.check_permission():
+                    if endpoint.check_permission():
+                        endpoint.start_audit_trail()
                         return endpoint.to_response()
-                    return ApiResponse({}, status=403)
+                    else:
+                        url = '/api/login/'
+                        if request.path != '/api/dashboard/':
+                            url = '{}?next={}'.format(url, request.get_full_path())
+                        return ApiResponse(dict(type="redirect", url=url), status=403)
                 except JsonResponseException as e:
                     return ApiResponse(e.data, safe=False)
                 except Exception as e:
                     traceback.print_exc() 
                     return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
+                finally:
+                    endpoint.start_audit_trail()
             else:
                 return ApiResponse({}, status=404)
 

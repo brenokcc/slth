@@ -1,18 +1,23 @@
 import re
 import os
 import yaml
+import json
 import warnings
 from pathlib import Path
+from datetime import datetime
 from django.apps import apps
 from django.db import models
 from .queryset import QuerySet
 from django.db.models import manager
-from .serializer import Serializer
+from .serializer import Serializer, serialize
+from django.db.models.deletion import Collector
 from .factory import FormFactory
 import django.db.models.options as options
 from django.db.models.base import ModelBase
 from django.core.exceptions import FieldDoesNotExist
 from django.utils.autoreload import autoreload_started
+from django.core import serializers
+from .threadlocal import tl
 
 warnings.filterwarnings('ignore', module='urllib3')
 
@@ -96,6 +101,77 @@ class ModelMixin(object):
     def post_save(self):
         pass
 
+    def safe_delete(self, username=None):
+        from .models import Deletion
+        order = []
+        objects = []
+        collector = Collector('default')
+        qs = type(self).objects.filter(pk=self.pk)
+        collector.collect(qs)
+        for instances in collector.data.values():
+            for instance in instances:
+                if instance.__class__.__name__ not in ['Log'] and instance not in objects:
+                    objects.append(instance)
+                    if instance.__class__.__name__ not in order:
+                        order.append(instance.__class__.__name__)
+        for qs in collector.fast_deletes:
+            for instance in qs:
+                if instance.__class__.__name__ not in ['Log'] and instance not in objects:
+                    objects.append(instance)
+                    if instance.__class__.__name__ not in order:
+                        order.append(instance.__class__.__name__)
+        backup  = json.dumps(dict(order=order, objects=serializers.serialize("python", objects)))
+        instance = '{}.{}:{}'.format(self._meta.app_label, self._meta.model_name, self.pk)
+        Deletion.objects.create(username=username, datetime=datetime.now(), instance=instance, backup=backup)
+        return self.delete()
+
+
+def save_decorator(func):
+    
+    def decorate(self, *args, **kwargs):
+        diff = {}
+        if self.pk:
+            action = 'edit'
+            obj = type(self).objects.filter(pk=self.pk).first()
+            if obj:
+                for field in self._meta.fields:
+                    a = getattr(obj, field.name)
+                    b = getattr(self, field.name)
+                    if a != b:
+                        diff[field.verbose_name] = (serialize(a), serialize(b))
+        else:
+            action = 'add'
+            for field in self._meta.fields:
+                b = getattr(self, field.name)
+                if b is not None:
+                    diff[field.verbose_name] = (None, serialize(b))
+        func(self, *args, **kwargs)
+        if diff:
+            model = '{}.{}'.format(self._meta.app_label, self._meta.model_name)
+            log = dict(model=model, pk=self.pk, action=action, diff=diff)
+            context = getattr(tl, 'context', None)
+            if context:
+                context['logs'].append(log)
+
+    return decorate
+
+
+def delete_decorator(func):
+    def decorate(self, *args, **kwargs):
+        diff = {}
+        for field in self._meta.fields:
+            a = getattr(self, field.name)
+            diff[field.verbose_name] = (a, None)
+        log = dict(model='{}.{}'.format(
+            self._meta.app_label, self._meta.model_name), action='delete', diff=diff
+        )
+        context = getattr(tl, 'context', None)
+        if context:
+            context['logs'].append(log)
+        func(self, *args, **kwargs)
+
+    return decorate
+
 
 ___new___ = ModelBase.__new__
 
@@ -115,6 +191,9 @@ def __new__(mcs, name, bases, attrs, **kwargs):
     cls = ___new___(mcs, name, bases, attrs, **kwargs)
     if cls._meta.proxy_for_model:
         PROXIED_MODELS.append(cls._meta.proxy_for_model)
+    if name == 'Model':
+        cls.save = save_decorator(cls.save)
+        cls.delete = delete_decorator(cls.delete)
     return cls
 
 

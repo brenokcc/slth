@@ -82,7 +82,7 @@ class Especialidades(endpoints.AdminEndpoint[Especialidade]):
 
 class PessoasFisicas(endpoints.AdminEndpoint[PessoaFisica]):
     def get(self):
-        return super().get().actions(add='cadastrarpessoafisica')
+        return super().get()
     def check_permission(self):
         return self.check_role('a')
 
@@ -308,6 +308,60 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
     def check_permission(self):
         return self.check_role('o')
 
+
+class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
+    class Meta:
+        icon = 'plus'
+        modal = False
+        verbose_name = 'Cadastrar Teleconsulta'
+
+    def get(self):
+        return (
+            self
+            .formfactory()
+            .fieldset("Dados Gerais", ("tipo", "profissional"),)
+            .fieldset(
+                "Detalhamento",
+                (
+                    "paciente:cadastrarpessoafisica",
+                    "assunto",
+                    "duvida",
+                    ("cid", "ciap"),
+                ),
+            )
+            .fieldset(
+                "Agendamento",
+                (
+                    "especialista:consultaragenda",
+                    "agendado_para",
+                ),
+            )
+        )
+    
+    def get_unidade_queryset(self, queryset, values):
+        return queryset
+    
+    def on_tipo_change(self, controller, values):
+        tipo = values.get('tipo')
+        if tipo and tipo.id == TipoAtendimento.TELETERCONSULTA:
+            controller.show('especialista')
+        else:
+            controller.hide('especialista')
+    
+    def get_profissional_queryset(self, queryset, values):
+        return queryset
+    
+    def get_especialista_queryset(self, queryset, values):
+        return queryset
+    
+    def on_profissional_change(self, controller, values):
+        pass
+
+    def on_especialista_change(self, controller, values):
+        pass
+    
+    def check_permission(self):
+        return self.check_role('ps')
 
 
 class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
@@ -547,3 +601,14 @@ class Estatistica(endpoints.PublicEndpoint):
     def check_permission(self):
         return self.check_role('g', 'gm', 'gu')
 
+
+from . import tasks
+class FazerAlgumaCoisa(endpoints.Endpoint):
+    total = forms.IntegerField(label='Total')
+
+    class Meta:
+        modal = False
+    
+    def post(self):
+        print(self.cleaned_data['total'], 888)
+        return tasks.FazerAlgumaCoisa()

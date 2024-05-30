@@ -150,7 +150,7 @@ function Application(props) {
                 position={{}}
                 dataLabel="plus"
               >
-                <Icon icon="plus" />
+                <Icon icon="plus" style={{ cursor: "pointer", color: Theme.colors.primary }}/>
               </Dropdown>
             </div>
           )}
@@ -205,7 +205,7 @@ function Application(props) {
                 position={{}}
                 dataLabel="tools"
               >
-                <Icon icon="tools" />
+                <Icon icon="tools" style={{ cursor: "pointer", color: Theme.colors.primary }}/>
               </Dropdown>
             </div>
           )}
@@ -216,7 +216,7 @@ function Application(props) {
                 position={{}}
                 dataLabel="gear"
               >
-                <Icon icon="gear" />
+                <Icon icon="gear" style={{ cursor: "pointer", color: Theme.colors.primary }}/>
               </Dropdown>
             </div>
           )}

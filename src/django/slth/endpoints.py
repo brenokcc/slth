@@ -1,7 +1,8 @@
 import json
 import types
 import inspect
-from .models import Token
+
+from .models import Token, Role, Log, Deletion
 from django.apps import apps
 from typing import TypeVar, Generic
 from django.core.cache import cache
@@ -13,6 +14,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .factory import FormFactory
 from django.core.exceptions import ValidationError
 from slth import forms
+from django.db.models import Model
+from datetime import datetime
 from django.contrib.auth import authenticate
 from .forms import ModelForm, Form
 from .serializer import serialize, Serializer
@@ -27,10 +30,12 @@ from .components import (
 )
 from .exceptions import JsonResponseException
 from .utils import build_url, append_url
-from .models import PushSubscription, Profile, User
+from .models import PushSubscription, Profile, User, Log
 from slth.queryset import QuerySet
 from slth import APPLICATON, ENDPOINTS
 from . import oauth
+from .tasks import Task, TaskRunner
+from .threadlocal import tl
 
 
 T = TypeVar("T")
@@ -114,13 +119,20 @@ class Endpoint(metaclass=EnpointMetaclass):
         return apps.get_model(model).objects
 
     def get(self):
-        return {}
+        fields = []
+        for name in dir(self):
+            if isinstance(getattr(self, name), forms.Field):
+                fields.append(name)
+        return self.formfactory().fields(*fields) if fields else {}
 
     def post(self):
         return Response(message="Ação realizada com sucesso")
 
     def check_permission(self):
         return self.request.user.is_superuser
+    
+    def contribute(self, entrypoint):
+        return True
 
     def check_role(self, *names, superuser=True):
         if self.request.user.is_superuser and superuser:
@@ -169,7 +181,11 @@ class Endpoint(metaclass=EnpointMetaclass):
         return data
 
     def serialize(self):
-        return serialize(self.process())
+        output = self.process()
+        if isinstance(output, Task):
+            TaskRunner(output).start()
+            output = Response(f'Tarefa {output.key} iniciada.', task=output.key)
+        return serialize(output)
 
     def to_response(self):
         return ApiResponse(self.serialize(), safe=False)
@@ -225,7 +241,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         args = inspect.getfullargspec(cls.__init__).args[1:]
         pattern = "{}/".format(cls.get_api_name())
         for arg in args:
-            pattern = "{}{}/".format(pattern, "<int:{}>".format(arg))
+            pattern = "{}{}/".format(pattern, "<str:{}>".format(arg))
         return pattern
 
     @classmethod
@@ -269,7 +285,29 @@ class Endpoint(metaclass=EnpointMetaclass):
 
     def get_verbose_name(self):
         return self.get_metadata("verbose_name")
+    
+    def get_instance(self):
+        return None
+    
+    def start_audit_trail(self):
+        instance = self.get_instance()
+        pk = instance.pk if isinstance(instance, Model) else None
+        tl.context = dict(
+            endpoint = self.get_api_name(), model=None, pk=pk,
+            datetime=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+            user=self.request.user.username if self.request.user.is_authenticated else None,
+            url=self.request.get_full_path(), logs=[]
+        )
 
+    def finish_audit_trail(self):
+        if hasattr(tl, 'context') and tl.context['logs']:
+            pk = tl.context['pk']
+            instance = self.get_instance()
+            print(tl.context)
+            if pk or isinstance(instance, Model):
+                model = '{}.{}'.format(instance._meta.app_label, instance._meta.model_name)
+                tl.context.update(model=model, pk=pk or instance.pk)
+            Log.objects.create(data=tl.context)
 
 class PublicEndpoint(Endpoint):
     def check_permission(self):
@@ -308,7 +346,7 @@ class AdminEndpoint(Generic[T], ModelEndpoint):
 
 class ListEndpoint(Generic[T], ModelEndpoint):
     def get(self) -> QuerySet:
-        return self.model.objects.contextualize(self.request)
+        return self.model.objects#.contextualize(self.request)
 
 
 class AddEndpoint(Generic[T], ModelEndpoint):
@@ -317,10 +355,13 @@ class AddEndpoint(Generic[T], ModelEndpoint):
         self.instance = self.model()
 
     def get(self) -> FormFactory:
-        return self.model().formfactory()
+        return self.formfactory()
 
     def get_instance(self):
         return self.instance
+    
+    def formfactory(self):
+        return self.instance.formfactory()
 
 
 class ModelInstanceEndpoint(ModelEndpoint):
@@ -365,7 +406,7 @@ class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
         return self.formfactory(self.get_instance()).fields()
 
     def post(self):
-        self.get_instance().delete()
+        self.get_instance().safe_delete(self.request.user.username)
         return super().post()
 
 
@@ -467,7 +508,7 @@ class Login(PublicEndpoint):
             token = Token.objects.create(user=user)
             return Response(
                 message="Bem-vindo!",
-                redirect="/api/dashboard/",
+                redirect=self.request.GET.get("next", "/api/dashboard/"),
                 store=dict(token=token.key, application=None),
             )
         else:
@@ -493,13 +534,58 @@ class Logout(Endpoint):
 class Icons(PublicEndpoint):
     class Meta:
         modal = True
-        verbose_name = "Icons"
+        verbose_name = "Ícones"
 
     def get(self):
         return IconSet()
 
     def check_permission(self):
         return settings.DEBUG
+    
+    def contribute(self, entrypoint):
+        return self.request.user.is_authenticated
+    
+
+class Roles(ListEndpoint[Role]):
+    class Meta:
+        modal = False
+        verbose_name = 'Papéis dos Usuários'
+    
+    def get(self):
+        return super().get().all()
+
+class Logs(ListEndpoint[Log]):
+    class Meta:
+        modal = False
+        verbose_name = 'Histórico de Alterações'
+    
+    def get(self):
+        return super().get().all()
+    
+
+class Deletions(ListEndpoint[Deletion]):
+    class Meta:
+        modal = False
+        verbose_name = 'Exclusões'
+    
+    def get(self):
+        return super().get().all()
+
+
+class RestoreDeletion(InstanceEndpoint[Deletion]):
+    class Meta:
+        verbose_name = 'Restaurar'
+
+    def get(self):
+        return (super().formfactory().fields())
+    
+    def post(self):
+        self.instance.restore()
+        return super().post()
+    
+    def check_permission(self):
+        return super().check_permission() and not self.instance.restored
+
 
 
 class Search(Endpoint):
@@ -590,38 +676,35 @@ class Dashboard(Endpoint):
         verbose_name = ""
 
     def get(self):
-        if self.request.user.is_authenticated:
-            serializer = Serializer(request=self.request)
-            if APPLICATON["dashboard"]["boxes"]:
-                boxes = Boxes("Acesso Rápido")
-                for endpoint in APPLICATON["dashboard"]["boxes"]:
-                    cls = ENDPOINTS[endpoint]
-                    if cls().contextualize(self.request).check_permission():
-                        icon = cls.get_metadata("icon", "check")
-                        label = cls.get_metadata("verbose_name")
-                        url = build_url(self.request, cls.get_api_url())
-                        boxes.append(icon, label, url)
-                serializer.append("Acesso Rápido", boxes)
-            if APPLICATON["dashboard"]["top"]:
-                group = serializer.group("Top")
-                for endpoint in APPLICATON["dashboard"]["top"]:
-                    cls = ENDPOINTS[endpoint]
-                    if cls.instantiate(
-                        self.request, self.request.user
-                    ).check_permission():
-                        group.endpoint(
-                            cls.get_metadata("verbose_name"), cls, wrap=False
-                        )
-                group.parent()
-            if APPLICATON["dashboard"]["center"]:
-                for endpoint in APPLICATON["dashboard"]["center"]:
-                    cls = ENDPOINTS[endpoint]
-                    serializer.endpoint(
+        serializer = Serializer(request=self.request)
+        if APPLICATON["dashboard"]["boxes"]:
+            boxes = Boxes("Acesso Rápido")
+            for endpoint in APPLICATON["dashboard"]["boxes"]:
+                cls = ENDPOINTS[endpoint]
+                if cls().contextualize(self.request).check_permission():
+                    icon = cls.get_metadata("icon", "check")
+                    label = cls.get_metadata("verbose_name")
+                    url = build_url(self.request, cls.get_api_url())
+                    boxes.append(icon, label, url)
+            serializer.append("Acesso Rápido", boxes)
+        if APPLICATON["dashboard"]["top"]:
+            group = serializer.group("Top")
+            for endpoint in APPLICATON["dashboard"]["top"]:
+                cls = ENDPOINTS[endpoint]
+                if cls.instantiate(
+                    self.request, self.request.user
+                ).check_permission():
+                    group.endpoint(
                         cls.get_metadata("verbose_name"), cls, wrap=False
                     )
-            return serializer
-        else:
-            self.redirect("/api/login/")
+            group.parent()
+        if APPLICATON["dashboard"]["center"]:
+            for endpoint in APPLICATON["dashboard"]["center"]:
+                cls = ENDPOINTS[endpoint]
+                serializer.endpoint(
+                    cls.get_metadata("verbose_name"), cls, wrap=False
+                )
+        return serializer
 
     def check_permission(self):
         return self.request.user.is_authenticated
@@ -646,14 +729,16 @@ class Application(PublicEndpoint):
         )
         for entrypoint in ["actions", "usermenu", "adder", "settings", "tools", "toolbar"]:
             if APPLICATON["dashboard"][entrypoint]:
-                for endpoint in APPLICATON["dashboard"][entrypoint]:
-                    cls = ENDPOINTS[endpoint]
-                    if cls().instantiate(self.request, self).check_permission():
+                for endpoint_name in APPLICATON["dashboard"][entrypoint]:
+                    cls = ENDPOINTS[endpoint_name]
+                    endpoint = cls().instantiate(self.request, self)
+                    if endpoint.check_permission() and endpoint.contribute(entrypoint):
                         label = cls.get_metadata("verbose_name")
                         url = build_url(self.request, cls.get_api_url())
                         modal = cls.get_metadata("modal", False)
                         icon = cls.get_metadata("icon", None)
                         navbar.add_action(entrypoint, label, url, modal, icon=icon)
+        
         if APPLICATON["menu"]:
             items = []
 
@@ -670,7 +755,8 @@ class Application(PublicEndpoint):
                 else:
                     cls = ENDPOINTS.get(v)
                     if cls:
-                        if cls().instantiate(self.request, self).check_permission():
+                        endpoint = cls().instantiate(self.request, self)
+                        if endpoint.check_permission() and endpoint.contribute("menu"):
                             icon, label = k.split(":") if ":" in k else (None, k)
                             url = build_url(self.request, cls.get_api_url())
                             return dict(dict(label=label, url=url, icon=icon))
@@ -806,3 +892,13 @@ class EditProfile(Endpoint):
 class About(PublicEndpoint):
     def get(self):
         return dict(version=APPLICATON["version"])
+    
+class TaskProgress(PublicEndpoint):
+
+    def __init__(self, key):
+        self.key = key
+        super().__init__()
+
+    def get(self):
+        return cache.get(self.key)
+

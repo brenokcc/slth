@@ -24,12 +24,15 @@ application:
       - consultas
     search:
     usermenu:
-      - icons
-      - users
       - logout
     adder:
     tools:
     settings:
+      - icons
+      - logs
+      - users
+      - roles
+      - deletions
   menu:
     house:Início: dashboard
     user:Administradores: administradores

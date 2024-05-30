@@ -12,7 +12,7 @@ from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
 from django.core.signing import Signer
 from slth.db import models, meta, role
-from slth.models import User
+from slth.models import User, RoleFilter
 from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge
 
 
@@ -270,7 +270,7 @@ class Especialidade(models.Model):
 
 class PessoaFisicaQueryset(models.QuerySet):
     def all(self):
-        return self.search("nome", "cpf").fields("nome", "cpf")
+        return self.search("nome", "cpf").fields("nome", "cpf").filters('municipio', papel=RoleFilter('cpf'))
 
 class PessoaFisica(models.Model):
 

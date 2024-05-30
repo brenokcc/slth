@@ -1396,15 +1396,31 @@ function Form(props) {
             document.location.href = appurl(data.redirect);
           } else {
             if (data.message) showMessage(data.message);
-            if (data.redirect == ".."){
-              if(document.getElementsByTagName("dialog").length == 0) history.back();
-              else closeDialog();
+            if (data.task){
+              const tmp = e.target.innerHTML;
+              e.target.innerHTML = "Aguarde... (0%)"
+              function updateProgress(){
+                request('GET', '/api/taskprogress/'+data.task+'/', function callback(task) {
+                    if(task==null || task.progress == 100){
+                      e.target.innerHTML = tmp;
+                    } else {
+                      e.target.innerHTML = "Aguarde... ("+task.progress+"%)";
+                      setTimeout(updateProgress, 5000);
+                    }
+                })
+              }
+              updateProgress();
+            } else {
+              if (data.redirect == ".."){
+                if(document.getElementsByTagName("dialog").length == 0) history.back();
+                else closeDialog();
+              }
+              if (data.redirect == "."){
+                form.reset();
+              }
+              if (data.dispose) form.style.display = "none";
+              reloadState();
             }
-            if (data.redirect == "."){
-              form.reset();
-            }
-            if (data.dispose) form.style.display = "none";
-            reloadState();
           }
         } else if (data.type == "error") {
           var message = data.text;

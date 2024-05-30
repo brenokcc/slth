@@ -25,7 +25,7 @@ function apiurl(path) {
 }
 
 function appurl(path) {
-  return path.replace("/api/", "/app/");
+  return path.replaceAll("/api/", "/app/");
 }
 
 function request(method, path, callback, data) {

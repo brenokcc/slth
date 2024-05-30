@@ -155,7 +155,7 @@ function Dropdown(props) {
           <ul onMouseLeave={onMouseLeave}>
             {props.actions.map((action) => (
               <li key={Math.random()}>
-                <Action data={action} style={{ padding: 0 }} />
+                <Action data={action} style={{ padding: 0, whiteSpace: "normal" }} />
               </li>
             ))}
           </ul>

@@ -1,17 +1,55 @@
 import os
+import json
 import binascii
 from .db import models, meta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.apps import apps
 from datetime import datetime
 from django.utils.html import strip_tags
+from django.core import serializers
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
 from slth import APPLICATON
 
+
+class RoleFilter(models.Filter):
+    def __init__(self, username_field):
+        self.username_field = username_field
+
+    def get_label(self):
+        return 'Papel'
+
+    def choices(self, queryset, term=None):
+        return [(k, v) for k, v in APPLICATON['groups'].items()]
+     
+    def filter(self, queryset, value):
+        if value:
+            usernames = Role.objects.filter(name=value).values_list('username', flat=True)
+            queryset = queryset.filter(**{f'{self.username_field}__in': usernames})
+        return queryset
+
+class RoleUserFilter(models.Filter):
+    def get_label(self):
+        return 'Usuário'
+    
+    def choices(self, queryset, term=None):
+        if term:
+            queryset = queryset.filter(username__icontains=term)
+        usernames = queryset.values_list('username', flat=True).distinct()
+        return User.objects.filter(username__in=usernames)
+     
+    def filter(self, queryset, value):
+        if value:
+            queryset = queryset.filter(username=User.objects.get(pk=value).username)
+        return queryset
+
 class RoleQuerySet(models.QuerySet):
+
+    def all(self):
+        return self.fields('username', 'get_verbose_name', 'get_scope_value').filters(user=RoleUserFilter())
 
     def contains(self, *names):
         _names = getattr(self, '_names', None)
@@ -192,4 +230,89 @@ class User(User):
     @meta('Papéis')
     def get_roles(self):
         return Role.objects.filter(username=self.username).fields('get_description').actions('delete')
+
+
+class LogQuerySet(models.QuerySet):
+    def all(self):
+        return self.search('username').fields(('username', 'endpoint', 'datetime'), 'data').order_by('-id')
+
+
+class Log(models.Model):
+    username = models.CharField(max_length=50, db_index=True, null=True)
+    endpoint = models.CharField(verbose_name='Nome do Endpoint', db_index=True, null=True)
+    instance = models.CharField(verbose_name='Instância', max_length=50, db_index=True, null=True)
+    action = models.CharField(verbose_name='Ação', db_index=True, null=True)
+    datetime = models.DateTimeField(verbose_name='Data/Hora', null=True)
+    url = models.CharField(verbose_name='URL', null=True)
+    data = models.TextField(verbose_name='Dados')
+
+    class Meta:
+        verbose_name = 'Log'
+        verbose_name_plural = 'Logs'
+
+    objects = LogQuerySet()
+
+    def __str__(self):
+        return f'Log #{self.id}'
+
+
+class DeletionQuerySet(models.QuerySet):
+    def all(self):
+        return self.fields(('username', 'datetime', 'instance'), 'backup').search('username', 'instance').filters('datetime', 'restored').actions('restoredeletion').order_by('-id')
+
+
+
+class Deletion(models.Model):
+    username = models.CharField(max_length=50, db_index=True, null=True)
+    datetime = models.DateTimeField(verbose_name='Data/Hora', null=True)
+    instance = models.CharField(verbose_name='Instância', max_length=50, db_index=True, null=True)
+    restored = models.BooleanField(verbose_name='Restaurado', default=False)
+    backup = models.TextField(verbose_name='Backup')
+
+    class Meta:
+        verbose_name = 'Exclusão'
+        verbose_name_plural = 'Exclusões'
+
+    objects = DeletionQuerySet()
+
+    def __str__(self):
+        return f'Exclusão #{self.id} - f{self.instance}'
+    
+    def restore(self):
+        backup = json.loads(self.backup)
+        data = {}
+        objects = []
+        for name in backup['order']:
+            data[name] = []
+
+        for obj in serializers.deserialize("python", backup['objects']):
+            if backup['order']:
+                if obj.object.__class__.__name__ in data:
+                    data[obj.object.__class__.__name__].append(obj.object)
+                    if obj.object.__class__ not in objects:
+                        objects.append(obj.object.__class__)
+            else:
+                if not obj.object.__class__.__name__ in data:
+                    data[obj.object.__class__.__name__] = []
+                data[obj.object.__class__.__name__].append(obj.object)
+                if obj.object.__class__ not in objects:
+                    objects.append(obj.object.__class__)
+
+        with transaction.atomic():
+            for key in data:
+                print((key, len(data[key])))
+                for obj in data[key]:
+                    obj.save()
+            self.restored = True
+            self.save()
+
+
+
+# class Task(models.Model):
+#     total = models.IntegerField(verbose_name='Total', default=0)
+#     partial = models.IntegerField(verbose_name='Parcial', default=0)
+#     progress = models.IntegerField(verbose_name='Progresso', default=0)
+#     error = models.TextField(verbose_name='Erro', null=True)
+#     file = models.CharField(verbose_name='Arquivo')
+#     key = models.CharField(verbose_name='UUID')
 

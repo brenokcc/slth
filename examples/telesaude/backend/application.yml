@@ -45,8 +45,10 @@ application:
       - unidades
       - profissionaissaude
       - atendimentos
+      - cadastraratendimentops
       - agendaatendimentos
       - estatistica
+      - fazeralgumacoisa
     adder:
       - fazeralgo
     search:

@@ -272,3 +272,4 @@ class Legislacao(models.Model):
             ):
                 raise ValidationError("Já existe uma resolução com esse número")
         super().save(*args, **kwargs)
+

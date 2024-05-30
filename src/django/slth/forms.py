@@ -440,7 +440,7 @@ class FormMixin:
                         inline_form = inline_field.form(
                             data=inline_form_data,
                             instance=instance,
-                            request=self.request,
+                            endpoint=self._endpoint,
                         )
                         if inline_form.is_valid():
                             if isinstance(inline_form, DjangoModelForm):
@@ -520,7 +520,6 @@ class Form(DjangoForm, FormMixin):
         self.request = endpoint.request
         self.controller = FormController(self)
         self.instance = kwargs.pop("instance", None)
-
         self.parse_json()
         if "data" not in kwargs:
             if self.request.method.upper() == "GET":

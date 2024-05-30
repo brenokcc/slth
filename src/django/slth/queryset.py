@@ -62,8 +62,9 @@ class QuerySet(models.QuerySet):
             self.metadata['search'] = [name if '__' in name else '{}__icontains'.format(name) for name in names]
         return self
 
-    def filters(self, *names):
+    def filters(self, *names, **kwargs):
         self.metadata['filters'] = names
+        self.metadata['custom_filters'] = kwargs
         return self
 
     def actions(self, *names, **replacement):
@@ -161,30 +162,29 @@ class QuerySet(models.QuerySet):
                     raise JsonResponseException(endpoint.serialize())
                 raise Exception()
 
+        
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
-            if lookup.endswith('userrole'):
-                from api.models import Role
-                rolename = qs.parameter('userrole')
-                if rolename:
-                    qs = qs.filter(
-                        **{'{}__in'.format(lookup[0:-10]):
-                        Role.objects.filter(name=rolename).values_list('username', flat=True)}
-                    )
-            elif request and lookup in request.GET and lookup != choices_field_name:
+            if request and lookup in request.GET and lookup != choices_field_name:
                 qs = qs.apply_filter(lookup, request.GET[lookup])
+        custom_filters = qs.metadata.get('custom_filters', {})
+        for lookup in custom_filters:
+            if request and lookup in request.GET and lookup != choices_field_name:
+                qs = custom_filters[lookup].filter(qs, request.GET[lookup])
         search = qs.metadata.get('search', ())
         if request and search and 'q' in request.GET:
             qs = qs.apply_search(request.GET['q'], search)
 
         if choices_field_name:
-            field = qs.model.get_field(choices_field_name)
-            choices = field.related_model.objects.filter(pk__in=qs.values_list(choices_field_name, flat=True))
             term = self.request.GET.get('term')
-            if term:
-                choices = choices.apply_search(term)
+            if choices_field_name in custom_filters:
+                choices = custom_filters[choices_field_name].choices(self, term)
+            else:
+                field = qs.model.get_field(choices_field_name)
+                choices = field.related_model.objects.filter(pk__in=qs.values_list(choices_field_name, flat=True))
+                if term:
+                    choices = choices.apply_search(term)
             raise JsonResponseException([dict(id=obj.id, value=str(obj).strip()) for obj in choices[0:20]])
-
 
         return qs
 
@@ -280,13 +280,14 @@ class QuerySet(models.QuerySet):
             search.append(name)
 
         for lookup in qs.metadata.get('filters', ()):
-            if lookup.endswith('userrole'):
-                field = self.role_filter_field()
-            else:
-                field = self.filter_field(lookup, base_url)
+            field = self.filter_field(lookup, base_url)
             if field:
                 filters.append(field)
-
+        for filtername, filter in qs.metadata.get('custom_filters', {}).items():
+            field = self.custom_filter_field(filtername, filter, base_url)
+            if field:
+                filters.append(field)
+        
         total = qs.count()
         for name in self.metadata.get('subsets', ()):
             attr = getattr(self, name)
@@ -389,11 +390,18 @@ class QuerySet(models.QuerySet):
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data
     
-    def role_filter_field(self):
-        value = self.parameter('userrole')
-        choices = [{'id': '', 'text': ''}]
-        choices.extend({'id': k, 'text': v} for k, v in ['adm', 'Administrador'])
-        return dict(name='userrole', type='choice', value=value, label='Papel', required=False, mask=None, choices=choices)
+    def custom_filter_field(self, name, filter, base_url):
+        options = filter.choices(self)
+        value = self.parameter(name)
+        if isinstance(options, list) or isinstance(options, tuple):
+            field_type = 'choice'
+            choices = [{'id': '', 'value':''}]
+            choices.extend([{'id': k, 'value': v} for k, v in options])
+            choices.append({'id': 'null', 'value':'Nulo'})
+        else:
+            field_type = 'choice'
+            choices = append_url(base_url, f'choices={name}')
+        return dict(name=name, type=field_type, value=value, label=filter.get_label(), required=False, mask=None, choices=choices)
 
     def filter_field(self, lookups, base_url):
         name = lookups.strip()
