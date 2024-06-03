@@ -49,7 +49,7 @@ class OpenAIService:
         attachments = []
         for file_id in file_ids:
             attachments.append({ "file_id": file_id, "tools": [{"type": "file_search"}] })
-        thread = self.client.beta.threads.create(messages=[{"role": "user", "content": question, "attachments": attachments,}])
+        thread = self.client.beta.threads.create(messages=[{"role": "user", "content": question, "attachments": attachments[0:10],}])
         run = self.client.beta.threads.runs.create_and_poll(thread_id=thread.id, assistant_id=assistant_id)
         for i in range(1, 5):
             print('Waiting for the response...')

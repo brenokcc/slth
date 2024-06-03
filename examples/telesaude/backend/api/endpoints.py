@@ -319,7 +319,7 @@ class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
         return (
             self
             .formfactory()
-            .fieldset("Dados Gerais", ("tipo", "profissional"),)
+            .fieldset("Dados Gerais", ("unidade", "tipo", "profissional"),)
             .fieldset(
                 "Detalhamento",
                 (
@@ -335,7 +335,7 @@ class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
                     "especialista:consultaragenda",
                     "agendado_para",
                 ),
-            )
+            ).hidden('especialista')
         )
     
     def get_unidade_queryset(self, queryset, values):
@@ -349,9 +349,10 @@ class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
             controller.hide('especialista')
     
     def get_profissional_queryset(self, queryset, values):
-        return queryset
+        return queryset.filter(pessoa_fisica__cpf=self.request.user.username)
     
     def get_especialista_queryset(self, queryset, values):
+
         return queryset
     
     def on_profissional_change(self, controller, values):
