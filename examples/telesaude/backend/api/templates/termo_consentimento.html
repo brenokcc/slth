@@ -11,7 +11,7 @@
     {% if atendimento.especialista_id %}
         e ao especialista <span class="bold">{{ atendimento.especialista.pessoa_fisica.nome }}</span> inscrito no CRM sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span> e RQE sob o nº <span class="bold">{{ atendimento.profissional.registro_especialista }}</span>,
     {% endif %}
-    para realizar o atendimento de teleinterconsulta e declaro que:
+    para realizar o atendimento de {{ atendimento.tipo }} e declaro que:
 </p>
 
 <ol>

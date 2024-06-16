@@ -1,11 +1,13 @@
-import os
-from datetime import date, timedelta
+import sys
 from unittest import skipIf
 from django.apps import apps
 from django.core.cache import cache
 from django.core.management import call_command
 from .selenium import SeleniumTestCase
 from django.contrib.auth.models import User
+
+
+RUNNING_TESTING = 'integration_test'  in sys.argv
 
 
 # @skipIf(os.environ.get("FRONTEND_PROJECT_DIR") is None, "FRONTEND_PROJECT_DIR is not set")

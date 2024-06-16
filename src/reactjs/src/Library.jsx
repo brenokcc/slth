@@ -545,6 +545,7 @@ function Scheduler(props) {
                             onMouseUp={onMouseOver}
                             data-day={props.data.matrix[0][j].text}
                             data-time={row[0].text}
+                            data-label={props.data.matrix[0][j].text+ " " +row[0].text}
                           >
                             {value && value.text && <Tooltip text={value.text}><Icon icon={value.icon || "stethoscope"} style={{color: "white", cursor: "help"}}/></Tooltip>}
                           </td>

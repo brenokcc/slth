@@ -241,7 +241,7 @@ class Especialidade(models.Model):
         return self.profissionalsaude_set.count()
 
     def __str__(self):
-        return "%s - %s" % (self.cbo, self.nome)
+        return self.nome
 
 
 class PessoaFisicaQueryset(models.QuerySet):
@@ -550,7 +550,7 @@ class AtendimentoQuerySet(models.QuerySet):
         )
     
     def proximos(self):
-        return self.filter(agendado_para__gte=datetime.now())
+        return self.filter(agendado_para__gte=datetime.now(), finalizado_em__isnull=True)
     
     @meta('Total de Atendimentos')
     def get_total(self):
@@ -670,7 +670,7 @@ class Atendimento(models.Model):
             return self.termo_assinado_paciente
         if self.profissional.pessoa_fisica.cpf == user.username:
             return self.termo_assinado_profissional
-        if self.especialista.pessoa_fisica.cpf == user.username:
+        if self.especialista_id and self.especialista.pessoa_fisica.cpf == user.username:
             return self.termo_assinado_especialista
         return False
     
@@ -679,7 +679,7 @@ class Atendimento(models.Model):
             self.termo_assinado_paciente = True
         if self.profissional.pessoa_fisica.cpf == user.username:
             self.termo_assinado_profissional = True
-        if self.especialista.pessoa_fisica.cpf == user.username:
+        if self.especialista_id and self.especialista.pessoa_fisica.cpf == user.username:
             self.termo_assinado_especialista = True
         self.save()
 
@@ -924,14 +924,14 @@ class EncaminhamentosCondutas(models.Model):
     # Método SOAP - Subjetivo, Objetivo, Avaliação, Plano
     subjetivo = models.TextField(verbose_name='S - subjetivo', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro da parte subjetiva da anamnese da consulta, ou seja, os dados dos sentimentos e percepções do cidadão em relação à sua saúde.')
     objetivo = models.TextField(verbose_name='O - objetivo', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro do exame físico, como os sinais e sintomas detectados, além do registro de resultados de exames realizados.')
-    avaliacao = models.TextField(verbose_name='A - avaliacao', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro da conclusão feita pelo profissional de saúde a partir dos dados observados nos itens anteriores, como os motivos para aquele encontro, a anamnese do cidadão e dos exames físico e complementares.')
+    avaliacao = models.TextField(verbose_name='A - avaliação', blank=True, null=True, help_text='Conjunto de campos que possibilita o registro da conclusão feita pelo profissional de saúde a partir dos dados observados nos itens anteriores, como os motivos para aquele encontro, a anamnese do cidadão e dos exames físico e complementares.')
     plano = models.TextField(verbose_name='P - Plano', blank=True, null=True, help_text='Conjunto de funcionalidades que permite registrar o plano de cuidado ao cidadão em relação ao(s) problema(s) avaliado(s).')
 
     data = models.DateTimeField(auto_now_add=True)
 
-    comentario = models.TextField(blank=True)
-    encaminhamento = models.TextField(blank=True, null=True)
-    conduta = models.TextField(blank=True, null=True)
+    comentario = models.TextField(verbose_name='Comentário', blank=True)
+    encaminhamento = models.TextField(verbose_name='Encaminhamento', blank=True, null=True)
+    conduta = models.TextField(verbose_name='Conduta', blank=True, null=True)
 
     class Meta:
         verbose_name = 'Encaminhamento e Condutas'

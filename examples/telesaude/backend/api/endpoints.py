@@ -4,6 +4,7 @@ from slth.components import Scheduler, ZoomMeet, TemplateContent
 from .models import *
 from slth import forms
 from .utils import buscar_endereco
+from slth.tests import RUNNING_TESTING
 
 
 class CIDs(endpoints.AdminEndpoint[CID]):
@@ -93,8 +94,10 @@ class AssinarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
         return True
 
 class CadastrarProfissionalSaudeUnidade(endpoints.RelationEndpoint[ProfissionalSaude]):
+    class Meta:
+        icon = 'plus'
+        verbose_name = 'Adicionar Profissional'
     def formfactory(self):
-        print(self.source.instance)
         return (
             super()
             .formfactory().fields(unidade=self.source.instance)
@@ -203,7 +206,6 @@ class EnviarNotificacaoAtendimento(endpoints.ChildEndpoint):
         title = 'Lembrete de tele-atendimento'
         message = 'Você possui um tele-atendimento agendado para {}.'.format(self.source.agendado_para.strftime('%d/%m/%Y as %H:%M'))
         url = f'/app/visualizaratendimento/{self.source.pk}/'
-        print(title, message, url)
         for user in self.objects('slth.user').filter(username__in=usernames):
             user.send_push_notification(title, message, url=url)
         return super().post()
@@ -229,7 +231,7 @@ class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
     class Meta:
         icon = 'eye'
         modal = False
-        verbose_name = 'Acessar '
+        verbose_name = 'Acessar'
 
     def get(self):
         return (
@@ -546,7 +548,8 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 
     def get(self):
         if self.instance.is_termo_assinado_por(self.request.user):
-            self.instance.check_webconf()
+            if not RUNNING_TESTING:
+                self.instance.check_webconf()
             return (
                 self.serializer().actions('anexararquivo')
                 .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -582,6 +585,9 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
             .fieldset('Outras Informações', ('comentario', 'encaminhamento', 'conduta'))
         )
     
+    def post(self):
+        self.redirect(f'/api/visualizaratendimento/{self.source.id}/')
+
     def check_permission(self):
         return self.source.finalizado_em is None and self.check_role('ps')
 
@@ -593,7 +599,7 @@ class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
     def check_permission(self):
         return self.request.user.is_superuser or self.request.user.username in (
             self.instance.profissional.pessoa_fisica.cpf, self.instance.especialista.pessoa_fisica.cpf if self.instance.especialista_id else '', self.instance.paciente.cpf
-        )
+        ) and not RUNNING_TESTING
 
 class AnexarArquivo(endpoints.ChildEndpoint):
     class Meta:
@@ -660,5 +666,4 @@ class FazerAlgumaCoisa(endpoints.Endpoint):
         modal = False
     
     def post(self):
-        print(self.cleaned_data['total'], 888)
         return tasks.FazerAlgumaCoisa()
