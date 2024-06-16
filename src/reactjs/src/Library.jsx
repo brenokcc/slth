@@ -498,6 +498,7 @@ function Scheduler(props) {
     };
     return (
       <div id={id} style={style}>
+        {props.data.title && <h2>{ props.data.title }</h2>}
         <input id={"input" + id} type="hidden" name={props.data.input_name} />
         <table style={table} onMouseDown={onMouseDown} onMouseUp={onMouseUp}>
           <thead>

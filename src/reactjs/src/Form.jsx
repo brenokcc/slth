@@ -204,7 +204,7 @@ function Field(props) {
     return (
       <div style={style}>
         <label className="bold">
-          {props.data.label} {props.data.required ? "*" : ""}
+          {props.data.label} {props.data.label && props.data.required ? "*" : ""}
         </label>
         {props.data.action && (
           <Action data={props.data.action} style={{ padding: 0, margin:0 }} />
@@ -1430,8 +1430,12 @@ function Form(props) {
               message = data.errors[k];
             } else {
               const div = form.querySelector("#" + k + "_error");
-              div.querySelector("span").innerHTML = data.errors[k];
-              div.style.display = "block";
+              if (div == null){
+                message = k + ":" +data.errors[k];
+              } else {
+                div.querySelector("span").innerHTML = data.errors[k];
+                div.style.display = "block";
+              }
             }
           });
           showMessage(message, true);

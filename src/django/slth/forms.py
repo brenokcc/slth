@@ -337,21 +337,21 @@ class FormMixin:
             for word in ("password", "senha"):
                 if word in name:
                     data.update(type="password")
+            pick = getattr(field, "pick", False)
             if isinstance(field, CharField) or isinstance(field, IntegerField):
                 mask = getattr(field, "mask", None)
                 if mask:
                     data.update(mask=mask)
-            if isinstance(field, CharField) and isinstance(field.widget, Textarea):
+            if isinstance(field.widget, Textarea):
                 data.update(type="textarea")
             if ftype == "decimal":
                 data.update(mask="decimal")
             elif ftype == "scheduler":
                 data.update(scheduler=field.scheduler)
-            elif ftype == "choice":
+            elif ftype == "choice" or pick:
                 if name in self.request.GET and not choices_field_name:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:
-                    pick = getattr(field, "pick", False)
                     if choices_field_name == fname or (isinstance(field.choices, ModelChoiceIterator) and not pick):
                         if choices_field_name == fname:
                             qs = field.choices.queryset

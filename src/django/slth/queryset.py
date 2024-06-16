@@ -22,6 +22,7 @@ class QuerySet(models.QuerySet):
 
     def __init__(self, *args, **kwargs):
         self.metadata = {}
+        self.instance = None
         self.request = None
         super().__init__(*args, **kwargs)
 
@@ -36,6 +37,7 @@ class QuerySet(models.QuerySet):
 
     def _clone(self):
         qs = super()._clone()
+        qs.instance = self.instance
         qs.request = self.request
         for k, v in self.metadata.items():
             v = self.metadata[k]

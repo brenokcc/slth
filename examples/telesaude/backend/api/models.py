@@ -13,14 +13,20 @@ from django.utils.timesince import timesince
 from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter
-from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge
+from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge, TemplateContent
 
+
+
+class CIDQuerySet(models.QuerySet):
+    def all(self):
+        return self.search('codigo', 'doenca')
 
 
 class CID(models.Model):
     codigo = models.CharField(verbose_name="Código", max_length=6, unique=True)
     doenca = models.CharField(verbose_name="Doença", max_length=250)
 
+    objects = CIDQuerySet()
     class Meta:
         verbose_name = "CID"
         verbose_name_plural = "CIDs"
@@ -43,7 +49,7 @@ class CIAP(models.Model):
 
 class AreaQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'get_qtd_profissonais_saude').actions('profissionaissaudearea', 'agendaarea')
+        return self.fields('nome', 'get_qtd_profissonais_saude').actions('profissionaissaudearea')
 
 
 class Area(models.Model):
@@ -63,28 +69,6 @@ class Area(models.Model):
     def get_qtd_profissonais_saude(self):
         return self.get_profissonais_saude().count()
     
-    @meta()
-    def get_agenda(self, readonly=True):
-        qs = HorarioProfissionalSaude.objects.filter(
-            profissional_saude__especialidade__area=self
-        ).order_by('data_hora')
-        start_day = qs.values_list('data_hora', flat=True).first()
-        scheduler = Scheduler(start_day=start_day, readonly=True)
-        qs = qs.filter(data_hora__lt=scheduler.end_day)
-        campos = ("data_hora", "profissional_saude__pessoa_fisica__nome", "profissional_saude__especialidade__area__nome")
-        qs1 = qs.filter(atendimento__isnull=True)
-        qs2 = qs.filter(atendimento__isnull=False)
-        horarios = {}
-        for i, atendimentos in enumerate([qs1, qs2]):
-            for data_hora, nome, area in atendimentos.values_list(*campos):
-                if data_hora not in horarios:
-                    horarios[data_hora] = []
-                profissional = f'{nome} ({area.upper()} )' if area else nome
-                horarios[data_hora].append(Text(profissional, color="#a4e2a4" if i==0 else "#f47c7c"))
-        for data_hora, text in horarios.items():
-            scheduler.append(data_hora, text, icon='stethoscope')
-        return scheduler
-
     def __str__(self):
         return self.nome
 
@@ -173,10 +157,10 @@ class Unidade(models.Model):
         Municipio, on_delete=models.CASCADE
     )
 
-    logradouro = models.CharField(max_length=120, null=True)
-    numero = models.CharField(max_length=10, null=True)
-    bairro = models.CharField(max_length=40, null=True)
-    cep = models.CharField(max_length=10, null=True)
+    logradouro = models.CharField(verbose_name='Logradouro', max_length=120, null=True, blank=True)
+    numero = models.CharField(verbose_name='Número', max_length=10, null=True, blank=True)
+    bairro = models.CharField(verbose_name='Bairro', max_length=40, null=True, blank=True)
+    cep = models.CharField(verbose_name='CEP', max_length=10, null=True, blank=True)
 
     latitude = models.CharField(verbose_name="Latitude", null=True, blank=True)
     longitude = models.CharField(verbose_name="Longitude", null=True, blank=True)
@@ -195,6 +179,7 @@ class Unidade(models.Model):
             .fieldset("Dados Gerais", (("nome", "cnes"),))
             .fieldset("Endereço", (("cep", "bairro"), "logradouro", ("numero", "municipio")))
             .fieldset("Geolocalização", (("latitude", "longitude"), 'get_mapa'))
+            .queryset("Profissionais de Saúde", 'get_profissionais_saude')
         )
 
     def formfactory(self):
@@ -215,26 +200,17 @@ class Unidade(models.Model):
     
     @meta('Mapa')
     def get_mapa(self):
-        return Map(self.latitude, self.longitude)
+        return Map(self.latitude, self.longitude) if self.latitude and self.longitude else None
     
     @meta('Profissionais de Saúde')
-    def get_profissionais_saude(self, area=None, teleconsultor=False, teleinterconsultor=False):
-        profissionais = ProfissionalSaude.objects
+    def get_profissionais_saude(self):
+        return self.profissionalsaude_set.all().actions('cadastrarprofissionalsaudeunidade')
+
+    @meta('Profissionais de Saúde')
+    def get_profissionais_telessaude(self, area=None):
+        qs = ProfissionalSaude.objects.filter(unidades=self)
         if area:
-            profissionais = profissionais.filter(especialidade__area=area)
-        if teleconsultor:
-            profissionais = profissionais.filter(teleconsultor=True)
-        if teleinterconsultor:
-            profissionais = profissionais.filter(teleinterconsultor=True)
-        qs = ProfissionalSaude.objects.none()
-        qs1 = profissionais.filter(informar_atuacao=True)
-        qs = qs | qs1.filter(estados=self.municipio.estado_id)
-        qs = qs | qs1.filter(municipios=self.municipio_id)
-        qs = qs | qs1.filter(unidades=self.id)
-        qs2 = profissionais.filter(informar_atuacao=False)
-        qs = qs | qs2.filter(nucleo__estados=self.municipio.estado_id)
-        qs = qs | qs2.filter(nucleo__municipios=self.municipio_id)
-        qs = qs | qs2.filter(nucleo__unidades=self.id)
+            qs = qs.filter(especialidade__area=area)
         return qs
 
 
@@ -293,6 +269,9 @@ class PessoaFisica(models.Model):
 
     sexo = models.ForeignKey(Sexo, verbose_name='Sexo', null=True, on_delete=models.PROTECT, blank=True)
 
+    nome_responsavel = models.CharField(verbose_name='Nome do Responsável', max_length=80, null=True, blank=True)
+    cpf_responsavel = models.CharField(verbose_name='CPF do Responsável', max_length=14, null=True, blank=True)
+
     objects = PessoaFisicaQueryset()
 
     class Meta:
@@ -304,14 +283,8 @@ class PessoaFisica(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset(
-                "Dados Gerais",
-                (
-                    ("nome", "nome_social"),
-                    ("cpf", "data_nascimento"),
-                    ("sexo", "telefone"),
-                ),
-            )
+            .fieldset("Dados Gerais", (("cpf", "nome"), ("data_nascimento", "nome_social"), ("sexo", "telefone"),))
+            .fieldset("Dados do Responsável", (("cpf_responsavel", "nome_responsavel"),),)
             .fieldset("Endereço", (("cep", "bairro"), "endereco", ("numero", "municipio")))
         )
 
@@ -359,7 +332,7 @@ class PessoaFisica(models.Model):
 
 class NucleoQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('agendanucleo', 'equipenucleo')
+        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('agendanucleo')
 
 
 @role('g', username='gestores__cpf', nucleo='pk')
@@ -368,11 +341,7 @@ class Nucleo(models.Model):
     nome = models.CharField(verbose_name='Nome')
     gestores = models.ManyToManyField(PessoaFisica, verbose_name="Gestores", blank=True)
     operadores = models.ManyToManyField(PessoaFisica, verbose_name="Operadores", blank=True, related_name='r2')
-
-    # Atuação
-    estados = models.ManyToManyField(Estado, verbose_name='Estados', blank=True)
-    municipios = models.ManyToManyField(Municipio, verbose_name='Municípios', blank=True)
-    unidades = models.ManyToManyField(Unidade, verbose_name='Unidades', blank=True)
+    unidades = models.ManyToManyField(Unidade, verbose_name='Unidades Atendidas', blank=True)
 
     objects = NucleoQuerySet()
 
@@ -386,24 +355,23 @@ class Nucleo(models.Model):
             super()
             .formfactory()
             .fieldset("Dados Gerais", ("nome", 'gestores:cadastrarpessoafisica', 'operadores:cadastrarpessoafisica'))
-            .fieldset("Atuação", ("estados", "municipios", "unidades",),)
+            .fieldset("Atuação", ("unidades",),)
         )
 
     def serializer(self):
         return (
             super()
             .serializer().actions('edit')
-            .fieldset("Dados Gerais", ("nome", 'gestores'))
+            .fieldset("Dados Gerais", ("nome", 'gestores', 'operadores'))
             .group('Detalhamento')
-                .fieldset("Atuação", ("estados", "municipios", "unidades",),)
+                .queryset('Unidades Atendidas', 'get_unidades')
                 .queryset('Profissionais de Saúde', 'get_profissionais_saude')
-                .queryset('Unidades Atendidas', 'get_unidades_atuacao')
             .parent()
         )
     
     @meta('Profissionais de Saúde')
     def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all().filters('especialidade', 'get_tags')
+        return self.profissionalsaude_set.all().filters('especialidade').actions('cadastrarprofissionalsaudenucleo')
     
     @meta('Qtd. de Profissionais')
     def get_qtd_profissonais_saude(self):
@@ -420,13 +388,13 @@ class Nucleo(models.Model):
     @meta()
     def get_agenda(self, readonly=True):
         qs = HorarioProfissionalSaude.objects.filter(
-            profissional_saude__nucleo=self
+            profissional_saude__nucleo=self, data_hora__gte=datetime.now()
         )
         start_day = qs.values_list('data_hora', flat=True).first()
         scheduler = Scheduler(start_day=start_day, readonly=True)
         campos = ("data_hora", "profissional_saude__pessoa_fisica__nome", "profissional_saude__especialidade__area__nome")
-        qs1 = qs.filter(atendimento__isnull=True)
-        qs2 = qs.filter(atendimento__isnull=False)
+        qs1 = qs.filter(atendimentos_especialista__isnull=True)
+        qs2 = qs.filter(atendimentos_especialista__isnull=False)
         horarios = {}
         for i, atendimentos in enumerate([qs1, qs2]):
             for data_hora, nome, area in atendimentos.values_list(*campos):
@@ -439,12 +407,8 @@ class Nucleo(models.Model):
         return scheduler
     
     @meta('Unidades de Atuação')
-    def get_unidades_atuacao(self):
-        qs = Unidade.objects.none()
-        qs = qs | Unidade.objects.filter(municipio__estado__in=self.estados.values_list('pk', flat=True))
-        qs = qs | Unidade.objects.filter(municipio__in=self.municipios.values_list('pk', flat=True))
-        qs = qs | Unidade.objects.filter(pk__in=self.unidades.values_list('pk', flat=True))
-        return qs.all()
+    def get_unidades(self):
+        return self.unidades.all()
     
     def __str__(self):
         return self.nome
@@ -453,30 +417,19 @@ class ProfissionalSaudeQueryset(models.QuerySet):
     def all(self):
         return (
             self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
-            .filters(
-                "nucleo",
-                "especialidade",
-            )
-            .fields(
-                ("nucleo", "especialidade"), 'get_tags',
-            )
+            .filters("nucleo", "especialidade",)
+            .fields("get_estabelecimento", "especialidade")
             .actions("agendaprofissionalsaude", "definirhorarioprofissionalsaude")
         ).cards()
-@role('ps', username='pessoa_fisica__cpf', nucleo='nucleo')
+@role('ps', username='pessoa_fisica__cpf')
 class ProfissionalSaude(models.Model):
     pessoa_fisica = models.ForeignKey(
         PessoaFisica,
         on_delete=models.PROTECT,
-        verbose_name="Profissional",
-    )
-    nucleo = models.ForeignKey(
-        Nucleo,
-        verbose_name='Núcleo',
-        null=True,
-        on_delete=models.CASCADE,
+        verbose_name="Pessoa Física",
     )
     registro_profissional = models.CharField(
-        "Registro Profissional", max_length=30, blank=True
+        "Registro Profissional", max_length=30, blank=False
     )
     especialidade = models.ForeignKey(
         Especialidade, null=True, on_delete=models.CASCADE
@@ -488,17 +441,13 @@ class ProfissionalSaude(models.Model):
     programa_mais_medico = models.BooleanField(verbose_name='Programa Mais Médico', default=False)
     residente = models.BooleanField(verbose_name='Residente', default=False)
     perceptor = models.BooleanField(verbose_name='Perceptor', default=False)
+    
     ativo = models.BooleanField(default=False)
-
-    teleconsultor = models.BooleanField(verbose_name='Teleconsultor', default=True)
-    teleinterconsultor = models.BooleanField(verbose_name='Teleinterconsultor', default=True)
-
-    pode_atualizar_agenda = models.BooleanField(verbose_name='Pode Atualizar Agenda', default=True, help_text='Marque essa opção caso o profissional possa informar os dias e horários de seus atendimentos.')
-    informar_atuacao = models.BooleanField(verbose_name='Informar atuação', help_text='Marque essa opção caso o profissional vá atuar em unidades diferentes daquelas definidas para o núcleo.', default=False)
-    estados = models.ManyToManyField(Estado, verbose_name='Estados', blank=True)
-    municipios = models.ManyToManyField(Municipio, verbose_name='Municípios', blank=True)
-    unidades = models.ManyToManyField(Unidade, verbose_name='Unidades', blank=True)
-
+    # Atenção primária
+    unidade = models.ForeignKey(Unidade, verbose_name='Unidade', null=True, on_delete=models.CASCADE)
+    # Teleatendimento
+    nucleo = models.ForeignKey(Nucleo, verbose_name='Núcleo', null=True, on_delete=models.CASCADE)
+    
     objects = ProfissionalSaudeQueryset()
 
     class Meta:
@@ -511,21 +460,14 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", (("nucleo", "pessoa_fisica:cadastrarpessoafisica"),))
-            .fieldset(
-                "Dados Profissionais",
-                (("registro_profissional", "especialidade", "registro_especialista"),),
-            )
-            .fieldset(
-                "Informações Adicionais",
-                (
-                    ("programa_provab", "programa_mais_medico"),
-                    ("residente", "perceptor"),
-                ),
-            )
-            .fieldset("Função do Profissional", (("teleconsultor", "teleinterconsultor"),))
-            .fieldset("Atuação do Profissional", (('pode_atualizar_agenda', 'informar_atuacao'), "estados", "municipios", "unidades",),)
-            .hidden("estados", "municipios", "unidades")
+            .fieldset("Dados Gerais", (("pessoa_fisica:cadastrarpessoafisica",),))
+            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
+        ) if self.pk is None else (
+            super()
+            .formfactory()
+            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
         )
 
     def serializer(self):
@@ -533,19 +475,8 @@ class ProfissionalSaude(models.Model):
             super()
             .serializer()
             .fieldset("Dados Gerais", (("nucleo", "pessoa_fisica"),))
-            .fieldset(
-                "Dados Profissionais",
-                (("registro_profissional", "especialidade", "registro_especialista"),),
-            )
-            .fieldset(
-                "Outras Informações",
-                (
-                    ("programa_provab", "programa_mais_medico"),
-                    ("residente", "perceptor"),
-                ),
-            )
-            .fieldset("Função", (("teleconsultor", "teleinterconsultor"),))
-            .fieldset("Atuação", (('pode_atualizar_agenda', 'informar_atuacao'), "estados", "municipios", "unidades",),)
+            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
         )
 
     def __str__(self):
@@ -554,15 +485,6 @@ class ProfissionalSaude(models.Model):
             self.pessoa_fisica.cpf,
             self.registro_profissional,
         )
-    
-    @meta()
-    def get_tags(self):
-        tags = []
-        if self.teleconsultor:
-            tags.append(Badge('#265890', 'Teleconsultor', 'people-arrows'))
-        if self.teleinterconsultor:
-            tags.append(Badge('#5ca05d', 'Teleinterconsultor', 'people-group'))
-        return tags
 
     @meta(None)
     def get_agenda(self, readonly=True):
@@ -581,6 +503,9 @@ class ProfissionalSaude(models.Model):
             scheduler.append(data_hora, nucleo, icon='x')
         return scheduler
 
+    @meta('Estabelecimento')
+    def get_estabelecimento(self):
+        return self.nucleo if self.nucleo_id else self.unidade
 
 
 class HorarioProfissionalQuerySet(models.QuerySet):
@@ -644,14 +569,14 @@ class AtendimentoQuerySet(models.QuerySet):
         return self.counter('tipo', chart='bar')
     
     @meta('Total por Especialidade')
-    def get_total_por_area_(self):
+    def get_total_por_area(self):
         return self.counter('area', chart='donut')
     
     @meta('Total por Mês')
     def get_total_por_mes(self):
         return self.counter('agendado_para__month', chart='line')
     
-    @meta('Atendimentos por Especialidade e Unidade')
+    @meta('Atendimentos por Unidade e Especialidade')
     def get_total_por_area_e_unidade(self):
         return self.counter('area', 'unidade')
 
@@ -692,7 +617,7 @@ class Atendimento(models.Model):
     paciente = models.ForeignKey(
         "PessoaFisica", verbose_name='Paciente', related_name="atendimentos_paciente", on_delete=models.PROTECT
     )
-    duracao = models.IntegerField(verbose_name='Duração', null=True)
+    duracao = models.IntegerField(verbose_name='Duração', null=True, choices=[(30, '30min'), (60, '1h'), (90, '1h30min')], pick=True)
 
     # horario_profissional_saude = models.ForeignKey(
     #     HorarioProfissionalSaude,
@@ -707,7 +632,7 @@ class Atendimento(models.Model):
     #     null=True, related_name='atendimento2'
     # )
     horarios_profissional_saude = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_profissional_saude', pick=True)
-    horarios_especialista = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_especialista')
+    horarios_especialista = models.ManyToManyField(HorarioProfissionalSaude, verbose_name='Horários', blank=True, related_name='atendimentos_especialista', pick=True)
     horario_excepcional = models.BooleanField(
         verbose_name="Horário Excepcional",
         default=False,
@@ -729,12 +654,34 @@ class Atendimento(models.Model):
     senha_webconf = models.CharField(verbose_name='Senha da WebConf', null=True)
     limite_webconf = models.DateTimeField(verbose_name='Limite da WebConf', null=True)
 
+    termo_assinado_paciente = models.BooleanField(verbose_name='Termo assinado pelo Paciente', default=False)
+    termo_assinado_profissional = models.BooleanField(verbose_name='Termo assinado pelo Profissional', default=False)
+    termo_assinado_especialista = models.BooleanField(verbose_name='Termo assinado pelo Especialista', default=False)
+
     objects = AtendimentoQuerySet()
 
     class Meta:
         icon = "laptop-file"
         verbose_name = "Teleconsulta"
         verbose_name_plural = "Teleconsultas"
+
+    def is_termo_assinado_por(self, user):
+        if self.paciente.cpf == user.username:
+            return self.termo_assinado_paciente
+        if self.profissional.pessoa_fisica.cpf == user.username:
+            return self.termo_assinado_profissional
+        if self.especialista.pessoa_fisica.cpf == user.username:
+            return self.termo_assinado_especialista
+        return False
+    
+    def assinar_termo(self, user):
+        if self.paciente.cpf == user.username:
+            self.termo_assinado_paciente = True
+        if self.profissional.pessoa_fisica.cpf == user.username:
+            self.termo_assinado_profissional = True
+        if self.especialista.pessoa_fisica.cpf == user.username:
+            self.termo_assinado_especialista = True
+        self.save()
 
     def check_webconf(self):
         from . import zoom
@@ -824,6 +771,10 @@ class Atendimento(models.Model):
             .parent()
         )
     
+    @meta('Número')
+    def get_numero(self):
+        return self.id
+    
     @meta()
     def get_tags(self):
         tags = []
@@ -866,6 +817,10 @@ class Atendimento(models.Model):
         if self.finalizado_em and self.agendado_para:
             return timesince(self.agendado_para, self.finalizado_em)
         return "-"
+    
+    @meta()
+    def get_termo_consentimento(self):
+        return TemplateContent('termo_consentimento.html', dict(atendimento=self))
 
     def get_agendado_para(self):
         return Badge("#5ca05d", self.agendado_para.strftime('%d/%m/%Y %H:%M'), icon='clock')
@@ -879,15 +834,22 @@ class Atendimento(models.Model):
         super(Atendimento, self).save(*args, **kwargs)
 
     def post_save(self):
-        if not self.agendado_para and self.horarios_profissional_saude.exists():
-            self.agendado_para = self.horarios_profissional_saude.order_by('data_hora').first().data_hora
-            self.save()
+        # tele-interconsulta marcada pelo regulador ou tele-interconsultor
         if self.especialista_id and not self.horarios_especialista.exists():
             for horario in self.horarios_profissional_saude.all():
                 self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(
                     data_hora=horario.data_hora
                 ))
-        
+        # tele-interconsulta marcada pelo profissional de saúde
+        if self.especialista_id and not self.horarios_profissional_saude.exists():
+            for horario in self.horarios_especialista.all():
+                horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=horario.data_hora).first()
+                if horario_profissional is None:
+                    horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=horario.data_hora, profissional_saude=self.profissional)
+                self.horarios_profissional_saude.add(horario_profissional)
+        if not self.agendado_para and self.horarios_profissional_saude.exists():
+            self.agendado_para = self.horarios_profissional_saude.order_by('data_hora').first().data_hora
+            self.save()
 
 class AnexoAtendimento(models.Model):
     atendimento = models.ForeignKey(

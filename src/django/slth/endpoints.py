@@ -418,6 +418,27 @@ class ChildEndpoint(Endpoint):
 
     def check_permission(self):
         return True
+    
+class RelationEndpoint(Generic[T], ModelEndpoint):
+    def __init__(self):
+        super().__init__()
+        self.instance = self.model()
+        
+    def get(self) -> FormFactory:
+        return self.formfactory()
+
+    def get_instance(self):
+        return self.instance
+    
+    def formfactory(self):
+        return super().formfactory(self.instance)
+    
+    @classmethod
+    def is_child(cls):
+        return True
+
+    def check_permission(self):
+        return True
 
 
 class Add(ChildEndpoint):

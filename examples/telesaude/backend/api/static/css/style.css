@@ -9,7 +9,8 @@ aside .menu .item:hover{
     background-color: #f1e000;
 }
 
-.checkbox-group.horarios_profissional_saude:not(.empty) > div {
+.checkbox-group.horarios_profissional_saude:not(.empty) > div,
+.checkbox-group.horarios_especialista:not(.empty) > div {
     background-color: rgb(92, 160, 93);
     color: white;
     border-radius: 5px;

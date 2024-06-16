@@ -95,7 +95,7 @@ class Role(models.Model):
         return APPLICATON['groups'].get(self.name, self.name)
 
     def get_scope_value(self):
-        return apps.get_model(self.model).objects.get(pk=self.value) if self.model else None
+        return apps.get_model(self.model).objects.filter(pk=self.value).first() if self.model else None
 
     @meta('Descrição')
     def get_description(self):

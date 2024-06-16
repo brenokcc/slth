@@ -296,8 +296,10 @@ class Scheduler(dict):
         single_selection=False,
         input_name="schedule",
         readonly=False,
+        title=None
     ):
         self["type"] = "scheduler"
+        self["title"] = title
         self["single_selection"] = single_selection
         self["input_name"] = input_name
         self["readonly"] = readonly

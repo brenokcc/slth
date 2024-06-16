@@ -1,0 +1,63 @@
+<h3 align="center">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA ATENDIMENTO A DISTÂNCIA – TELEINTERCONSULTA</h3>
+
+<p>
+    {% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
+        Eu, <span class="bold">{{ atendimento.paciente.nome }}</span> inscrito no CPF sob o nº <span class="bold">{{ atendimento.paciente.cpf_responsavel }}</span>,
+        responsável legal pelo (a) paciente <span class="bold">{{ atendimento.paciente.nome }}</span>, inscrito no CPF e/ou RG sob o nº {{ atendimento.paciente.cpf }}
+    {% else %}
+        Eu, <span class="bold">{{ atendimento.paciente.nome }}</span> inscrito no CPF sob o nº <span class="bold">{{ atendimento.paciente.cpf }}</span>,
+    {% endif %}
+    dou expressa e plena autorização ao médico assistente <span class="bold">{{ atendimento.profissional.pessoa_fisica.nome }}</span> inscrito no CRM sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span>,
+    {% if atendimento.especialista_id %}
+        e ao especialista <span class="bold">{{ atendimento.especialista.pessoa_fisica.nome }}</span> inscrito no CRM sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span> e RQE sob o nº <span class="bold">{{ atendimento.profissional.registro_especialista }}</span>,
+    {% endif %}
+    para realizar o atendimento de teleinterconsulta e declaro que:
+</p>
+
+<ol>
+    <li>Estou ciente quanto a Resolução n.o 2314/2022 do Conselho Federal de Medicina (CFM), que regulamenta as ações de telemedicina;</li>
+    <li>Estou ciente quanto a Lei 14.510, de 27 de dezembro de 2022, que autoriza e disciplina a prática da telessaúde em todo o território nacional e revoga a Lei de 15 de abril de 2020, além de alterar a 8.080, de 1990;</li>
+    <li>Estou ciente quanto ao direito de recusa ao atendimento na modalidade telessaúde, com a garantia do atendimento presencial sempre que solicitado;</li>
+    <li>Estou ciente quanto ao direito, tanto do paciente quanto do médico, optar pela interrupção do atendimento a distância;</li>
+    <li>Fui informado (a) que poderá ser necessário, a critério do médico, a realização de exames complementares para auxiliar no diagnóstico, assim como o envio de dados/documentos/fotos/vídeos que permitam minha identificação, uma vez que ela se faz entre médicos;</li>
+    <li>Fui informado (a) que poderá ser necessário o encaminhamento a um serviço de pronto atendimento, a depender da hipótese diagnóstica;</li>
+    <li>Estou ciente de que a teleinterconsulta é individual e não garante o atendimento por tempo indeterminado ou a disposição do médico especialista em outros horários não acordados entre as partes;</li>
+    <li>Estou ciente que a teleinterconsulta será realizada pela plataforma determinada pelo serviço de saúde com dados armazenados em prontuário médico sob guarda da Secretaria Municipal de Saúde de Campo Grande/MS e será cumprida as exigências preconizadas pelo Conselho Federal de Medicina;</li>
+    <li>Autorizo o tratamento pela Secretaria Municipal de Saúde dos dados pessoais, inclusive imagens e dados pessoais sensíveis, colhidos durante o(s) atendimento(s), para as finalidades necessárias à prestação dos serviços de saúde, nos termos do art. 7o da Lei 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais).</li>
+</ol>
+
+<p>
+    Por fim, declaro ter lido as orientações contidas no presente instrumento, as quais entendi completamente e aceito, expressando o meu pleno consentimento para a realização da teleinterconsulta.
+</p>
+
+{% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
+    <div style="text-align: center; width: 300px; margin:auto">
+        <div style="border-bottom: solid 1px #000;">
+            {{ atendimento.paciente.nome_responsavel }}
+        </div>
+        <span class="bold">Responsável</span>
+    </div>
+{% else %}
+    <div style="text-align: center; width: 300px; margin:auto">
+        <div style="border-bottom: solid 1px #000;">
+            {{ atendimento.paciente.nome }}
+        </div>
+        <span class="bold">Paciente</span>
+    </div>
+{% endif %}
+<br>
+<div style="text-align: center; width: 300px; margin:auto">
+    <div style="border-bottom: solid 1px #000;">
+        {{ atendimento.profissional.pessoa_fisica.nome }}
+    </div>
+    <span class="bold">Médico Assistente</span>
+</div>
+{% if atendimento.especialista_id %}
+<br>
+<div style="text-align: center; width: 300px; margin:auto;">
+    <div style="border-bottom: solid 1px #000;">
+        {{ atendimento.especialista.pessoa_fisica.nome }}
+    </div>
+    <span class="bold">Médico Especialista</span>
+</div>
+{% endif %}

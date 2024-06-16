@@ -10,22 +10,26 @@ GenericField = generic.GenericField
 class CharField(CharField):
     def __init__(self, *args, **kwargs):
         self.mask = kwargs.pop('mask', None)
+        self.pick = kwargs.pop('pick', False)
         kwargs.setdefault('max_length', 255)
         super().__init__(*args, **kwargs)
 
     def formfield(self, *args, **kwargs):
         field = super().formfield(*args, **kwargs)
         field.mask = self.mask
+        field.pick = self.pick
         return field
     
 class IntegerField(IntegerField):
     def __init__(self, *args, **kwargs):
         self.mask = kwargs.pop('mask', None)
+        self.pick = kwargs.pop('pick', False)
         super().__init__(*args, **kwargs)
 
     def formfield(self, *args, **kwargs):
         field = super().formfield(*args, **kwargs)
         field.mask = self.mask
+        field.pick = self.pick
         return field
 
 class ForeignKey(ForeignKey):

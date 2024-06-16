@@ -224,7 +224,7 @@ function QuerySet(props) {
             <div style={{ verticalAlign: "center" }}>
               {row.actions.map(function (action) {
                 return (
-                  <Action key={Math.random()} data={action} default compact />
+                  <Action key={Math.random()} data={action} default />
                 );
               })}
             </div>

@@ -27,6 +27,7 @@ import {
   Counter,
   Indicators,
   Scheduler,
+  Html,
 } from "./Library";
 import Text from "./Text";
 
@@ -97,6 +98,7 @@ ComponentFactory.register(Timeline, "Timeline");
 ComponentFactory.register(Scheduler, "Scheduler");
 ComponentFactory.register(WebConf, "WebConf");
 ComponentFactory.register(Text, "Text");
+ComponentFactory.register(Html, "Html");
 ComponentFactory.register(ZoomMeet, "ZoomMeet");
 
 window.addEventListener("popstate", (e) => {

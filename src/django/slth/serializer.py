@@ -288,7 +288,7 @@ class Serializer:
                             value = attr().filter()
                         else:
                             value = attr.filter()
-                    
+                        value.instance = self.obj
                         path = self.path + [key]
                         if lazy:
                             data = dict(type='queryset', title=title, key=key)
