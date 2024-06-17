@@ -49,9 +49,7 @@ application:
       - cadastraratendimentops
       - agendaatendimentos
       - estatistica
-      - fazeralgumacoisa
     adder:
-      - fazeralgo
     search:
     usermenu:
       #- icons

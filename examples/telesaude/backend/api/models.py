@@ -272,6 +272,9 @@ class PessoaFisica(models.Model):
     nome_responsavel = models.CharField(verbose_name='Nome do Responsável', max_length=80, null=True, blank=True)
     cpf_responsavel = models.CharField(verbose_name='CPF do Responsável', max_length=14, null=True, blank=True)
 
+    email = models.CharField(verbose_name='E-mail', null=True, blank=True)
+    telefone = models.CharField(verbose_name='Telefone', null=True, blank=True)
+
     objects = PessoaFisicaQueryset()
 
     class Meta:
@@ -284,6 +287,7 @@ class PessoaFisica(models.Model):
             super()
             .formfactory()
             .fieldset("Dados Gerais", (("cpf", "nome"), ("data_nascimento", "nome_social"), ("sexo", "telefone"),))
+            .fieldset("Dados de Contato", (("email", "telefone"),))
             .fieldset("Dados do Responsável", (("cpf_responsavel", "nome_responsavel"),),)
             .fieldset("Endereço", (("cep", "bairro"), "endereco", ("numero", "municipio")))
         )
@@ -292,14 +296,8 @@ class PessoaFisica(models.Model):
         return (
             super()
             .serializer()
-            .fieldset(
-                "Dados Gerais",
-                (
-                    ("nome", "nome_social"),
-                    ("cpf", "data_nascimento"),
-                    ("sexo", "telefone"),
-                ),
-            )
+            .fieldset("Dados Gerais", (("nome", "nome_social"), ("cpf", "data_nascimento"), ("sexo", "telefone"),),)
+            .fieldset("Dados de Contato", (("email", "telefone"),))
             .fieldset("Endereço", (("cep", "bairro"), "endereco", ("numero", "municipio")))
         )
 
@@ -487,16 +485,18 @@ class ProfissionalSaude(models.Model):
         )
 
     @meta(None)
-    def get_agenda(self, readonly=True):
-        scheduler = Scheduler(readonly=readonly)
+    def get_agenda(self, readonly=True, single_selection=False, available=True):
+        scheduler = Scheduler(readonly=readonly, single_selection=single_selection)
         qs = self.horarioprofissionalsaude_set.filter(data_hora__gte=date.today()).order_by('data_hora')
         for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_profissional_saude", "atendimentos_profissional_saude__especialista_id"):
             descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
-            scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
+            if atendimento or available:
+                scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
         for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_especialista", "atendimentos_especialista__especialista_id"):
             if atendimento:
                 descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
-                scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
+                if available:
+                    scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
         qs2 = HorarioProfissionalSaude.objects.filter(data_hora__gte=date.today(),profissional_saude__pessoa_fisica__cpf=self.pessoa_fisica.cpf
         ).exclude(profissional_saude=self.pk)
         for data_hora, nucleo in qs2.values_list("data_hora", "profissional_saude__nucleo__nome"):
@@ -834,19 +834,26 @@ class Atendimento(models.Model):
         super(Atendimento, self).save(*args, **kwargs)
 
     def post_save(self):
-        # tele-interconsulta marcada pelo regulador ou tele-interconsultor
-        if self.especialista_id and not self.horarios_especialista.exists():
-            for horario in self.horarios_profissional_saude.all():
-                self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(
-                    data_hora=horario.data_hora
-                ))
-        # tele-interconsulta marcada pelo profissional de saúde
-        if self.especialista_id and not self.horarios_profissional_saude.exists():
-            for horario in self.horarios_especialista.all():
-                horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=horario.data_hora).first()
-                if horario_profissional is None:
-                    horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=horario.data_hora, profissional_saude=self.profissional)
-                self.horarios_profissional_saude.add(horario_profissional)
+        if self.especialista_id:
+            # tele-interconsulta marcada pelo regulador ou tele-interconsultor
+            if not self.horarios_especialista.exists():
+                for horario in self.horarios_profissional_saude.all():
+                    self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(
+                        data_hora=horario.data_hora
+                    ))
+            # tele-interconsulta marcada pelo profissional de saúde
+            if not self.horarios_profissional_saude.exists():
+                for horario in self.horarios_especialista.all():
+                    horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=horario.data_hora).first()
+                    if horario_profissional is None:
+                        horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=horario.data_hora, profissional_saude=self.profissional)
+                    self.horarios_profissional_saude.add(horario_profissional)
+        # teleconsulta marcada pelo profissional de saúde
+        elif self.agendado_para and not self.horarios_profissional_saude.exists():
+            horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=self.agendado_para).first()
+            if horario_profissional is None:
+                horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=self.agendado_para, profissional_saude=self.profissional)
+            self.horarios_profissional_saude.add(horario_profissional)
         if not self.agendado_para and self.horarios_profissional_saude.exists():
             self.agendado_para = self.horarios_profissional_saude.order_by('data_hora').first().data_hora
             self.save()

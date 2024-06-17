@@ -233,7 +233,7 @@ class IntegrationTestCase(SeleniumTestCase):
                 self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
             self.click('Enviar')
             self.click('Cadastrar Teleatendimento')
-            self.choose('Unidade', 'Unidade Capim Macio')
+            self.click('Unidade Capim Macio')
             self.click('Teleconsulta')
             self.click('Clínico Geral')
             self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
@@ -303,7 +303,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('10'):
             self.login('779.067.860-41', '123')
             self.click('Cadastrar Teleatendimento')
-            self.choose('Unidade', 'Unidade Capim Macio')
+            self.click('Unidade Capim Macio')
             self.click('Tele-interconsulta')
             self.click('Cardiologia')
             self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
@@ -337,6 +337,7 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('385.895.870-02', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
+            self.wait()
             self.click('Sala Virtual')
             self.click('Sim')
             self.click('Enviar')
@@ -378,5 +379,4 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('14'):
             self.login('466.778.160-28', '123')
             self.click('Painel de Monitoramento')
-            breakpoint()
             self.logout('466.778.160-28')

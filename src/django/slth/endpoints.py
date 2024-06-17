@@ -309,6 +309,10 @@ class Endpoint(metaclass=EnpointMetaclass):
                 tl.context.update(model=model, pk=pk or instance.pk)
             Log.objects.create(data=tl.context)
 
+    def absolute_url(self, relative_url):
+        return "{}://{}{}".format(self.request.META.get('X-Forwarded-Proto', self.request.scheme), self.request.get_host(), relative_url)
+
+
 class PublicEndpoint(Endpoint):
     def check_permission(self):
         return True

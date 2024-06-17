@@ -5,6 +5,7 @@ from .models import *
 from slth import forms
 from .utils import buscar_endereco
 from slth.tests import RUNNING_TESTING
+from .mail import send_mail
 
 
 class CIDs(endpoints.AdminEndpoint[CID]):
@@ -207,7 +208,17 @@ class EnviarNotificacaoAtendimento(endpoints.ChildEndpoint):
         message = 'Você possui um tele-atendimento agendado para {}.'.format(self.source.agendado_para.strftime('%d/%m/%Y as %H:%M'))
         url = f'/app/visualizaratendimento/{self.source.pk}/'
         for user in self.objects('slth.user').filter(username__in=usernames):
-            user.send_push_notification(title, message, url=url)
+            0 and user.send_push_notification(title, message, url=url)
+        
+        url = self.absolute_url(url)
+        text = '{} Para acessar, clique em {}.'.format(message, url)
+        html = '{} Para acessar, clique em <a href="{}">{}</a>.'.format(message, url, url)
+        if self.source.paciente.email:
+            send_mail([self.source.paciente.email], title, text, html)
+        if self.source.profissional.pessoa_fisica.email:
+            send_mail([self.source.profissional.pessoa_fisica.email], title, text, html)
+        if self.source.especialista_id and self.source.especialista.pessoa_fisica.email:
+            send_mail([self.source.especialista.pessoa_fisica.email], title, text, html)
         return super().post()
     
     def check_permission(self):
@@ -382,14 +393,21 @@ class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
         modal = False
         verbose_name = 'Cadastrar Teleatendimento'
 
+    def getform(self, form):
+        form.fields['unidade'].pick = True
+        form.fields['agendado_para'] = forms.SchedulerField(label="Data/Hora", scheduler = ProfissionalSaude.objects.get(
+            pessoa_fisica__cpf=self.request.user.username
+        ).get_agenda(readonly=False, single_selection=True, available=False))
+        return super().getform(form)
+
     def get(self):
         return (
             self
             .formfactory()
             .fieldset("Dados Gerais", ("unidade", "tipo", "area", "profissional"),)
             .fieldset("Detalhamento", ("paciente:cadastrarpessoafisica", "assunto", "duvida", ("cid", "ciap"),),)
-            .fieldset("Agendamento", ("duracao", "horarios_profissional_saude", "especialista:consultaragenda", "horarios_especialista",),
-            ).hidden('horarios_profissional_saude', 'especialista', 'horarios_especialista')
+            .fieldset("Agendamento", ("duracao", "agendado_para", "especialista", "horarios_especialista",),
+            ).hidden('agendado_para', 'especialista', 'horarios_especialista')
         )
     
     def get_unidade_queryset(self, queryset, values):
@@ -397,7 +415,7 @@ class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
     
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
-        controller.visible(tipo and tipo.id == TipoAtendimento.TELECONSULTA, 'horarios_profissional_saude')
+        controller.visible(tipo and tipo.id == TipoAtendimento.TELECONSULTA, 'agendado_para')
         controller.visible(tipo and tipo.id == TipoAtendimento.TELETERCONSULTA, 'especialista', 'horarios_especialista')
         controller.reload('area')
     
@@ -431,13 +449,6 @@ class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
         especialista = values.get('especialista')
         if especialista:
             return queryset.filter(profissional_saude=especialista).disponiveis().order_by('data_hora')
-        return queryset.none()
-    
-    def get_horarios_profissional_saude_queryset(self, queryset, values):
-        duracao = values.get('duracao')
-        profissional = values.get('profissional')
-        if profissional and duracao:
-            return queryset.filter(profissional_saude=profissional).disponiveis().order_by('data_hora')
         return queryset.none()
     
     def check_permission(self):

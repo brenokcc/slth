@@ -699,6 +699,8 @@ class SchedulerField(CharField):
                 for date, hour in data[key]:
                     data_string = "{} {}".format(date, hour)
                     values[key].append(datetime.datetime.strptime(data_string, "%d/%m/%Y %H:%M"))
+        if self.scheduler["single_selection"]:
+            return values['select'][0] if values['select'] else None
         return values
 
 
