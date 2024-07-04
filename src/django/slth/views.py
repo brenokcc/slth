@@ -8,7 +8,7 @@ import traceback
 from .models import Token
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .exceptions import JsonResponseException
+from .exceptions import JsonResponseException, ReadyResponseException
 from .serializer import serialize
 from .utils import build_url
 from slth import APPLICATON
@@ -53,6 +53,8 @@ def dispatcher(request, **kwargs):
                         return ApiResponse(dict(type="redirect", url=url), status=403)
                 except JsonResponseException as e:
                     return ApiResponse(e.data, safe=False)
+                except ReadyResponseException as e:
+                    return e.response
                 except Exception as e:
                     traceback.print_exc() 
                     return ApiResponse(data=dict(error=str(e)), safe=False, status=500)

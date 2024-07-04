@@ -1454,5 +1454,5 @@ function Form(props) {
   return render();
 }
 
-export { Field, Form, Selector };
+export { Field, Form, Selector, add_form_params };
 export default Form;

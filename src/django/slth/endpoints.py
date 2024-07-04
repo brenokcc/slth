@@ -1,7 +1,9 @@
+import io
 import json
 import types
 import inspect
-
+import requests
+from weasyprint import HTML
 from .models import Token, Role, Log, Deletion
 from django.apps import apps
 from typing import TypeVar, Generic
@@ -9,13 +11,14 @@ from django.core.cache import cache
 from django.conf import settings
 from django.utils.text import slugify
 from django.db import models
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from .factory import FormFactory
 from django.core.exceptions import ValidationError
 from slth import forms
 from django.db.models import Model
 from datetime import datetime
+from django.template.loader import render_to_string
 from django.contrib.auth import authenticate
 from .forms import ModelForm, Form
 from .serializer import serialize, Serializer
@@ -28,7 +31,7 @@ from .components import (
     Boxes,
     IconSet,
 )
-from .exceptions import JsonResponseException
+from .exceptions import JsonResponseException, ReadyResponseException
 from .utils import build_url, append_url
 from .models import PushSubscription, Profile, User, Log
 from slth.queryset import QuerySet
@@ -148,6 +151,25 @@ class Endpoint(metaclass=EnpointMetaclass):
 
     def redirect(self, url):
         raise JsonResponseException(dict(type="redirect", url=url))
+    
+    def render(self, data, template=None, pdf=False):
+        buffer = io.BytesIO()
+        if template:
+            if isinstance(template, str):
+                templates = template,
+            else:
+                templates = template
+        else:
+            templates = '{}.html'.format(template or self.__class__.__name__.lower()),
+        pages = []
+        for template in templates:
+            html = render_to_string(template, data)
+            doc = HTML(string=html).render()
+            pages.extend(doc.pages)
+        new_doc = doc.copy(pages=pages)
+        new_doc.write_pdf(buffer, base_url='http://localhost:8000', stylesheets=[])
+        buffer.seek(0)
+        raise ReadyResponseException(HttpResponse(buffer, content_type='application/pdf'))
 
     def getform(self, form):
         return form
@@ -316,6 +338,17 @@ class Endpoint(metaclass=EnpointMetaclass):
 class PublicEndpoint(Endpoint):
     def check_permission(self):
         return True
+
+
+class ReportEndpoint(Endpoint):
+
+    def process(self):
+        data = super().process()
+        template = '{}.html'.format(self.__class__.__name__.lower())
+        html = render_to_string(template, data)
+        headers = {'Content-type': 'text/html'}
+        response = requests.post('http://weasyprint.aplicativo.click/pdf', headers=headers, data=html)
+        raise ReadyResponseException(HttpResponse(response.content, content_type='application/pdf'))
 
 
 class ModelEndpoint(Endpoint):

@@ -1,0 +1,42 @@
+<html>
+    <head>
+        <style>
+            @page {
+            size: A4;
+            margin: 0.5cm;
+            }
+            @page :first {
+                @bottom-right {
+                    content: "Página {{ page }}";
+                }
+            }
+        </style>
+    </head>
+    <body style="margin: 0px">
+        <div style="border: solid 1px black; background-color: #DDD; border-radius: 10px; height: 250px; padding:10px">
+            <div>
+                <p>Documento assinado eletronicamente por:</p>
+                <ul>
+                    {% for signer, datetime in signature.signers %}
+                        {% if datetime %}
+                            <li><b>{{ signer }}</b>, em {{ datetime }}.</li>
+                        {% endif %}    
+                    {% endfor %}
+                </ul>
+                <hr/>
+            </div>
+            <div>
+                <div style="float:left; width: 600px;">
+                    <p>Este documento foi emitido eletronicamente em {{ signature.date }}. Para comprovar sua autenticidade, faça a leitura do QRCode ao lado ou acesse <i>{{ signature.validation_url }}</i> e forneça os dados abaixo:</p>
+                    <p>
+                        <b>Código Verificador</b>: {{ signature.verify_code }} <br/>
+                        <b>Código de Autenticação</b>: {{ signature.auth_code }}
+                    </p>
+                </div>
+                <div style="float:right; width: 100px;">
+                    <img style="width:100px" src="data:image/png;base64,{{ signature.qrcode }}" alt="Red dot" />
+                </div>
+            </div>
+        </div>  
+    </body>
+</html>

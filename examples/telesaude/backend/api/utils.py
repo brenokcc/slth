@@ -1,5 +1,8 @@
 import os
 import requests
+import qrcode
+import base64
+from io import BytesIO
 from .models import Estado, Municipio
         
 
@@ -15,3 +18,4 @@ def buscar_endereco(cep):
             municipio = Municipio.objects.get_or_create(estado=estado, codigo=codigo, nome=nome)[0]
         endereco.update(bairro=dados['bairro'], logradouro=dados['logradouro'], municipio=municipio)
     return endereco
+

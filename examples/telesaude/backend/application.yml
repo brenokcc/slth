@@ -9,18 +9,18 @@ application:
     - /static/images/logos/logo4.png
   oauth:
     govbr:
-      name: gov.br
-      client_id: $GOVBR_CLIENTE_ID
-      client_secret: $GOVBR_CLIENT_SECRET
-      redirect_uri: /app/login/govbr/
-      authorize_url: $GOVBR_AUTHORIZE_URL
-      access_token_url: $GOVBR_ACCESS_TOKEN_URL
-      user_data_url: $GOVBR_USER_DATA_URL
-      user_logout_url: $GOVBR_LOGOUT_URL
+      name: SUAP
+      client_id: BWcQGJ2VMDtkIVyMi50vwarhQE6U3JkMoVOEjgFf
+      client_secret: o6fOH3bOHd3BxGzAN7KcT3vJTnDI3N9IGmfNqHXq23ocOMhvnTGSSHf2DpGdzyABvCSKZ6CpnhUUtEG3W7R4w9MMvYNH3dPBOPxbo7iNhcaTaFg1hjugrbJ7QjYiNKfn
+      redirect_uri: /app/login/
+      authorize_url: https://suaptreino.cfmv.gov.br/o/authorize/
+      access_token_url: https://suaptreino.cfmv.gov.br/o/token/
+      user_data_url: https://suaptreino.cfmv.gov.br/api/eu/
+      user_logout_url: 
       user_scope:
       user_data:
-        create: false
-        username: sub
+        create: true
+        username: identificacao
         email: email
   groups:
     g: Gestor de Unidade Organizacional
@@ -46,7 +46,6 @@ application:
       - unidades
       - profissionaissaude
       - atendimentos
-      - cadastraratendimentops
       - agendaatendimentos
       - estatistica
     adder:

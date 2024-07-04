@@ -568,6 +568,10 @@ class ModelForm(DjangoModelForm, FormMixin):
             kwargs.update(files=self.request.FILES or None)
         super().__init__(instance=instance, **kwargs)
 
+    def is_valid(self):
+        valid = super().is_valid()
+        print(88888)
+        return valid
 
 class InlineFormField(Field):
     def __init__(self, *args, form=None, min=1, max=3, **kwargs):

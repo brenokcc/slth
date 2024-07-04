@@ -1,11 +1,14 @@
 import os
 from slth import endpoints
-from slth.components import Scheduler, ZoomMeet, TemplateContent
+from slth.components import Scheduler, ZoomMeet, TemplateContent, Response
 from .models import *
 from slth import forms
 from .utils import buscar_endereco
+from slth.printer import qrcode_base64
 from slth.tests import RUNNING_TESTING
 from .mail import send_mail
+import requests
+import base64
 
 
 class CIDs(endpoints.AdminEndpoint[CID]):
@@ -284,7 +287,7 @@ class AgendaAtendimentos(endpoints.ListEndpoint[Atendimento]):
         return (
             super().get().all().actions('cadastraratendimento', 'visualizaratendimento')
             .lookup('g', profissional__nucleo__gestores__cpf='username')
-            .lookup('o', profissional__nucleo__operadores__cpf='username')
+            .lookup('o', especialista__nucleo__operadores__cpf='username')
             .lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
             .lookup('p', paciente__cpf='username')
             .calendar("agendado_para")
@@ -317,6 +320,20 @@ class MinhaAgenda(endpoints.Endpoint):
         return self.check_role('ps', superuser=False)
 
 
+class ConsultarHorariosDisponiveis(endpoints.AddEndpoint[Atendimento]):
+    class Meta:
+        verbose_name = 'Consultar Horários Disponíveis'
+
+    def get(self):
+        profissional = ProfissionalSaude.objects.filter(pk=self.request.GET.get('profissional')).first()
+        especialista = ProfissionalSaude.objects.filter(pk=self.request.GET.get('especialista')).first()
+        is_teleconsulta = self.request.GET.get('tipo') == '1'
+        print(self.request.GET.get('tipo'), is_teleconsulta, 777)
+        return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta)
+
+    def check_permission(self):
+        return True
+
 
 class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
     class Meta:
@@ -326,15 +343,33 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
 
     def get(self):
         return (
-            super().get().hidden('especialista', 'justificativa_horario_excepcional', 'agendado_para')
+            super().get().hidden('especialista')
         )
     
+    def getform(self, form):
+        form = super().getform(form)
+        form.fields['agendado_para'] = forms.SchedulerField(scheduler=Atendimento.objects.agenda())
+        form.fields['unidade'].pick = self.check_role('ps')
+        return form
+    
     def get_unidade_queryset(self, queryset, values):
-        qs = queryset.none()
-        for nucleo in Nucleo.objects.filter(operadores__cpf=self.request.user.username):
-            qs = qs | nucleo.unidades.all()
+        if self.check_role('o'):
+            qs = queryset.none()
+            for nucleo in Nucleo.objects.filter(operadores__cpf=self.request.user.username):
+                qs = qs | nucleo.unidades.all()
+        elif self.check_role('ps'):
+            return queryset.filter(profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+        else:
+            qs = queryset.none()
         return qs
     
+    def get_area_queryset(self, queryset, values):
+        if self.check_role('o'):
+            return queryset
+        elif self.check_role('ps'):
+            return queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+        return queryset.none()
+        
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
         if tipo and tipo.id == TipoAtendimento.TELETERCONSULTA:
@@ -342,12 +377,6 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         else:
             controller.hide('especialista')
     
-    def on_horario_excepcional_change(self, controller, values):
-        if values.get('horario_excepcional'):
-            controller.show('justificativa_horario_excepcional', 'agendado_para')
-        else:
-            controller.hide('justificativa_horario_excepcional', 'agendado_para')
-
     def on_area_change(self, controller, values):
         controller.reload('profissional', 'especialista')
 
@@ -355,105 +384,24 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         unidade = values.get('unidade')
         area = values.get('area')
         if unidade and area:
-            return unidade.get_profissionais_telessaude(area)
+            queryset = unidade.get_profissionais_telessaude(area)
+            if self.check_role('ps'):
+                queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
+            return queryset
         return queryset.none()
     
     def get_especialista_queryset(self, queryset, values):
-        unidade = values.get('unidade')
         area = values.get('area')
-        if unidade and area:
-            return unidade.get_profissionais_telessaude(area)
-        return queryset.none()
+        return ProfissionalSaude.objects.filter(nucleo__isnull=False, especialidade__area=area)
     
     def on_profissional_change(self, controller, values):
-        controller.reload('horarios_profissional_saude')
-
+        controller.reload('agendado_para')
+    
     def on_especialista_change(self, controller, values):
-        controller.reload('horarios_profissional_saude')
+        controller.reload('agendado_para')
 
-    def get_horarios_profissional_saude_queryset(self, queryset, values):
-        profissional = values.get('profissional')
-        especialista = values.get('especialista')
-        if profissional:
-            qs = queryset.filter(profissional_saude=profissional).disponiveis()
-            if especialista:
-                qs = qs.filter(data_hora__in=(
-                    queryset.filter(profissional_saude=especialista).disponiveis().values_list('data_hora', flat=True)
-                ))
-            return qs.order_by('data_hora')
-        return queryset.none()
-    
     def check_permission(self):
-        return self.check_role('o')
-
-
-class CadastrarAtendimentoPS(endpoints.AddEndpoint[Atendimento]):
-    class Meta:
-        icon = 'plus'
-        modal = False
-        verbose_name = 'Cadastrar Teleatendimento'
-
-    def getform(self, form):
-        form.fields['unidade'].pick = True
-        form.fields['agendado_para'] = forms.SchedulerField(label="Data/Hora", scheduler = ProfissionalSaude.objects.get(
-            pessoa_fisica__cpf=self.request.user.username
-        ).get_agenda(readonly=False, single_selection=True, available=False))
-        return super().getform(form)
-
-    def get(self):
-        return (
-            self
-            .formfactory()
-            .fieldset("Dados Gerais", ("unidade", "tipo", "area", "profissional"),)
-            .fieldset("Detalhamento", ("paciente:cadastrarpessoafisica", "assunto", "duvida", ("cid", "ciap"),),)
-            .fieldset("Agendamento", ("duracao", "agendado_para", "especialista", "horarios_especialista",),
-            ).hidden('agendado_para', 'especialista', 'horarios_especialista')
-        )
-    
-    def get_unidade_queryset(self, queryset, values):
-        return queryset.filter(profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
-    
-    def on_tipo_change(self, controller, values):
-        tipo = values.get('tipo')
-        controller.visible(tipo and tipo.id == TipoAtendimento.TELECONSULTA, 'agendado_para')
-        controller.visible(tipo and tipo.id == TipoAtendimento.TELETERCONSULTA, 'especialista', 'horarios_especialista')
-        controller.reload('area')
-    
-    def get_area_queryset(self, queryset, values):
-        tipo = values.get('tipo')
-        if tipo and tipo.id == TipoAtendimento.TELECONSULTA:
-            queryset = queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
-        return queryset
-
-    def get_profissional_queryset(self, queryset, values):
-        return queryset.filter(pessoa_fisica__cpf=self.request.user.username)
-    
-    def get_especialista_queryset(self, queryset, values):
-        area = values.get('area')
-        if area:
-            return queryset.filter(especialidade__area=area)
-        return queryset.none()
-    
-    def on_area_change(self, controller, values):
-        tipo = values.get('tipo')
-        if tipo and tipo.id == TipoAtendimento.TELETERCONSULTA:
-            controller.reload('especialista')
-    
-    def on_duracao_change(self, controller, values):
-        controller.reload('horarios_profissional_saude')
-
-    def on_especialista_change(self, controller, values):
-        controller.reload('horarios_especialista')
-
-    def get_horarios_especialista_queryset(self, queryset, values):
-        especialista = values.get('especialista')
-        if especialista:
-            return queryset.filter(profissional_saude=especialista).disponiveis().order_by('data_hora')
-        return queryset.none()
-    
-    def check_permission(self):
-        return self.check_role('ps') and ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username, unidade__isnull=False)
-
+        return self.check_role('o', 'ps')
 
 class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
     def check_permission(self):
@@ -678,3 +626,79 @@ class FazerAlgumaCoisa(endpoints.Endpoint):
     
     def post(self):
         return tasks.FazerAlgumaCoisa()
+
+class Vidaas(endpoints.Endpoint):
+    class Meta:
+        verbose_name = 'Configurar Vidaas'
+
+    def get(self):
+        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+        code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
+        authorization_code = self.request.GET.get('code')
+        redirect_url = self.absolute_url('/app/vidaas/')
+        redirect_url = 'push://http://viddas.com.br'
+        if authorization_code:
+            profissional_saude.configurar_vidaas(authorization_code, redirect_url, code_verifier)
+            # profissional_saude.assinar_arquivo_imagem('/Users/breno/Downloads/file.jpeg')
+            return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
+        else:
+            login_hint = self.request.user.username
+            if redirect_url.startswith('push://'):
+                url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authorizations?client_id={}&code_challenge={}&code_challenge_method=S256&response_type=code&scope=signature_session&login_hint={}&lifetime=900&redirect_uri={}'.format(
+                    os.environ.get('VIDAAS_API_KEY'), code_verifier, login_hint, redirect_url
+                )
+                authorization_code = requests.get(url).text
+                ok = profissional_saude.configurar_vidaas(authorization_code, redirect_url, code_verifier)
+                if ok:
+                    print('[OK]')
+                    profissional_saude.assinar_arquivo_imagem('/Users/breno/Downloads/file.jpeg')
+                self.redirect('/app/dashboard/')
+            else:
+                url = 'https://certificado.vidaas.com.br/v0/oauth/authorize?client_id={}&code_challenge={}&code_challenge_method=S256&response_type=code&scope=signature_session&login_hint={}&lifetime=900&redirect_uri={}'.format(
+                    os.environ.get('VIDAAS_API_KEY'), code_verifier, login_hint, redirect_url
+                )
+                self.redirect(url)
+
+    def check_permission(self):
+        return self.check_role('ps') or ProfissionalSaude.objects.filter(peossoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
+
+
+class ConfigurarZoom(endpoints.Endpoint):
+    class Meta:
+        verbose_name = 'Configurar Zoom'
+
+    def get(self):
+        authorization_code = self.request.GET.get('code')
+        print(authorization_code, 99999)
+        redirect_url = self.absolute_url('/app/configurarzoom/')
+        if authorization_code:
+            profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+            profissional_saude.configurar_zoom(authorization_code, redirect_url)
+            return Response('Configuração realizada com sucesso.', redirect='/api/dashboard/')
+        else:
+            url = 'https://zoom.us/oauth/authorize?response_type=code&client_id={}&redirect_uri={}'.format(os.environ.get('ZOOM_API_KEY'), redirect_url)
+            self.redirect(url)
+
+    def check_permission(self):
+        return self.check_role('ps') or ProfissionalSaude.objects.filter(peossoa_fisica__cpf=self.request.user.username, zoom_token__isnull=True).exists()
+
+
+class ImprimirAtendimento(endpoints.InstanceEndpoint[Atendimento]):
+    class Meta:
+        modal = True
+        verbose_name = 'Imprimir Atendimento'
+
+    def get(self):
+        self.render(dict(nome='X', qrcode=(qrcode_base64('https://zoom.us/'))), pdf=True)
+    
+
+class ValidarDocumento(endpoints.PublicEndpoint):
+    codigo_verificador = forms.CharField(label='Código Verificador')
+    codigo_autenticacao = forms.CharField(label='Código de Autenticação')
+    def get(self):
+        return self.formfactory().fields('codigo_verificador', 'codigo_autenticacao')
+    
+    def post(self):
+        print(self.cleaned_data)
+        data = dict(nome='X', qrcode=(qrcode_base64('https://zoom.us/')), l=range(55))
+        self.render(data, 'imprimiratendimento.html', pdf=True)

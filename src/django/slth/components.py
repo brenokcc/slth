@@ -284,11 +284,11 @@ class Grid(dict):
 
 
 class Scheduler(dict):
-    INTERVALS = {1: ["00"], 2: ["00", "30"]}
+    INTERVALS = {1: ["00"], 2: ["00", "30"], 3: ["00", "20", "40"]}
 
     def __init__(
         self,
-        start_time=7,
+        start_time=0,
         end_time=23,
         chucks=2,
         start_day=None,
@@ -296,13 +296,19 @@ class Scheduler(dict):
         single_selection=False,
         input_name="schedule",
         readonly=False,
-        title=None
+        title=None,
+        watch=[],
+        url=None,
+        selectable=[]
     ):
         self["type"] = "scheduler"
         self["title"] = title
         self["single_selection"] = single_selection
         self["input_name"] = input_name
         self["readonly"] = readonly
+        self["watch"] = watch
+        self["url"] = url
+        self["selectable"] = ['{} {}'.format(obj.strftime("%d/%m/%Y"), obj.strftime("%H:%M")) for obj in selectable] if selectable is not None else None
         self.end_day = start_day or datetime.now()
         self.end_day = datetime(self.end_day.year, self.end_day.month, self.end_day.day)
         self.times = []

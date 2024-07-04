@@ -1,10 +1,13 @@
-import binascii
-
+import os
+import hashlib
+import base64
+from PIL import Image as PILImage
+import requests
 from slth.factory import FormFactory
 from slth.serializer import Serializer
 from . import signer
 from random import randint
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
@@ -14,7 +17,7 @@ from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter
 from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge, TemplateContent
-
+from time import sleep
 
 
 class CIDQuerySet(models.QuerySet):
@@ -208,7 +211,7 @@ class Unidade(models.Model):
 
     @meta('Profissionais de Saúde')
     def get_profissionais_telessaude(self, area=None):
-        qs = ProfissionalSaude.objects.filter(unidades=self)
+        qs = ProfissionalSaude.objects.filter(unidade=self)
         if area:
             qs = qs.filter(especialidade__area=area)
         return qs
@@ -389,7 +392,7 @@ class Nucleo(models.Model):
             profissional_saude__nucleo=self, data_hora__gte=datetime.now()
         )
         start_day = qs.values_list('data_hora', flat=True).first()
-        scheduler = Scheduler(start_day=start_day, readonly=True)
+        scheduler = Scheduler(start_day=start_day, chucks=3, readonly=True)
         campos = ("data_hora", "profissional_saude__pessoa_fisica__nome", "profissional_saude__especialidade__area__nome")
         qs1 = qs.filter(atendimentos_especialista__isnull=True)
         qs2 = qs.filter(atendimentos_especialista__isnull=False)
@@ -415,7 +418,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
     def all(self):
         return (
             self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
-            .filters("nucleo", "especialidade",)
+            .filters("nucleo", "unidade", "especialidade",)
             .fields("get_estabelecimento", "especialidade")
             .actions("agendaprofissionalsaude", "definirhorarioprofissionalsaude")
         ).cards()
@@ -445,6 +448,10 @@ class ProfissionalSaude(models.Model):
     unidade = models.ForeignKey(Unidade, verbose_name='Unidade', null=True, on_delete=models.CASCADE)
     # Teleatendimento
     nucleo = models.ForeignKey(Nucleo, verbose_name='Núcleo', null=True, on_delete=models.CASCADE)
+
+    # Zoom token
+    zoom_token = models.TextField(verbose_name='Zoom Token', null=True, blank=True)
+    vidaas_token = models.TextField(verbose_name='Vidaas Token', null=True, blank=True)
     
     objects = ProfissionalSaudeQueryset()
 
@@ -453,6 +460,83 @@ class ProfissionalSaude(models.Model):
         verbose_name = "Profissional de Saúde"
         verbose_name_plural = "Profissionais de Saúde"
         search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
+
+    def configurar_vidaas(self, authorization_code, redirect_url, code_verifier):
+        url = 'https://certificado.vidaas.com.br/v0/oauth/token'
+        client_id = os.environ.get('VIDAAS_API_KEY')
+        client_secret = os.environ.get('VIDAAS_API_SEC')
+
+        if redirect_url.startswith('push://'):
+            url2 = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authentications?{}'.format(authorization_code)
+            authorization_code = None
+            for i in range(0, 5):
+                sleep(10)
+                response = requests.get(url2)
+                if response.status_code == 200:
+                    data = response.json()
+                    authorization_code = response.json()['authorizationToken']
+                    break
+        
+        if authorization_code:
+            data = dict(grant_type='authorization_code', code=authorization_code, redirect_uri=redirect_url, code_verifier=code_verifier, client_id=client_id, client_secret=client_secret)
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            response = requests.post(url, headers=headers, data=data).json()
+            self.vidaas_token = response['access_token']
+            print(response['access_token'])
+            self.save()
+            return True
+        else:
+            return False
+
+    def assinar_arquivo_pdf(self, caminho_arquivo):
+        url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
+        filename = caminho_arquivo.split('/')[-1]
+        filecontent = open(caminho_arquivo, 'r+b').read()
+        base64_content = base64.b64encode(filecontent).decode()
+        sha256 = hashlib.sha256()
+        sha256.update(filecontent)
+        hash=sha256.hexdigest()
+        token = self.vidaas_token
+        headers = {'Content-type': 'application/json', 'Authorization': 'Bearer {}'.format(token)}
+        data = {"hashes": [{"id": filename, "alias": filename, "hash": hash, "hash_algorithm": "2.16.840.1.101.3.4.2.1", "signature_format": "CAdES_AD_RB", "base64_content": base64_content,}]}
+        response = requests.post(url, json=data, headers=headers).json()
+        file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
+        sleep(1)
+        open(caminho_arquivo, 'w+b').write(file_content)
+
+    def assinar_arquivo_imagem(self, caminho_arquivo):
+        caminho_arquivo_pdf = f'{caminho_arquivo}.pdf'
+        PILImage.open(caminho_arquivo).save(caminho_arquivo_pdf, "PDF")
+        sleep(1)
+        self.assinar_arquivo_pdf(caminho_arquivo_pdf)
+
+    def configurar_zoom(self, authorization_code, redirect_url):
+        url = 'https://zoom.us/oauth/token?grant_type=authorization_code&code={}&redirect_uri={}'.format(authorization_code, redirect_url)
+        auth = base64.b64encode('{}:{}'.format(os.environ.get('ZOOM_API_KEY'), os.environ.get('ZOOM_API_SEC')).encode()).decode()
+        headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
+        response = requests.post(url, headers=headers).json()
+        self.zoom_token = response['refresh_token']
+        self.save()
+
+    def criar_sala_virtual(self, nome):
+        if self.zoom_token:
+            url = 'https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token={}'.format(self.zoom_token)
+            auth = base64.b64encode('{}:{}'.format(os.environ.get('ZOOM_API_KEY'), os.environ.get('ZOOM_API_SEC')).encode()).decode()
+            headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
+            response = requests.post(url, headers=headers).json()
+            print(response)
+            self.zoom_token = response['refresh_token']
+            self.save()
+            data = {"topic": nome, "settings": {"join_before_host": True}}
+            url = 'https://api.zoom.us/v2/users/me/meetings'
+            headers = {'authorization': 'Bearer ' + response['access_token'], 'content-type': 'application/json'}
+            print(url, data)
+            response = requests.post(url, json=data, headers=headers).json()
+            print(response)
+            number = response.get('id')
+            password = response.get('encrypted_password')
+            limit = datetime.now() + timedelta(minutes=40)
+        return number, password, limit
 
     def formfactory(self):
         return (
@@ -475,6 +559,7 @@ class ProfissionalSaude(models.Model):
             .fieldset("Dados Gerais", (("nucleo", "pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
             .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
+            .fieldset("Configuração", ("zoom_token",))
         )
 
     def __str__(self):
@@ -486,7 +571,7 @@ class ProfissionalSaude(models.Model):
 
     @meta(None)
     def get_agenda(self, readonly=True, single_selection=False, available=True):
-        scheduler = Scheduler(readonly=readonly, single_selection=single_selection)
+        scheduler = Scheduler(readonly=readonly, chucks=3, single_selection=single_selection)
         qs = self.horarioprofissionalsaude_set.filter(data_hora__gte=date.today()).order_by('data_hora')
         for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_profissional_saude", "atendimentos_profissional_saude__especialista_id"):
             descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
@@ -579,6 +664,43 @@ class AtendimentoQuerySet(models.QuerySet):
     @meta('Atendimentos por Unidade e Especialidade')
     def get_total_por_area_e_unidade(self):
         return self.counter('area', 'unidade')
+    
+    def agenda(self, profissional=None, especialista=None, is_teleconsulta=False):
+        selectable = []
+        scheduled = set()
+        midnight = datetime.combine(datetime.now().date(), time())
+        if profissional:
+            # agenda ocupada do profissional de saúde
+            for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_profissional_saude__isnull=False):
+                scheduled.add(horario.data_hora)
+            for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_especialista__isnull=False):
+                scheduled.add(horario.data_hora)
+            # agenda ocupada do especialista
+            if especialista:
+                for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_profissional_saude__isnull=False):
+                    scheduled.add(horario.data_hora)
+                for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_especialista__isnull=False):
+                    scheduled.add(horario.data_hora)
+            qs = profissional.horarioprofissionalsaude_set
+            for horario in qs.filter(data_hora__gte=datetime.now()):
+              if horario.data_hora not in scheduled:
+                selectable.append(horario.data_hora)
+            if especialista:
+                print(selectable)
+                print(HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista).values_list('data_hora', flat=True))
+                selectable = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista, data_hora__in=selectable).values_list('data_hora', flat=True)
+                print(selectable)
+        scheduler = Scheduler(
+            chucks=3,
+            watch=['profissional', 'especialista'],
+            url='/api/consultarhorariosdisponiveis/',
+            single_selection=True,
+            selectable=None if is_teleconsulta else selectable,
+            readonly=not selectable
+        )
+        for dt in scheduled:
+            scheduler.append(dt, 'Indisponível', 'stethoscope')
+        return scheduler
 
 @role('p', username='paciente__cpf')
 class Atendimento(models.Model):
@@ -617,7 +739,7 @@ class Atendimento(models.Model):
     paciente = models.ForeignKey(
         "PessoaFisica", verbose_name='Paciente', related_name="atendimentos_paciente", on_delete=models.PROTECT
     )
-    duracao = models.IntegerField(verbose_name='Duração', null=True, choices=[(30, '30min'), (60, '1h'), (90, '1h30min')], pick=True)
+    duracao = models.IntegerField(verbose_name='Duração', null=True, choices=[(20, '20min'), (40, '40min'), (60, '1h')], pick=True, default=20)
 
     # horario_profissional_saude = models.ForeignKey(
     #     HorarioProfissionalSaude,
@@ -686,7 +808,7 @@ class Atendimento(models.Model):
     def check_webconf(self):
         from . import zoom
         if self.limite_webconf is None or self.limite_webconf < datetime.now():
-            number, password, limit = zoom.create_meeting('Atendimento #{}'.format(self.id))
+            number, password, limit = self.profissional.criar_sala_virtual('Atendimento #{}'.format(self.id))
             self.numero_webconf = number
             self.senha_webconf = password
             self.limite_webconf = limit
@@ -712,15 +834,7 @@ class Atendimento(models.Model):
                 ),
             )
             .fieldset(
-                "Agendamento",
-                (
-                    "profissional:consultaragenda",
-                    "especialista",
-                    "horarios_profissional_saude",
-                    "horario_excepcional",
-                    "justificativa_horario_excepcional",
-                    "agendado_para",
-                ),
+                "Agendamento", ("profissional", "especialista", "duracao", "agendado_para",),
             )
         )
     
@@ -729,7 +843,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento')
+            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -834,30 +948,12 @@ class Atendimento(models.Model):
         super(Atendimento, self).save(*args, **kwargs)
 
     def post_save(self):
-        if self.especialista_id:
-            # tele-interconsulta marcada pelo regulador ou tele-interconsultor
-            if not self.horarios_especialista.exists():
-                for horario in self.horarios_profissional_saude.all():
-                    self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(
-                        data_hora=horario.data_hora
-                    ))
-            # tele-interconsulta marcada pelo profissional de saúde
-            if not self.horarios_profissional_saude.exists():
-                for horario in self.horarios_especialista.all():
-                    horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=horario.data_hora).first()
-                    if horario_profissional is None:
-                        horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=horario.data_hora, profissional_saude=self.profissional)
-                    self.horarios_profissional_saude.add(horario_profissional)
-        # teleconsulta marcada pelo profissional de saúde
-        elif self.agendado_para and not self.horarios_profissional_saude.exists():
+        if not self.horarios_profissional_saude.exists():
             horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=self.agendado_para).first()
             if horario_profissional is None:
                 horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=self.agendado_para, profissional_saude=self.profissional)
             self.horarios_profissional_saude.add(horario_profissional)
-        if not self.agendado_para and self.horarios_profissional_saude.exists():
-            self.agendado_para = self.horarios_profissional_saude.order_by('data_hora').first().data_hora
-            self.save()
-
+        
 class AnexoAtendimento(models.Model):
     atendimento = models.ForeignKey(
         Atendimento, on_delete=models.CASCADE
@@ -996,3 +1092,34 @@ class CertificadoDigital(models.Model):
             super().save(*args, **kwargs)
         except Exception:
             pass
+
+
+class DocumentoQuerySet(models.QuerySet):
+    def all(self):
+        return self
+    
+    def gerar(self, nome, conteudo):
+        Documento.objects.create()
+
+
+class Documento(models.Model):
+    uuid = models.CharField(verbose_name='UUID')
+    nome = models.CharField(verbose_name='Nome')
+    data = models.DateTimeField(verbose_name='Data')
+    arquivo = models.FileField(verbose_name='Arquivo', upload_to='documentos')
+
+    class Meta:
+        verbose_name = 'Documento'
+        verbose_name_plural = 'Documentos'
+
+    objects = DocumentoQuerySet()
+
+    def __str__(self):
+        return f'Documento {self.id}'
+    
+    def get_codigo_verificador(self):
+        return str(self.id).rjust(6, '0')
+    
+    def get_codigo_autenticacao(self):
+        return self.uuid[0:6]
+

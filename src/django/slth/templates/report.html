@@ -1,0 +1,23 @@
+<html>
+    <head>
+        <style>
+            @page {
+            size: A4;
+            margin: 0.5cm;
+            }
+            @page {
+                @bottom-right {
+                    content: "Página " counter(page);
+                }
+            }
+        </style>
+    </head>
+    <body style="margin: 0px">
+        {% block body %}
+            <h1>Report</h1>
+            {% for i in lines %}
+                <p>Line {{ i }}</p>
+            {% endfor %}
+        {% endblock %}
+    </body>
+</html>

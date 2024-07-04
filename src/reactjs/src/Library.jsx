@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "./Icon";
-import { apiurl } from "./Request";
+import { apiurl, request } from "./Request";
 import { Theme } from "./Theme";
+import { add_form_params } from "./Form";
 import { ComponentFactory } from "./Root.jsx";
 import { GridLayout } from "./Layout";
 import { toLabelCase } from "./Utils";
@@ -412,15 +413,41 @@ function Scheduler(props) {
   const FREE = "rgb(219, 237, 255)";
   const SELECTED = "rgb(89, 154, 242)";
   const BLOCKED = "rgb(246, 123, 135)";
+  const SELECTABLE = "rgb(100, 163, 127)";
   const SELECT = [];
   const DESELECT = []
   const WEEKDAYS = ["DOM", "SEG", "TER", "QAR", "QUI", "SEX", "SAB"]
+  const [data, setData] = useState(props.data);
 
-  function bgColor(value) {
-    if (props.data.readonly){
+
+  StyleSheet(`
+    .scheduler .periods span{
+      margin-right: 30px;
+    }
+    .scheduler .hidden{
+      display: none;
+    }
+  `)
+  
+  useEffect(() => {
+    document.getElementById(id).querySelector(".input-periodo-2").checked = true;
+    document.getElementById(id).querySelector(".input-periodo-3").checked = true;
+    window['reload-'+props.data.input_name+'-field'] = function(){
+      const form = document.getElementsByName(props.data.input_name)[0].closest("form");
+        request("GET", add_form_params(props.data.url, form, props.data.input_name), function(data){
+          setData(data);
+      });
+    }
+  }, []);
+
+  function bgColor(value, dataLabel) {
+    if (data.readonly){
       return value == null ? FREE : SELECTED;
     } else {
-      if (value == null) return FREE;
+      if (value == null){
+        if(data.selectable == null) return FREE;
+        else return data.selectable.indexOf(dataLabel) >= 0 ? SELECTABLE : FREE
+      }
       if (value.text == null) return SELECTED;
       return BLOCKED;
     }
@@ -428,7 +455,6 @@ function Scheduler(props) {
 
   function onMouseDown(e) {
     mouseDown = true;
-    e.preventDefault();
   }
 
   function onMouseUp(e) {
@@ -439,7 +465,7 @@ function Scheduler(props) {
   }
 
   function onMouseOver(e) {
-    if (props.data.readonly) return;
+    if (data.readonly) return;
     if (
       props.data.single_selection &&
       getSelections().length > 0 &&
@@ -447,17 +473,19 @@ function Scheduler(props) {
     ) {
       return;
     }
-    if (mouseDown && e.target.style.backgroundColor != BLOCKED) {
+    if (mouseDown && e.target.tagName != "I" && e.target.style.backgroundColor != BLOCKED) {
       const dayTokens = e.target.dataset.day.split("/");
       const timeTokens = e.target.dataset.time.split(":");
+      const dataLabel = e.target.dataset.day + " " +e.target.dataset.time;
       const date = new Date(parseInt(dayTokens[2], 10), parseInt(dayTokens[1], 10) -1 , parseInt(dayTokens[0], 10), parseInt(timeTokens[0], 10), parseInt(timeTokens[1], 10));
       if (date > new Date()) {
-        if (e.target.style.backgroundColor == FREE){
+        if ((e.target.style.backgroundColor == FREE || e.target.style.backgroundColor == SELECTABLE) && (data.selectable == null || data.selectable.indexOf(dataLabel)>=0)){
           e.target.style.backgroundColor = SELECTED;
           console.log('MARCOU', e.target.dataset.day, e.target.dataset.time);
           SELECT.push([e.target.dataset.day, e.target.dataset.time]);
         } else {
-          e.target.style.backgroundColor = FREE;
+          if (data.selectable == null) e.target.style.backgroundColor = FREE;
+          else e.target.style.backgroundColor = data.selectable.indexOf(dataLabel)>=0 ? SELECTABLE : FREE;
           console.log('DEMARCOU', e.target.dataset.day, e.target.dataset.time);
           DESELECT.push([e.target.dataset.day, e.target.dataset.time]);
         }
@@ -482,6 +510,34 @@ function Scheduler(props) {
     return selections;
   }
 
+  function period(hour){
+    hour = parseInt(hour.split(":")[0]);
+    if(hour >= 0 && hour < 6) return 1;
+    if(hour >= 6 && hour < 12) return 2;
+    if(hour >= 12 && hour < 18) return 3;
+    if(hour >= 18 && hour < 24) return 4;
+  }
+
+  function periodClass(hour){
+    const number = period(hour);
+    var className = "period-"+number;
+    if(!showPeriod(number)) className+=" hidden";
+    return className;
+  }
+
+  function checkPeriod(period, checked){
+    document
+      .getElementById(id)
+      .querySelectorAll(".period-"+period)
+      .forEach(function (tr) {
+        tr.style.display = checked ? "table-row" : "none";
+      });
+  }
+
+  function showPeriod(period){
+    return period == 2 || period == 3 
+  }
+
   function render() {
     const style = {
       overflowX: "auto",
@@ -497,13 +553,19 @@ function Scheduler(props) {
       border: "solid 4px white",
     };
     return (
-      <div id={id} style={style}>
+      <div id={id} style={style} className="scheduler">
         {props.data.title && <h2>{ props.data.title }</h2>}
         <input id={"input" + id} type="hidden" name={props.data.input_name} />
+        <div className="periods">
+          <input className="input-periodo-1" type="checkbox" onChange={(e)=>checkPeriod(1, e.target.checked)}/> <span>Madrugada</span>
+          <input className="input-periodo-2" type="checkbox" onChange={(e)=>checkPeriod(2, e.target.checked)}/> <span>Manhã</span>
+          <input className="input-periodo-3" type="checkbox" onChange={(e)=>checkPeriod(3, e.target.checked)}/> <span>Tarde</span>
+          <input className="input-periodo-4" type="checkbox" onChange={(e)=>checkPeriod(4, e.target.checked)}/> <span>Noite</span>
+        </div>
         <table style={table} onMouseDown={onMouseDown} onMouseUp={onMouseUp}>
           <thead>
             <tr>
-              {props.data.matrix[0].map(function (value) {
+              {data.matrix[0].map(function (value) {
                 return (
                   <th className="bold" key={Math.random()} style={cell}>
                     {getWeekDay(value.text)}<br/>{value.text}
@@ -513,10 +575,10 @@ function Scheduler(props) {
             </tr>
           </thead>
           <tbody>
-            {props.data.matrix.map(function (row, i) {
+            {data.matrix.map(function (row, i) {
               if (i > 0) {
                 return (
-                  <tr key={Math.random()}>
+                  <tr key={Math.random()} className={periodClass(row[0].text)}>
                     {row.map(function (value, j) {
                       if (j == 0)
                         return (
@@ -530,11 +592,11 @@ function Scheduler(props) {
                           </th>
                         );
                       else {
+                        const dataLabel = data.matrix[0][j].text+ " " +row[0].text;
                         const td = {
-                          backgroundColor: bgColor(value),
+                          backgroundColor: bgColor(value, dataLabel),
                           border: "solid 4px white",
                         };
-                        console.log(value)
                         return (
                           <td
                             key={Math.random()}
@@ -543,9 +605,9 @@ function Scheduler(props) {
                             onMouseDown={onMouseOver}
                             onMouseLeave={onMouseOver}
                             onMouseUp={onMouseOver}
-                            data-day={props.data.matrix[0][j].text}
+                            data-day={data.matrix[0][j].text}
                             data-time={row[0].text}
-                            data-label={props.data.matrix[0][j].text+ " " +row[0].text}
+                            data-label={dataLabel}
                           >
                             {value && value.text && <Tooltip text={value.text}><Icon icon={value.icon || "stethoscope"} style={{color: "white", cursor: "help"}}/></Tooltip>}
                           </td>
