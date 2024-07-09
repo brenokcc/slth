@@ -68,8 +68,7 @@ class CadastrarProfissionalSaudeNucleo(endpoints.RelationEndpoint[ProfissionalSa
         return (
             super()
             .formfactory().fields(nucleo=self.source.instance)
-            .fieldset("Dados Gerais", ("nucleo", "pessoa_fisica:cadastrarpessoafisica",))
-            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"),("residente", "perceptor"),),)
         )
     
@@ -106,9 +105,7 @@ class CadastrarProfissionalSaudeUnidade(endpoints.RelationEndpoint[ProfissionalS
             super()
             .formfactory().fields(unidade=self.source.instance)
             .fieldset("Dados Gerais", ("unidade", "pessoa_fisica:cadastrarpessoafisica",))
-            .fieldset(
-                "Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),
-            )
+            .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional")),)
             .fieldset(
                 "Informações Adicionais", (
                     ("programa_provab", "programa_mais_medico"),
@@ -302,7 +299,7 @@ class MeusVinculos(endpoints.ListEndpoint[ProfissionalSaude]):
         verbose_name= 'Meus Vínculos'
     
     def get(self):
-        return super().get().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("definirhorarioprofissionalsaude")
+        return super().get().filter(pessoa_fisica__cpf=self.request.user).fields('get_estabelecimento', 'especialidade').actions("alteraragendaprofissionalsaude")
 
     def check_permission(self):
         return self.check_role('ps', superuser=False)
@@ -311,6 +308,7 @@ class MeusVinculos(endpoints.ListEndpoint[ProfissionalSaude]):
 
 class MinhaAgenda(endpoints.Endpoint):
     class Meta:
+        icon = 'calendar-days'
         verbose_name = 'Minha Agenda'
 
     def get(self):
@@ -328,7 +326,6 @@ class ConsultarHorariosDisponiveis(endpoints.AddEndpoint[Atendimento]):
         profissional = ProfissionalSaude.objects.filter(pk=self.request.GET.get('profissional')).first()
         especialista = ProfissionalSaude.objects.filter(pk=self.request.GET.get('especialista')).first()
         is_teleconsulta = self.request.GET.get('tipo') == '1'
-        print(self.request.GET.get('tipo'), is_teleconsulta, 777)
         return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta)
 
     def check_permission(self):
@@ -438,8 +435,8 @@ class AgendaNucleo(endpoints.InstanceEndpoint[Nucleo]):
     
 class AgendaProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
     class Meta:
-        icon = 'clock'
-        verbose_name = 'Visualizar Horário'
+        icon = 'calendar-days'
+        verbose_name = 'Visualizar Agenda'
     
     def get(self):
         return self.serializer().fieldset(
@@ -465,11 +462,11 @@ class ConsultarAgenda(endpoints.Endpoint):
         return True
 
 
-class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
+class AlterarAgendaProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
 
     class Meta:
-        icon = "user-clock"
-        verbose_name = "Definir Horário"
+        icon = "calendar-plus"
+        verbose_name = "Alterar Agenda"
 
     def get(self):
         return (
@@ -497,6 +494,40 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
     def check_permission(self):
         return self.check_role('g', 'o') or self.instance.pessoa_fisica.cpf == self.request.user.username
 
+
+class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSaude]):
+    horarios = forms.SchedulerField(scheduler=Scheduler(weekly=True, chucks=3))
+
+    class Meta:
+        icon = "user-clock"
+        verbose_name = "Definir Horários"
+
+    def getform(self, form):
+        form.fields['horarios'] = forms.SchedulerField(scheduler=self.instance.get_horarios_atendimento(False))
+        return super().getform(form)
+
+    def get(self):
+        return (self.formfactory().fields('horarios'))
+    
+    def post(self):
+        self.instance.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
+        return super().post()
+
+
+class DefinirHorarioProfissionaisSaude(endpoints.Endpoint):
+    horarios = forms.SchedulerField(scheduler=Scheduler(weekly=True, chucks=3))
+
+    class Meta:
+        icon = "user-clock"
+        verbose_name = "Definir Horários de Atendimento"
+
+    def get(self):
+        return (self.formfactory().fields('horarios'))
+    
+    def post(self):
+        for profissional_saude in ProfissionalSaude.objects.all():
+            profissional_saude.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
+        return super().post()
 
 class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 

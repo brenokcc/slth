@@ -1257,6 +1257,7 @@ function FormContent(props) {
                       className={"form-group " + field.name}
                       key={Math.random()}
                       style={{
+                        verticalAlign: "bottom",
                         width: 100 / list.length + "%",
                         display:
                           field.type == "hidden" ? "none" : "inline-block",

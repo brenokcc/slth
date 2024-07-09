@@ -299,7 +299,8 @@ class Scheduler(dict):
         title=None,
         watch=[],
         url=None,
-        selectable=[]
+        selectable=None,
+        weekly=False
     ):
         self["type"] = "scheduler"
         self["title"] = title
@@ -309,14 +310,23 @@ class Scheduler(dict):
         self["watch"] = watch
         self["url"] = url
         self["selectable"] = ['{} {}'.format(obj.strftime("%d/%m/%Y"), obj.strftime("%H:%M")) for obj in selectable] if selectable is not None else None
-        self.end_day = start_day or datetime.now()
-        self.end_day = datetime(self.end_day.year, self.end_day.month, self.end_day.day)
+        self["weekly"] = weekly
+        if weekly:
+            self.end_day = datetime.now()
+            while self.end_day.weekday() > 0:
+                self.end_day = self.end_day - timedelta(days=1)
+            days = 7
+        else:
+            self.end_day = start_day or datetime.now()
+            self.end_day = datetime(self.end_day.year, self.end_day.month, self.end_day.day)
         self.times = []
         for hour in range(start_time, end_time + 1):
             for minute in Scheduler.INTERVALS[chucks]:
                 self.times.append("{}:{}".format(str(hour).rjust(2, "0"), minute))
         self.days = []
         for n in range(0, days):
+            if n == 0:
+                self.start_day = self.end_day
             self.days.append(self.end_day.strftime("%d/%m/%Y"))
             self.end_day = self.end_day + timedelta(days=1)
         self.end_day = datetime(self.end_day.year, self.end_day.month, self.end_day.day, 23, 59, 59)
@@ -335,13 +345,20 @@ class Scheduler(dict):
                 row.append(self["slots"][day][time])
             self["matrix"].append(row)
 
-    def append(self, date_time, text, icon='check'):
-        day = date_time.strftime("%d/%m/%Y")
-        time = date_time.strftime("%H:%M")
-        value = dict(text=text, icon=icon)
-        self["slots"][day][time] = value
-        j = self.days.index(day) + 1 if day in self.days else -1
-        x = self.times.index(time) + 1 if time in self.times else -1
-        self["matrix"][x][j] = value
+    def append(self, date_time, text=None, icon='check'):
+        if date_time.strftime("%d/%m/%Y") in self.days:
+            day = date_time.strftime("%d/%m/%Y")
+            time = date_time.strftime("%H:%M")
+            value = dict(text=text, icon=icon)
+            self["slots"][day][time] = value
+            j = self.days.index(day) + 1 if day in self.days else -1
+            x = self.times.index(time) + 1 if time in self.times else -1
+            self["matrix"][x][j] = value
 
-        
+    def append_weekday(self, weekday, hour, minute):
+        date_time = self.start_day
+        while date_time < self.end_day + timedelta(days=-1):
+            if date_time.weekday() == int(weekday):
+                self.append(datetime(date_time.year, date_time.month, date_time.day, hour, minute, 0))
+            date_time += timedelta(days=1)
+    

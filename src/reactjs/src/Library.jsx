@@ -464,6 +464,14 @@ function Scheduler(props) {
     );
   }
 
+  function pauseEvent(e){
+      if(e.stopPropagation) e.stopPropagation();
+      if(e.preventDefault) e.preventDefault();
+      e.cancelBubble=true;
+      e.returnValue=false;
+      return false;
+  }
+
   function onMouseOver(e) {
     if (data.readonly) return;
     if (
@@ -478,7 +486,7 @@ function Scheduler(props) {
       const timeTokens = e.target.dataset.time.split(":");
       const dataLabel = e.target.dataset.day + " " +e.target.dataset.time;
       const date = new Date(parseInt(dayTokens[2], 10), parseInt(dayTokens[1], 10) -1 , parseInt(dayTokens[0], 10), parseInt(timeTokens[0], 10), parseInt(timeTokens[1], 10));
-      if (date > new Date()) {
+      if (date > new Date() || props.data.weekly) {
         if ((e.target.style.backgroundColor == FREE || e.target.style.backgroundColor == SELECTABLE) && (data.selectable == null || data.selectable.indexOf(dataLabel)>=0)){
           e.target.style.backgroundColor = SELECTED;
           console.log('MARCOU', e.target.dataset.day, e.target.dataset.time);
@@ -551,6 +559,7 @@ function Scheduler(props) {
     };
     const cell = {
       border: "solid 4px white",
+      userSelect: "none",
     };
     return (
       <div id={id} style={style} className="scheduler">
@@ -568,7 +577,9 @@ function Scheduler(props) {
               {data.matrix[0].map(function (value) {
                 return (
                   <th className="bold" key={Math.random()} style={cell}>
-                    {getWeekDay(value.text)}<br/>{value.text}
+                    {getWeekDay(value.text)}
+                    {!props.data.weekly && <br/>}
+                    {!props.data.weekly && value.text}
                   </th>
                 );
               })}
@@ -609,7 +620,7 @@ function Scheduler(props) {
                             data-time={row[0].text}
                             data-label={dataLabel}
                           >
-                            {value && value.text && <Tooltip text={value.text}><Icon icon={value.icon || "stethoscope"} style={{color: "white", cursor: "help"}}/></Tooltip>}
+                            {value && value.text && <Tooltip text={value.text}><Icon icon={value.icon || "x"} style={{color: "white", cursor: "help"}}/></Tooltip>}
                           </td>
                         );
                       }

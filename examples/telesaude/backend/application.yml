@@ -45,6 +45,7 @@ application:
       - nucleos
       - unidades
       - profissionaissaude
+      - definirhorarioprofissionaissaude
       - atendimentos
       - agendaatendimentos
       - estatistica

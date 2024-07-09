@@ -114,6 +114,19 @@ class Estado(models.Model):
         return "%s/%s" % (self.nome, self.sigla)
 
 
+class ConselhoClasse(models.Model):
+    sigla = models.CharField(verbose_name='Sigla', max_length=20, unique=True)
+    estado = models.ForeignKey(Estado, verbose_name='Estado', on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = "Conselho de Classe"
+        verbose_name_plural = "Conselhos de Classe"
+        ordering = ["sigla"]
+
+    def __str__(self):
+        return f'{self.sigla}/{self.estado.sigla}'
+
+
 class Sexo(models.Model):
     nome = models.CharField(verbose_name='Nome')
 
@@ -145,7 +158,7 @@ class UnidadeQuerySet(models.QuerySet):
     def all(self):
         return (
             self.search("cnes", "nome")
-            .fields("foto", "cnes",  "municipio")
+            .fields("foto", "get_qtd_profissionais_saude")
             .filters("municipio__estado", "municipio").cards()
         )
 
@@ -207,7 +220,13 @@ class Unidade(models.Model):
     
     @meta('Profissionais de Saúde')
     def get_profissionais_saude(self):
-        return self.profissionalsaude_set.all().actions('cadastrarprofissionalsaudeunidade')
+        return self.profissionalsaude_set.all().actions('cadastrarprofissionalsaudeunidade', 'editarprofissionalsaude', 'visualizarprofissionalsaude')
+    
+    @meta('Quantidade de Profissionais')
+    def get_qtd_profissionais_saude(self):
+        return self.profissionalsaude_set.count()
+    
+    
 
     @meta('Profissionais de Saúde')
     def get_profissionais_telessaude(self, area=None):
@@ -229,7 +248,7 @@ class EspecialidadeQuerySet(models.QuerySet):
 
 class Especialidade(models.Model):
 
-    cbo = models.CharField(verbose_name="Código", max_length=6, unique=True)
+    cbo = models.CharField(verbose_name="Código", max_length=6, null=True, blank=True)
     nome = models.CharField(max_length=150)
 
     area = models.ForeignKey(Area, verbose_name='Área', on_delete=models.CASCADE, null=True, blank=True)
@@ -333,7 +352,7 @@ class PessoaFisica(models.Model):
 
 class NucleoQuerySet(models.QuerySet):
     def all(self):
-        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('agendanucleo')
+        return self.fields('nome', 'gestores', 'operadores', 'get_qtd_profissonais_saude').actions('agendanucleo').cards()
 
 
 @role('g', username='gestores__cpf', nucleo='pk')
@@ -412,7 +431,7 @@ class Nucleo(models.Model):
         return self.unidades.all()
     
     def __str__(self):
-        return self.nome
+        return self.nome  
 
 class ProfissionalSaudeQueryset(models.QuerySet):
     def all(self):
@@ -420,7 +439,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
             self.search("pessoa_fisica__nome", "pessoa_fisica__cpf")
             .filters("nucleo", "unidade", "especialidade",)
             .fields("get_estabelecimento", "especialidade")
-            .actions("agendaprofissionalsaude", "definirhorarioprofissionalsaude")
+            .actions('definirhorarioprofissionalsaude')
         ).cards()
 @role('ps', username='pessoa_fisica__cpf')
 class ProfissionalSaude(models.Model):
@@ -430,13 +449,19 @@ class ProfissionalSaude(models.Model):
         verbose_name="Pessoa Física",
     )
     registro_profissional = models.CharField(
-        "Registro Profissional", max_length=30, blank=False
+        "Nº do Registro Profissional", max_length=30, blank=False
+    )
+    conselho_profissional = models.ForeignKey(
+       ConselhoClasse, verbose_name="Conselho Profissional", blank=False, null=True
     )
     especialidade = models.ForeignKey(
         Especialidade, null=True, on_delete=models.CASCADE
     )
     registro_especialista = models.CharField(
-        "Registro Especialista", max_length=30, blank=True, null=True
+        "Nº do Registro de Especialista", max_length=30, blank=True, null=True
+    )
+    conselho_especialista = models.ForeignKey(
+       ConselhoClasse, verbose_name="Conselho de Especialista", blank=False, null=True, related_name='r3'
     )
     programa_provab = models.BooleanField(verbose_name='Programa PROVAB', default=False)
     programa_mais_medico = models.BooleanField(verbose_name='Programa Mais Médico', default=False)
@@ -543,21 +568,23 @@ class ProfissionalSaude(models.Model):
             super()
             .formfactory()
             .fieldset("Dados Gerais", (("pessoa_fisica:cadastrarpessoafisica",),))
-            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista",),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
         ) if self.pk is None else (
             super()
             .formfactory()
-            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
         )
+
 
     def serializer(self):
         return (
             super()
             .serializer()
-            .fieldset("Dados Gerais", (("nucleo", "pessoa_fisica"),))
-            .fieldset("Dados Profissionais", (("registro_profissional", "especialidade", "registro_especialista"),),)
+            .actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude")
+            .fieldset("Dados Gerais", (("pessoa_fisica"),))
+            .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
             .fieldset("Configuração", ("zoom_token",))
         )
@@ -587,11 +614,57 @@ class ProfissionalSaude(models.Model):
         for data_hora, nucleo in qs2.values_list("data_hora", "profissional_saude__nucleo__nome"):
             scheduler.append(data_hora, nucleo, icon='x')
         return scheduler
+    
+    def get_horarios_atendimento(self, readonly=True):
+        scheduler=Scheduler(weekly=True, chucks=3, readonly=readonly)
+        for ha in self.horarioatendimento_set.all():
+           scheduler.append_weekday(ha.dia, ha.hora, ha.minuto)
+        return scheduler
+    
+    def atualizar_horarios_atendimento(self, adicionar_datas, remover_datas, reiniciar=False):
+        if reiniciar:
+            HorarioAtendimento.objects.filter(profissional_saude=self).delete()
+        for data in adicionar_datas:
+            HorarioAtendimento.objects.get_or_create(profissional_saude=self, dia=data.weekday(), hora=data.hour, minuto=data.minute)
+        for data in remover_datas:
+            HorarioAtendimento.objects.filter(profissional_saude=self, dia=data.weekday(), hora=data.hour, minuto=data.minute).delete()
+        dias_semana = {}
+        for ha in self.horarioatendimento_set.all():
+            if int(ha.dia)not in dias_semana:
+                dias_semana[int(ha.dia)] = []
+            dias_semana[int(ha.dia)].append(ha)
+        inicial = datetime.today()
+        final = inicial + timedelta(days=15)
+        ids = []
+        while inicial < final:
+            for ha in dias_semana.get(inicial.weekday(), ()):
+                hps = HorarioProfissionalSaude.objects.get_or_create(
+                    profissional_saude=self, data_hora=datetime(inicial.year, inicial.month, inicial.day, ha.hora, ha.minuto)
+                )[0]
+                ids.append(hps.id)
+            inicial += timedelta(days=1)
+        HorarioProfissionalSaude.objects.filter(profissional_saude=self, data_hora__gte=datetime.now(), atendimentos_profissional_saude__isnull=True, atendimentos_especialista__isnull=True).exclude(id__in=ids).delete()
 
     @meta('Estabelecimento')
     def get_estabelecimento(self):
         return self.nucleo if self.nucleo_id else self.unidade
 
+
+class HorarioAtendimento(models.Model):
+    DIA_SEMANA_CHOICES = [[i, j] for i, j in enumerate(('SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'))]
+    
+    profissional_saude = models.ForeignKey(ProfissionalSaude, verbose_name='Profissional de Saúde', on_delete=models.CASCADE)
+    dia = models.CharField(verbose_name='Dia da Semana', choices=DIA_SEMANA_CHOICES)
+    hora = models.IntegerField(verbose_name='Hora')
+    minuto = models.IntegerField(verbose_name='Minuto')
+
+    class Meta:
+        verbose_name = 'Horário de Atendimento'
+        verbose_name_plural = 'Horários de Atendimento'
+
+    def __str__(self):
+        return f'{self.id} - {self.get_dia_display()} ({self.dia}, {self.hora})'
+  
 
 class HorarioProfissionalQuerySet(models.QuerySet):
     def disponiveis(self):
@@ -690,6 +763,7 @@ class AtendimentoQuerySet(models.QuerySet):
                 print(HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista).values_list('data_hora', flat=True))
                 selectable = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista, data_hora__in=selectable).values_list('data_hora', flat=True)
                 print(selectable)
+        breakpoint()
         scheduler = Scheduler(
             chucks=3,
             watch=['profissional', 'especialista'],
