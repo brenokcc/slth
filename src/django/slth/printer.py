@@ -8,15 +8,18 @@ from django.template.loader import render_to_string
 
 
 class Signature:
-    def __init__(self, date, validation_url, verify_code, auth_code):
+    def __init__(self, date, validation_url, verify_code=None, auth_code=None):
         self.date = date
-        self.validation_url = '{}{}'.format(settings.SITE_URL, validation_url)
+        if validation_url.startswith('http'):
+            self.validation_url = validation_url
+        else:
+            self.validation_url = '{}{}'.format(settings.SITE_URL, validation_url)
         self.verify_code = verify_code
         self.auth_code = auth_code
         self.signers = []
         self.qrcode = qrcode_base64(self.validation_url)
 
-    def add_signer(self, identifier, signature_date):
+    def add_signer(self, identifier, signature_date=None):
         self.signers.append((identifier, signature_date))
 
 
@@ -29,6 +32,9 @@ def qrcode_base64(texto):
     img.save(buffered, format="JPEG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return img_str
+
+def image_base64(image_bytes):
+    return 'data:image/png;base64, {}'.format(base64.b64encode(image_bytes).decode())
 
 
 def to_pdf(data, template, file_name=None, signature=None):
@@ -54,4 +60,11 @@ def test():
     signature = Signature(date=datetime.now(), validation_url='/', verify_code=123, auth_code=123)
     signature.add_signer('Carlos Silva', datetime.now())
     signature.add_signer('Juca Silva', None)
+    to_pdf(data, 'report.html', '/Users/breno/Downloads/a.pdf', signature=signature)
+
+def test2():
+    data = dict(lines=range(50))
+    signature = Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
+    signature.add_signer('Carlos Silva (075.803.982-90)', None)
+    signature.add_signer('Juca Silva (075.803.982-90)', None)
     to_pdf(data, 'report.html', '/Users/breno/Downloads/a.pdf', signature=signature)

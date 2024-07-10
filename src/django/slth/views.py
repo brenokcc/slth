@@ -41,6 +41,7 @@ def dispatcher(request, **kwargs):
         else:
             cls = slth.ENDPOINTS.get(request.path.split('/')[2])
             if cls:
+                endpoint = None
                 try:
                     endpoint = cls(*kwargs.values()).contextualize(request)
                     if endpoint.check_permission():
@@ -59,7 +60,8 @@ def dispatcher(request, **kwargs):
                     traceback.print_exc() 
                     return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
                 finally:
-                    endpoint.start_audit_trail()
+                    if endpoint:
+                        endpoint.start_audit_trail()
             else:
                 return ApiResponse({}, status=404)
 

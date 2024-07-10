@@ -18,23 +18,26 @@
                 <p>Documento assinado eletronicamente por:</p>
                 <ul>
                     {% for signer, datetime in signature.signers %}
-                        {% if datetime %}
-                            <li><b>{{ signer }}</b>, em {{ datetime }}.</li>
-                        {% endif %}    
+                        <li><b>{{ signer }}</b>{% if datetime %}, em {{ datetime }}.{% endif %}    </li>
                     {% endfor %}
                 </ul>
                 <hr/>
             </div>
             <div>
                 <div style="float:left; width: 600px;">
-                    <p>Este documento foi emitido eletronicamente em {{ signature.date }}. Para comprovar sua autenticidade, faça a leitura do QRCode ao lado ou acesse <i>{{ signature.validation_url }}</i> e forneça os dados abaixo:</p>
+                    <p>Este documento foi criado em {{ signature.date }}.
+                        Para comprovar sua autenticidade, faça a leitura do QRCode ao lado ou acesse <i>{{ signature.validation_url }}</i>
+                        {% if signature.verify_code or signature.auth_code  %}e forneça os dados abaixo:{% else %}.{% endif %}
+                    </p>
+                    {% if signature.verify_code or signature.auth_code  %}
                     <p>
                         <b>Código Verificador</b>: {{ signature.verify_code }} <br/>
                         <b>Código de Autenticação</b>: {{ signature.auth_code }}
                     </p>
+                    {% endif %}
                 </div>
                 <div style="float:right; width: 100px;">
-                    <img style="width:100px" src="data:image/png;base64,{{ signature.qrcode }}" alt="Red dot" />
+                    <img style="width:100px" src="data:image/png;base64,{{ signature.qrcode }}" alt="{{ signature.validation_url  }}" />
                 </div>
             </div>
         </div>  

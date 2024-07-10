@@ -476,8 +476,7 @@ class ProfissionalSaude(models.Model):
 
     # Zoom token
     zoom_token = models.TextField(verbose_name='Zoom Token', null=True, blank=True)
-    vidaas_token = models.TextField(verbose_name='Vidaas Token', null=True, blank=True)
-    
+
     objects = ProfissionalSaudeQueryset()
 
     class Meta:
@@ -486,34 +485,7 @@ class ProfissionalSaude(models.Model):
         verbose_name_plural = "Profissionais de Saúde"
         search_fields = 'pessoa_fisica__cpf', 'pessoa_fisica__nome'
 
-    def configurar_vidaas(self, authorization_code, redirect_url, code_verifier):
-        url = 'https://certificado.vidaas.com.br/v0/oauth/token'
-        client_id = os.environ.get('VIDAAS_API_KEY')
-        client_secret = os.environ.get('VIDAAS_API_SEC')
-
-        if redirect_url.startswith('push://'):
-            url2 = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authentications?{}'.format(authorization_code)
-            authorization_code = None
-            for i in range(0, 5):
-                sleep(10)
-                response = requests.get(url2)
-                if response.status_code == 200:
-                    data = response.json()
-                    authorization_code = response.json()['authorizationToken']
-                    break
-        
-        if authorization_code:
-            data = dict(grant_type='authorization_code', code=authorization_code, redirect_uri=redirect_url, code_verifier=code_verifier, client_id=client_id, client_secret=client_secret)
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = requests.post(url, headers=headers, data=data).json()
-            self.vidaas_token = response['access_token']
-            print(response['access_token'])
-            self.save()
-            return True
-        else:
-            return False
-
-    def assinar_arquivo_pdf(self, caminho_arquivo):
+    def assinar_arquivo_pdf(self, caminho_arquivo, token):
         url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
         filename = caminho_arquivo.split('/')[-1]
         filecontent = open(caminho_arquivo, 'r+b').read()
@@ -521,18 +493,15 @@ class ProfissionalSaude(models.Model):
         sha256 = hashlib.sha256()
         sha256.update(filecontent)
         hash=sha256.hexdigest()
-        token = self.vidaas_token
         headers = {'Content-type': 'application/json', 'Authorization': 'Bearer {}'.format(token)}
         data = {"hashes": [{"id": filename, "alias": filename, "hash": hash, "hash_algorithm": "2.16.840.1.101.3.4.2.1", "signature_format": "CAdES_AD_RB", "base64_content": base64_content,}]}
         response = requests.post(url, json=data, headers=headers).json()
         file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
-        sleep(1)
         open(caminho_arquivo, 'w+b').write(file_content)
 
     def assinar_arquivo_imagem(self, caminho_arquivo):
         caminho_arquivo_pdf = f'{caminho_arquivo}.pdf'
         PILImage.open(caminho_arquivo).save(caminho_arquivo_pdf, "PDF")
-        sleep(1)
         self.assinar_arquivo_pdf(caminho_arquivo_pdf)
 
     def configurar_zoom(self, authorization_code, redirect_url):
@@ -586,7 +555,7 @@ class ProfissionalSaude(models.Model):
             .fieldset("Dados Gerais", (("pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
-            .fieldset("Configuração", ("zoom_token",))
+            #.fieldset("Configuração", ("zoom_token",))
         )
 
     def __str__(self):
@@ -595,6 +564,9 @@ class ProfissionalSaude(models.Model):
             self.pessoa_fisica.cpf,
             self.registro_profissional,
         )
+
+    def get_registro_profissional(self):
+        return f'{self.conselho_profissional} {self.registro_profissional}'
 
     @meta(None)
     def get_agenda(self, readonly=True, single_selection=False, available=True):
@@ -759,11 +731,8 @@ class AtendimentoQuerySet(models.QuerySet):
               if horario.data_hora not in scheduled:
                 selectable.append(horario.data_hora)
             if especialista:
-                print(selectable)
-                print(HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista).values_list('data_hora', flat=True))
                 selectable = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista, data_hora__in=selectable).values_list('data_hora', flat=True)
-                print(selectable)
-        breakpoint()
+
         scheduler = Scheduler(
             chucks=3,
             watch=['profissional', 'especialista'],
@@ -850,9 +819,6 @@ class Atendimento(models.Model):
     senha_webconf = models.CharField(verbose_name='Senha da WebConf', null=True)
     limite_webconf = models.DateTimeField(verbose_name='Limite da WebConf', null=True)
 
-    termo_assinado_paciente = models.BooleanField(verbose_name='Termo assinado pelo Paciente', default=False)
-    termo_assinado_profissional = models.BooleanField(verbose_name='Termo assinado pelo Profissional', default=False)
-    termo_assinado_especialista = models.BooleanField(verbose_name='Termo assinado pelo Especialista', default=False)
 
     objects = AtendimentoQuerySet()
 
@@ -860,24 +826,6 @@ class Atendimento(models.Model):
         icon = "laptop-file"
         verbose_name = "Teleconsulta"
         verbose_name_plural = "Teleconsultas"
-
-    def is_termo_assinado_por(self, user):
-        if self.paciente.cpf == user.username:
-            return self.termo_assinado_paciente
-        if self.profissional.pessoa_fisica.cpf == user.username:
-            return self.termo_assinado_profissional
-        if self.especialista_id and self.especialista.pessoa_fisica.cpf == user.username:
-            return self.termo_assinado_especialista
-        return False
-    
-    def assinar_termo(self, user):
-        if self.paciente.cpf == user.username:
-            self.termo_assinado_paciente = True
-        if self.profissional.pessoa_fisica.cpf == user.username:
-            self.termo_assinado_profissional = True
-        if self.especialista_id and self.especialista.pessoa_fisica.cpf == user.username:
-            self.termo_assinado_especialista = True
-        self.save()
 
     def check_webconf(self):
         from . import zoom
@@ -917,7 +865,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento')
+            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'termoconsentimento', 'anexartermoconsentimento')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -953,8 +901,8 @@ class Atendimento(models.Model):
                             ("cid", "ciap"),
                         )
                     )
+                    .queryset('Anexos', 'get_anexos')
                 .parent()
-                .queryset('Anexos', 'get_anexos')
                 .queryset('Encaminhamentos', 'get_condutas_ecaminhamentos', roles=('ps',))
             .parent()
         )
@@ -988,7 +936,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'get_arquivo')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'get_arquivo').actions('assinaranexo', 'assinaranexoqrcode')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -1049,6 +997,30 @@ class AnexoAtendimento(models.Model):
     
     def get_arquivo(self):
         return FileLink(self.arquivo, icon='file', modal=True)
+
+    def possui_assinatura(self, cpf, nome):
+        data = self.arquivo.read()
+        def index_of(n=1):
+            if n == 1:
+                return data.find(b'/ByteRange')
+            else:
+                return data.find(b'/ByteRange', index_of(n - 1) + 1)
+
+        for i in range(1, data.count(b'/ByteRange') + 1):
+            n = index_of(i)
+            start = data.find(b'[', n)
+            stop = data.find(b']', start)
+            assert n != -1 and start != -1 and stop != -1
+            br = [int(i, 10) for i in data[start + 1: stop].split()]
+            contents = data[br[0] + br[1] + 1: br[2] - 1]
+            datas = bytes.fromhex(contents.decode('utf8'))
+            try:
+                cpf = cpf.replace('.', '').replace('-', '')
+                nome = nome.upper()
+                datas.index(f'{nome}:{cpf}'.encode())
+                return True
+            except ValueError:
+                return False
 
 class AvaliacaoAtendimento(models.Model):
     SATISFACAO = (

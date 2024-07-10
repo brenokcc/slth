@@ -153,6 +153,8 @@ class Endpoint(metaclass=EnpointMetaclass):
         raise JsonResponseException(dict(type="redirect", url=url))
     
     def render(self, data, template=None, pdf=False):
+        base_url='http://localhost:8000'
+        data.update(base_url=base_url)
         buffer = io.BytesIO()
         if template:
             if isinstance(template, str):
@@ -167,7 +169,7 @@ class Endpoint(metaclass=EnpointMetaclass):
             doc = HTML(string=html).render()
             pages.extend(doc.pages)
         new_doc = doc.copy(pages=pages)
-        new_doc.write_pdf(buffer, base_url='http://localhost:8000', stylesheets=[])
+        new_doc.write_pdf(buffer, base_url=base_url, stylesheets=[])
         buffer.seek(0)
         raise ReadyResponseException(HttpResponse(buffer, content_type='application/pdf'))
 

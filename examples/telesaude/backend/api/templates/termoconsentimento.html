@@ -1,6 +1,18 @@
-<h3 align="center">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA ATENDIMENTO A DISTÂNCIA – TELEINTERCONSULTA</h3>
+<style>
+    .bold{
+        font-weight: bold;
+    }
+    .paragraph {
+        text-align: justify;
+        text-justify: inter-word;
+        text-indent: 50px;
+    }
+</style>
 
-<p>
+<div style="text-align: center;"><img style="width: 200px;" src="{{ base_url }}/static/images/logos/logo4.png"/></div>
+<h3 style="text-align: center;">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA ATENDIMENTO A DISTÂNCIA - {{ atendimento.tipo|upper }} </h3>
+
+<p class="paragraph">
     {% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
         Eu, <span class="bold">{{ atendimento.paciente.nome }}</span> inscrito no CPF sob o nº <span class="bold">{{ atendimento.paciente.cpf_responsavel }}</span>,
         responsável legal pelo (a) paciente <span class="bold">{{ atendimento.paciente.nome }}</span>, inscrito no CPF e/ou RG sob o nº {{ atendimento.paciente.cpf }}
@@ -11,7 +23,7 @@
     {% if atendimento.especialista_id %}
         e ao especialista <span class="bold">{{ atendimento.especialista.pessoa_fisica.nome }}</span> inscrito no CRM sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span> e RQE sob o nº <span class="bold">{{ atendimento.profissional.registro_especialista }}</span>,
     {% endif %}
-    para realizar o atendimento de {{ atendimento.tipo }} e declaro que:
+    para realizar o atendimento de {{ atendimento.tipo|lower }} e declaro que:
 </p>
 
 <ol>
@@ -26,38 +38,49 @@
     <li>Autorizo o tratamento pela Secretaria Municipal de Saúde dos dados pessoais, inclusive imagens e dados pessoais sensíveis, colhidos durante o(s) atendimento(s), para as finalidades necessárias à prestação dos serviços de saúde, nos termos do art. 7o da Lei 13.709, de 14 de agosto de 2018 (Lei Geral de Proteção de Dados Pessoais).</li>
 </ol>
 
-<p>
+<p class="paragraph">
     Por fim, declaro ter lido as orientações contidas no presente instrumento, as quais entendi completamente e aceito, expressando o meu pleno consentimento para a realização da teleinterconsulta.
 </p>
-
+<br>
+<br>
 {% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
     <div style="text-align: center; width: 300px; margin:auto">
-        <div style="border-bottom: solid 1px #000;">
+        <div style="border-bottom: solid 1px #000;"></div>
+        <span class="bold">
             {{ atendimento.paciente.nome_responsavel }}
-        </div>
-        <span class="bold">Responsável</span>
+            ({{ atendimento.paciente.cpf_responsavel }})
+        </span>
+        <br><i>Responsável</i>
     </div>
 {% else %}
     <div style="text-align: center; width: 300px; margin:auto">
-        <div style="border-bottom: solid 1px #000;">
+        <div style="border-bottom: solid 1px #000;"></div>
+        <span class="bold">
             {{ atendimento.paciente.nome }}
-        </div>
-        <span class="bold">Paciente</span>
+            ({{ atendimento.paciente.cpf }})
+        </span>
+        <br><i>Paciente</i>
     </div>
 {% endif %}
 <br>
+<br>
 <div style="text-align: center; width: 300px; margin:auto">
-    <div style="border-bottom: solid 1px #000;">
+    <div style="border-bottom: solid 1px #000;"></div>
+    <span class="bold">
         {{ atendimento.profissional.pessoa_fisica.nome }}
-    </div>
-    <span class="bold">Médico Assistente</span>
+        {{ atendimento.profissional.get_registro_profissional }}
+    </span>
+    <br><i>Médico Assistente</i>
 </div>
 {% if atendimento.especialista_id %}
 <br>
+<br>
 <div style="text-align: center; width: 300px; margin:auto;">
-    <div style="border-bottom: solid 1px #000;">
+    <div style="border-bottom: solid 1px #000;"></div>
+    <span class="bold">
         {{ atendimento.especialista.pessoa_fisica.nome }}
-    </div>
-    <span class="bold">Médico Especialista</span>
+        {{ atendimento.especialista.get_registro_profissional }}
+    </span>
+    <br><i> Médico Especialista</i>
 </div>
 {% endif %}
