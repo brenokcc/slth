@@ -78,7 +78,7 @@ class Area(models.Model):
 
 class TipoAtendimento(models.Model):
     TELECONSULTA = 1
-    TELETERCONSULTA = 2
+    TELE_INTERCONSULTA = 2
     nome = models.CharField(verbose_name='Nome', max_length=30)
 
     class Meta:
@@ -461,7 +461,7 @@ class ProfissionalSaude(models.Model):
         "Nº do Registro de Especialista", max_length=30, blank=True, null=True
     )
     conselho_especialista = models.ForeignKey(
-       ConselhoClasse, verbose_name="Conselho de Especialista", blank=False, null=True, related_name='r3'
+       ConselhoClasse, verbose_name="Conselho de Especialista", blank=True, null=True, related_name='r3'
     )
     programa_provab = models.BooleanField(verbose_name='Programa PROVAB', default=False)
     programa_mais_medico = models.BooleanField(verbose_name='Programa Mais Médico', default=False)
@@ -551,7 +551,7 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .serializer()
-            .actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude")
+            .actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude", "editarprofissionalsaude")
             .fieldset("Dados Gerais", (("pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
@@ -562,7 +562,7 @@ class ProfissionalSaude(models.Model):
         return "%s (CPF: %s / CRM: %s)" % (
             self.pessoa_fisica.nome,
             self.pessoa_fisica.cpf,
-            self.registro_profissional,
+            self.get_registro_profissional(),
         )
 
     def get_registro_profissional(self):
@@ -865,7 +865,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'termoconsentimento', 'anexartermoconsentimento')
+            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'termoconsentimento', 'anexartermoconsentimento', 'assinartermoconsentimento')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -914,7 +914,7 @@ class Atendimento(models.Model):
     @meta()
     def get_tags(self):
         tags = []
-        if self.tipo_id == TipoAtendimento.TELETERCONSULTA:
+        if self.tipo_id == TipoAtendimento.TELE_INTERCONSULTA:
             color = "#265890"
             icon = 'people-group'
         else:

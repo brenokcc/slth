@@ -13,12 +13,24 @@ import requests
 import base64
 
 
+MENSAGEM_ASSINATURA_DIGITAL = '''
+    Para realizar a assinatura digital, você deverá estar com o aplicativo Vadaas instalado em seu celular.
+    Você receberá uma notificação para autorizar a assinatura após clicar no botão "Enviar".
+    Conceda a autorização e aguarde até o que o documento seja assinado.
+
+'''
+
 class CIDs(endpoints.AdminEndpoint[CID]):
     def check_permission(self):
         return self.check_role('a')
 
 
 class CIAPs(endpoints.AdminEndpoint[CIAP]):
+    def check_permission(self):
+        return self.check_role('a')
+
+
+class ConselhosClasse(endpoints.AdminEndpoint[ConselhoClasse]):
     def check_permission(self):
         return self.check_role('a')
 
@@ -70,6 +82,7 @@ class CadastrarProfissionalSaudeNucleo(endpoints.RelationEndpoint[ProfissionalSa
         return (
             super()
             .formfactory().fields(nucleo=self.source.instance)
+            .fieldset("Dados Gerais", ("nucleo", "pessoa_fisica:cadastrarpessoafisica",))
             .fieldset("Dados Profissionais", ("especialidade", ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .fieldset("Informações Adicionais", (("programa_provab", "programa_mais_medico"),("residente", "perceptor"),),)
         )
@@ -345,15 +358,21 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         return qs
     
     def get_area_queryset(self, queryset, values):
+        tipo = values.get('tipo')
+        print(values, tipo, 444)
         if self.check_role('o'):
             return queryset
         elif self.check_role('ps'):
-            return queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+            if tipo and tipo.id == TipoAtendimento.TELECONSULTA:
+                return queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+            else:
+                return queryset
         return queryset.none()
         
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
-        if tipo and tipo.id == TipoAtendimento.TELETERCONSULTA:
+        controller.reload('area')
+        if tipo and tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
             controller.show('especialista')
         else:
             controller.hide('especialista')
@@ -362,10 +381,12 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         controller.reload('profissional', 'especialista')
 
     def get_profissional_queryset(self, queryset, values):
+        tipo = values.get('tipo')
         unidade = values.get('unidade')
         area = values.get('area')
         if unidade and area:
-            queryset = unidade.get_profissionais_telessaude(area)
+            if tipo and tipo.id == TipoAtendimento.TELECONSULTA:
+                queryset = unidade.get_profissionais_telessaude(area)
             if self.check_role('ps'):
                 queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
             return queryset
@@ -523,6 +544,9 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
     def get(self):
         if not RUNNING_TESTING:
             self.instance.check_webconf()
+        if self.instance.paciente.cpf == self.request.user.username:
+            if not self.instance.anexoatendimento_set.filter(nome='Termo de Consentimento').exists():
+                self.redirect(f'/api/anexartermoconsentimento/{self.instance.pk}/')
         return (
             self.serializer().actions('anexararquivo')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -720,7 +744,7 @@ class TermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
 
 
 class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
-    imagem = forms.ImageField(label='Imagem')
+    imagem = forms.ImageField(label='Imagem', width=800)
     class Meta:
         icon = 'upload'
         modal = False
@@ -732,8 +756,7 @@ class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
     def post(self):
         imagem = printer.image_base64(self.request.FILES['imagem'].read())
         signature = printer.Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
-        signature.add_signer('Carlos Silva (075.803.982-90)', None)
-        signature.add_signer('Juca Silva (075.803.982-90)', None)
+        signature.add_signer('{} - {}'.format(self.instance.profissional.pessoa_fisica.nome, self.instance.profissional.get_registro_profissional()), None)
         autor = PessoaFisica.objects.filter(cpf=self.request.user.username).first()
         anexo = AnexoAtendimento(atendimento=self.instance, autor=autor, nome='Termo de Consentimento')
         content = printer.to_pdf(dict(imagem=imagem), 'termoconsentimento2.html', signature=signature)
@@ -747,13 +770,16 @@ class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
 
 class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
     class Meta:
+        modal = False
         icon = 'signature'
         verbose_name = 'Assinar'
 
     def get(self):
-        return self.formfactory().fields()
+        return self.formfactory().fields().info(MENSAGEM_ASSINATURA_DIGITAL)
 
     def post(self):
+        if RUNNING_TESTING:
+            self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
         nome = 'Carlos Breno Pereira Silva' or profissional_saude.pessoa_fisica.nome
@@ -799,10 +825,11 @@ class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
                 response = requests.post(url, json=data, headers=headers).json()
                 file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
                 open(caminho_arquivo, 'w+b').write(file_content)
-        self.redirect(f'/api/visualizaratendimento/{self.instance.pk}/')
+        self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
 
     def check_permission(self):
         return self.check_role('ps')
+
 
 class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
     class Meta:
@@ -811,6 +838,8 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
         verbose_name = 'Assinar'
 
     def get(self):
+        if RUNNING_TESTING:
+            self.redirect(f'/api/visualizaratendimento/{self.instance.pk}/')
         self.cache.set('vidaas_forward', self.request.path)
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
@@ -846,5 +875,26 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
                 open(caminho_arquivo, 'w+b').write(file_content)
                 self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
 
+    def check_permission(self):
+        return self.check_role('ps')
+    
+
+class AssinarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
+    class Meta:
+        modal = False
+        icon = 'signature'
+        verbose_name = 'Assinar Termo de Consentimento'
+
+    def get(self):
+        anexo = self.get_anexo()
+        if anexo:
+            self.redirect(f'/api/assinaranexo/{anexo.id}/')
+        else:
+            raise endpoints.ValidationError('O termo de consentimento ainda não foi enviado.')
+        return super().post()
+    
+    def get_anexo(self):
+        return self.instance.anexoatendimento_set.filter(nome='Termo de Consentimento').order_by('id').last()
+    
     def check_permission(self):
         return self.check_role('ps')

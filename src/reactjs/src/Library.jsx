@@ -566,10 +566,10 @@ function Scheduler(props) {
         {props.data.title && <h2>{ props.data.title }</h2>}
         <input id={"input" + id} type="hidden" name={props.data.input_name} />
         <div className="periods">
-          <input className="input-periodo-1" type="checkbox" onChange={(e)=>checkPeriod(1, e.target.checked)}/> <span>Madrugada</span>
-          <input className="input-periodo-2" type="checkbox" onChange={(e)=>checkPeriod(2, e.target.checked)}/> <span>Manhã</span>
-          <input className="input-periodo-3" type="checkbox" onChange={(e)=>checkPeriod(3, e.target.checked)}/> <span>Tarde</span>
-          <input className="input-periodo-4" type="checkbox" onChange={(e)=>checkPeriod(4, e.target.checked)}/> <span>Noite</span>
+          <input className="input-periodo-1" type="checkbox" data-label="madrugada" onChange={(e)=>checkPeriod(1, e.target.checked)}/> <span>Madrugada</span>
+          <input className="input-periodo-2" type="checkbox" data-label="manha" onChange={(e)=>checkPeriod(2, e.target.checked)}/> <span>Manhã</span>
+          <input className="input-periodo-3" type="checkbox" data-label="tarde" onChange={(e)=>checkPeriod(3, e.target.checked)}/> <span>Tarde</span>
+          <input className="input-periodo-4" type="checkbox" data-label="noite" onChange={(e)=>checkPeriod(4, e.target.checked)}/> <span>Noite</span>
         </div>
         <table style={table} onMouseDown={onMouseDown} onMouseUp={onMouseUp}>
           <thead>

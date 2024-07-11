@@ -52,6 +52,12 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('Nome', 'Natal')
             self.click('Enviar')
 
+            self.click('Conselhos de Classe')
+            self.click('Cadastrar Conselho de Classe')
+            self.enter('Sigla', 'CRM')
+            self.choose('Estado', 'Rio Grande do Norte')
+            self.click('Enviar')
+
             self.click('Áreas')
             self.click('Cadastrar')
             self.enter('Nome', 'Clínico Geral')
@@ -169,6 +175,7 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando como gestor de núcleo para cadastrar unidades e adiconar profissionais as unidades
         if self.step('4'):
             self.login('466.778.160-28', '123')
+
             self.click('Unidades de Saúde')
             self.click('Cadastrar Unidade')
             self.enter('Nome', 'Unidade Capim Macio')
@@ -179,8 +186,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Visualizar')
             self.click('Adicionar Profissional')
             self.choose('Pessoa Física', 'Fafá de Belém')
-            self.enter('Registro Profissional', 'CRM/RN 46677816028')
             self.choose('Especialidade', 'Clínico Geral')
+            self.choose('Conselho Profissional', 'CRM')
+            self.enter('Nº do Registro Profissional', '46677816028')
             self.click('Enviar')
 
             self.click('Unidades de Saúde')
@@ -193,8 +201,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Visualizar')
             self.click('Adicionar Profissional')
             self.choose('Pessoa Física', 'Marisa Monte')
-            self.enter('Registro Profissional', 'CRM/RN 08239614000')
             self.choose('Especialidade', 'Clínico Geral')
+            self.choose('Conselho Profissional', 'CRM')
+            self.enter('Nº do Registro Profissional', '08239614000')
             self.click('Enviar')
 
             self.logout('466.778.160-28')
@@ -213,14 +222,21 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Profissionais de Saúde')
             self.click('Adicionar Profissional')
             self.choose('Pessoa Física', 'Fábio Júnir')
-            self.enter('Registro Profissional', 'CRM/RN 38589587002')
             self.choose('Especialidade', 'Cardiologia')
+            self.choose('Conselho Profissional', 'CRM')
+            self.enter('Nº do Registro Profissional', '38589587002')
+            self.choose('Conselho de Especialista', 'CRM')
+            self.enter('Nº do Registro de Especialista', '38589587002')
+
             self.click('Enviar')
 
             self.click('Adicionar Profissional')
             self.choose('Pessoa Física', 'Ney Matogroso')
-            self.enter('Registro Profissional', 'CRM/RN 71663562008')
             self.choose('Especialidade', 'Psiquiatria')
+            self.choose('Conselho Profissional', 'CRM')
+            self.enter('Nº do Registro Profissional', '71663562008')
+            self.choose('Conselho de Especialista', 'CRM')
+            self.enter('Nº do Registro de Especialista', '71663562008')
             self.click('Enviar')
 
             self.logout('466.778.160-28')
@@ -228,21 +244,24 @@ class IntegrationTestCase(SeleniumTestCase):
         # Agendando teleconsulta como profissional de saúde
         if self.step('6'):
             self.login('779.067.860-41', '123')
-            self.click('Definir Horário')
+            self.click('Alterar Agenda')
+            self.click("Noite")
             for i in range(3):
                 self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
             self.click('Enviar')
-            self.click('Cadastrar Teleatendimento')
+            self.click('Agenda de Atendimentos')
+            self.click('Cadastrar Atendimento')
             self.click('Unidade Capim Macio')
             self.click('Teleconsulta')
             self.click('Clínico Geral')
-            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
+            self.wait(4)
             self.choose('Paciente', 'Roberto Justus')
             self.enter('Motivo', 'Suspetia de Gripe')
             self.enter('Dúvida/Queixa', 'O paciente se queixa de...')
             self.choose('CID', 'Gripe')
             self.choose('CIAP', 'Febre')
-            self.click('30min')
+            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
+            self.click("Noite")
             self.click((datetime.now() + timedelta(hours=1)).strftime('%d/%m/%Y %H:00'))
             self.click('Enviar')
             self.logout('779.067.860-41')
@@ -252,9 +271,11 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('577.106.830-61', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
+            
             self.click('Sala Virtual')
-            self.click('Sim')
+            self.enter('Imagem', 'tests/imagem.png')
             self.click('Enviar')
+
             # self.click('Anexar Arquivo')
             # self.enter('Nome', 'Exame')
             # self.enter('Arquivo', 'tests/arquivo.pdf')
@@ -266,9 +287,11 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('779.067.860-41', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
-            self.click('Sala Virtual')
-            self.click('Sim')
+            
+            self.click('Assinar Termo de Consentimento')
             self.click('Enviar')
+
+            self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')
             self.enter('O - objetivo', 'Objetivo....')
             self.enter('A - avaliação', 'Avaliação....')
@@ -286,14 +309,16 @@ class IntegrationTestCase(SeleniumTestCase):
         # Acessando como tele-interconsultores para definir horários
         if self.step('9'):
             self.login('385.895.870-02', '123')
-            self.click('Definir Horário')
+            self.click('Alterar Agenda')
+            self.click('Noite')
             for i in range(3):
                 self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
             self.click('Enviar')
             self.logout('385.895.870-02')
 
             self.login('716.635.620-08', '123')
-            self.click('Definir Horário')
+            self.click('Alterar Agenda')
+            self.click('Noite')
             for i in range(3):
                 self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
             self.click('Enviar')
@@ -302,19 +327,22 @@ class IntegrationTestCase(SeleniumTestCase):
         # Agendando tele-interconsulta como profissional de saúde
         if self.step('10'):
             self.login('779.067.860-41', '123')
-            self.click('Cadastrar Teleatendimento')
+            self.click('Agenda de Atendimentos')
+            self.click('Cadastrar Atendimento')
             self.click('Unidade Capim Macio')
             self.click('Tele-interconsulta')
             self.click('Cardiologia')
-            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
+            self.wait(4)
+            
             self.choose('Paciente', 'Roberto Justus')
             self.enter('Motivo', 'Suspetia de Dengue')
             self.enter('Dúvida/Queixa', 'O paciente se queixa de...')
             self.choose('CID', 'Gripe')
             self.choose('CIAP', 'Febre')
+            self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
             self.click('Fábio Júnir (CPF: 385.895.870-02 / CRM: CRM/RN 38589587002)')
-            self.click('30min')
             self.click((datetime.now() + timedelta(hours=2)).strftime('%d/%m/%Y %H:00'))
+            breakpoint()
             self.click('Enviar')
             self.logout('779.067.860-41')
 
@@ -323,9 +351,11 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('577.106.830-61', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
+
             self.click('Sala Virtual')
-            self.click('Sim')
+            self.enter('Imagem', 'tests/imagem.png')
             self.click('Enviar')
+
             # self.click('Anexar Arquivo')
             # self.enter('Nome', 'Exame')
             # self.enter('Arquivo', 'tests/arquivo.pdf')
@@ -338,9 +368,11 @@ class IntegrationTestCase(SeleniumTestCase):
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
             self.wait()
-            self.click('Sala Virtual')
-            self.click('Sim')
+
+            self.click('Assinar Termo de Consentimento')
             self.click('Enviar')
+
+            self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')
             self.enter('O - objetivo', 'Objetivo....')
             self.enter('A - avaliação', 'Avaliação....')
@@ -358,9 +390,11 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('779.067.860-41', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
-            self.click('Sala Virtual')
-            self.click('Sim')
+
+            self.click('Assinar Termo de Consentimento')
             self.click('Enviar')
+
+            self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')
             self.enter('O - objetivo', 'Objetivo....')
             self.enter('A - avaliação', 'Avaliação....')

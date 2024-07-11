@@ -19,7 +19,7 @@
     {% else %}
         Eu, <span class="bold">{{ atendimento.paciente.nome }}</span> inscrito no CPF sob o nº <span class="bold">{{ atendimento.paciente.cpf }}</span>,
     {% endif %}
-    dou expressa e plena autorização ao médico assistente <span class="bold">{{ atendimento.profissional.pessoa_fisica.nome }}</span> inscrito no CRM sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span>,
+    dou expressa e plena autorização ao médico assistente <span class="bold">{{ atendimento.profissional.pessoa_fisica.nome }}</span> inscrito no <span class="bold">{{ atendimento.profissional.conselho_profissional }}</span> sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span>,
     {% if atendimento.especialista_id %}
         e ao especialista <span class="bold">{{ atendimento.especialista.pessoa_fisica.nome }}</span> inscrito no CRM sob o nº <span class="bold">{{ atendimento.profissional.registro_profissional }}</span> e RQE sob o nº <span class="bold">{{ atendimento.profissional.registro_especialista }}</span>,
     {% endif %}
@@ -65,7 +65,7 @@
 <br>
 <br>
 <div style="text-align: center; width: 300px; margin:auto">
-    <div style="border-bottom: solid 1px #000;"></div>
+    <div style="border-bottom: solid 1px #000;">[Assinatura Digital]</div>
     <span class="bold">
         {{ atendimento.profissional.pessoa_fisica.nome }}
         {{ atendimento.profissional.get_registro_profissional }}
@@ -76,7 +76,7 @@
 <br>
 <br>
 <div style="text-align: center; width: 300px; margin:auto;">
-    <div style="border-bottom: solid 1px #000;"></div>
+    <div style="border-bottom: solid 1px #000;">[Assinatura Digital]</div>
     <span class="bold">
         {{ atendimento.especialista.pessoa_fisica.nome }}
         {{ atendimento.especialista.get_registro_profissional }}

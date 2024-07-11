@@ -61,6 +61,7 @@ application:
     list:Cadastros Gerais:
       CIDs: cids
       CIAPs: ciaps
+      Conselhos de Classe: conselhosclasse
       Níveis de Formacão: niveisformacao
       Sexos: sexos
       Tipos de Atendimento: tiposatendimento
