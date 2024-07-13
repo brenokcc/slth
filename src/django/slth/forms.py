@@ -466,6 +466,14 @@ class FormMixin:
                     if field_name not in inline_fields
                 }
             )
+            print(self.request.POST)
+            for attr_name in dir(self._endpoint):
+                if attr_name.startswith('clean_'):
+                    try:
+                        getattr(self._endpoint, attr_name)(data)
+                    except ValidationError as e:
+                        fieldname = attr_name.replace('clean_', '')
+                        raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
             with transaction.atomic():
                 self.cleaned_data = data
                 if isinstance(self, DjangoModelForm):
@@ -570,7 +578,6 @@ class ModelForm(DjangoModelForm, FormMixin):
 
     def is_valid(self):
         valid = super().is_valid()
-        print(88888)
         return valid
 
 class InlineFormField(Field):
@@ -695,7 +702,7 @@ class SchedulerField(CharField):
         self.scheduler = scheduler or Scheduler()
         super().__init__(*args, **kwargs)
 
-    def clean(self, value):
+    def to_python(self, value):
         values = dict(select=[], deselect=[])
         if value:
             data = json.loads(value)
@@ -705,7 +712,15 @@ class SchedulerField(CharField):
                     values[key].append(datetime.datetime.strptime(data_string, "%d/%m/%Y %H:%M"))
         if self.scheduler["single_selection"]:
             return values['select'][0] if values['select'] else None
-        return values
+        else:
+            return values
+    
+    def clean(self, value):
+        value = self.to_python(value)
+        if self.scheduler["single_selection"]:
+            if self.required and value is None:
+                raise ValidationError('Este campo é obrigatório.')
+        return value
 
 
 FIELD_TYPES = {

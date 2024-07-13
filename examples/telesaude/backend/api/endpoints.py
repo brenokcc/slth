@@ -343,7 +343,9 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
     def getform(self, form):
         form = super().getform(form)
         form.fields['agendado_para'] = forms.SchedulerField(scheduler=Atendimento.objects.agenda())
-        form.fields['unidade'].pick = self.check_role('ps')
+        if self.check_role('ps'):
+            form.fields['unidade'].pick = True
+            form.fields['profissional'].pick = True
         return form
     
     def get_unidade_queryset(self, queryset, values):
@@ -359,48 +361,67 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
     
     def get_area_queryset(self, queryset, values):
         tipo = values.get('tipo')
-        print(values, tipo, 444)
-        if self.check_role('o'):
-            return queryset
-        elif self.check_role('ps'):
-            if tipo and tipo.id == TipoAtendimento.TELECONSULTA:
-                return queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
-            else:
+        if tipo:
+            if self.check_role('o'):
                 return queryset
+            elif self.check_role('ps'):
+                if tipo.id == TipoAtendimento.TELECONSULTA:
+                    return queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+                else:
+                    return queryset
         return queryset.none()
         
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
-        controller.reload('area')
+        controller.reload('area', 'profissional', 'especialista', 'agendado_para')
         if tipo and tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
             controller.show('especialista')
         else:
             controller.hide('especialista')
     
     def on_area_change(self, controller, values):
-        controller.reload('profissional', 'especialista')
+        controller.reload('profissional', 'especialista', 'agendado_para')
+        controller.set(profissional=None)
 
     def get_profissional_queryset(self, queryset, values):
         tipo = values.get('tipo')
         unidade = values.get('unidade')
         area = values.get('area')
-        if unidade and area:
-            if tipo and tipo.id == TipoAtendimento.TELECONSULTA:
-                queryset = unidade.get_profissionais_telessaude(area)
+        if unidade and area and tipo:
+            queryset = queryset.filter(unidade=unidade)
+            if tipo.id == TipoAtendimento.TELECONSULTA:
+                queryset = queryset.filter(especialidade__area=area)
             if self.check_role('ps'):
                 queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
             return queryset
         return queryset.none()
     
     def get_especialista_queryset(self, queryset, values):
+        tipo = values.get('tipo')
         area = values.get('area')
-        return ProfissionalSaude.objects.filter(nucleo__isnull=False, especialidade__area=area)
+        if tipo and area:
+            if tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
+                queryset = queryset.filter(nucleo__isnull=False, especialidade__area=area)
+            print(tipo, area, queryset)
+            return queryset
+        return queryset.none()
     
     def on_profissional_change(self, controller, values):
         controller.reload('agendado_para')
     
     def on_especialista_change(self, controller, values):
         controller.reload('agendado_para')
+
+    def clean_agendado_para(self, cleaned_data):
+        duracao = cleaned_data.get('duracao')
+        agendado_para = cleaned_data.get('agendado_para')
+        profissional = cleaned_data.get('profissional')
+        especialista = cleaned_data.get('especialista')
+        if not profissional.pode_realizar_atendimento(agendado_para, duracao):
+            raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
+        if especialista and not especialista.pode_realizar_atendimento(agendado_para, duracao):
+            raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
+        return agendado_para
 
     def check_permission(self):
         return self.check_role('o', 'ps')

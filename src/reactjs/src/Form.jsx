@@ -89,7 +89,8 @@ function formShow(name) {
   }
 }
 function formReload(name){
-  window['reload-'+name+'-field']()
+  const funcname = 'reload-'+name+'-field';
+  if(window[funcname]) window[funcname]();
 }
 function formValue(name, value) {
   var group = document.querySelector(".form-group." + name);
@@ -535,7 +536,8 @@ function Selector(props) {
     select(initial, true);
     document.getElementById(id).addEventListener("customchange", function (e) {
       select(e.detail.value);
-      reactTriggerChange(document.getElementById(props.data.name));
+      const element = document.getElementById(props.data.name);
+      if(element) reactTriggerChange(element);
     });
   }, []);
 
@@ -740,12 +742,17 @@ function Selector(props) {
         )
         .join("");
     } else {
-      if (multiple) {
-        widget.innerHTML += `<option selected value="${value.id}">${value.value}</option>`;
-        input.value = "";
+      if(value){
+        if (multiple) {
+          widget.innerHTML += `<option selected value="${value.id}">${value.value}</option>`;
+          input.value = "";
+        } else {
+          widget.innerHTML = `<option selected value="${value.id}">${value.value}</option>`;
+          input.value = value.value;
+        }
       } else {
-        widget.innerHTML = `<option selected value="${value.id}">${value.value}</option>`;
-        input.value = value.value;
+        widget.innerHTML = '';
+        input.value = "";
       }
     }
     if (props.data.onchange && !initializing) {

@@ -487,6 +487,10 @@ function Scheduler(props) {
       const dataLabel = e.target.dataset.day + " " +e.target.dataset.time;
       const date = new Date(parseInt(dayTokens[2], 10), parseInt(dayTokens[1], 10) -1 , parseInt(dayTokens[0], 10), parseInt(timeTokens[0], 10), parseInt(timeTokens[1], 10));
       if (date > new Date() || props.data.weekly) {
+        if(props.data.single_selection){
+          while(DESELECT.length > 0) DESELECT.pop();
+          while(SELECT.length > 0) SELECT.pop();
+        }
         if ((e.target.style.backgroundColor == FREE || e.target.style.backgroundColor == SELECTABLE) && (data.selectable == null || data.selectable.indexOf(dataLabel)>=0)){
           e.target.style.backgroundColor = SELECTED;
           console.log('MARCOU', e.target.dataset.day, e.target.dataset.time);

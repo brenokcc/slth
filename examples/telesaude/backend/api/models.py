@@ -226,15 +226,6 @@ class Unidade(models.Model):
     def get_qtd_profissionais_saude(self):
         return self.profissionalsaude_set.count()
     
-    
-
-    @meta('Profissionais de Saúde')
-    def get_profissionais_telessaude(self, area=None):
-        qs = ProfissionalSaude.objects.filter(unidade=self)
-        if area:
-            qs = qs.filter(especialidade__area=area)
-        return qs
-
 
 class EspecialidadeQuerySet(models.QuerySet):
     def all(self):
@@ -567,6 +558,14 @@ class ProfissionalSaude(models.Model):
 
     def get_registro_profissional(self):
         return f'{self.conselho_profissional} {self.registro_profissional}'
+    
+    def pode_realizar_atendimento(self, data_hora, duracao):
+        disponivel = self.horarioprofissionalsaude_set.filter(data_hora=data_hora).disponiveis().exists()
+        if disponivel and duracao >= 40:
+            disponivel = self.horarioprofissionalsaude_set.filter(data_hora=data_hora + timedelta(minutes=20)).disponiveis().exists()
+            if disponivel and duracao == 60:
+                disponivel = self.horarioprofissionalsaude_set.filter(data_hora=data_hora + timedelta(minutes=40)).disponiveis().exists()
+        return disponivel
 
     @meta(None)
     def get_agenda(self, readonly=True, single_selection=False, available=True):
@@ -675,7 +674,7 @@ class AtendimentoQuerySet(models.QuerySet):
             .fields(
                 ("area", "agendado_para", "tipo"),
                 ("unidade", "profissional", "paciente"),
-                "especialista", "get_tags"
+                ("especialista", "get_duracao"), "get_tags"
             ).limit(5).order_by('-id')
         )
     
@@ -712,20 +711,20 @@ class AtendimentoQuerySet(models.QuerySet):
     
     def agenda(self, profissional=None, especialista=None, is_teleconsulta=False):
         selectable = []
-        scheduled = set()
+        scheduled = {}
         midnight = datetime.combine(datetime.now().date(), time())
         if profissional:
             # agenda ocupada do profissional de saúde
-            for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_profissional_saude__isnull=False):
-                scheduled.add(horario.data_hora)
-            for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_especialista__isnull=False):
-                scheduled.add(horario.data_hora)
+            for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_profissional_saude__isnull=False).values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora'):
+                scheduled[data_hora] = pk
+            for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=profissional.pessoa_fisica, atendimentos_especialista__isnull=False).values_list('data_hora', 'atendimentos_especialista').order_by('-data_hora'):
+                scheduled[data_hora] = pk
             # agenda ocupada do especialista
             if especialista:
-                for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_profissional_saude__isnull=False):
-                    scheduled.add(horario.data_hora)
-                for horario in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_especialista__isnull=False):
-                    scheduled.add(horario.data_hora)
+                for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_profissional_saude__isnull=False).values_list('data_hora', 'atendimentos_profissional_saude').order_by('-data_hora'):
+                    scheduled[data_hora] = pk
+                for data_hora, pk in HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude__pessoa_fisica=especialista.pessoa_fisica, atendimentos_especialista__isnull=False).values_list('data_hora', 'atendimentos_especialista').order_by('-data_hora'):
+                    scheduled[data_hora] = pk
             qs = profissional.horarioprofissionalsaude_set
             for horario in qs.filter(data_hora__gte=datetime.now()):
               if horario.data_hora not in scheduled:
@@ -741,8 +740,8 @@ class AtendimentoQuerySet(models.QuerySet):
             selectable=None if is_teleconsulta else selectable,
             readonly=not selectable
         )
-        for dt in scheduled:
-            scheduler.append(dt, 'Indisponível', 'stethoscope')
+        for dt, pk in scheduled.items():
+            scheduler.append(dt, 'Atendimento {}'.format(pk), 'stethoscope')
         return scheduler
 
 @role('p', username='paciente__cpf')
@@ -752,7 +751,7 @@ class Atendimento(models.Model):
         verbose_name='Profissional Responsável',
         related_name="atendimentos_profissional",
         on_delete=models.CASCADE,
-        null=True, pick=True,
+        null=True
     )
     unidade = models.ForeignKey(
         Unidade, null=True, on_delete=models.CASCADE
@@ -761,8 +760,7 @@ class Atendimento(models.Model):
         ProfissionalSaude,
         related_name="atendimentos_especialista",
         on_delete=models.CASCADE,
-        null=True, blank=True, pick = True,
-        help_text='Profissional de saúde que será consultado pelo profissional responsável pelo atendimento'
+        null=True, blank=True, pick = True
     )
 
     area = models.ForeignKey(
@@ -910,6 +908,10 @@ class Atendimento(models.Model):
     @meta('Número')
     def get_numero(self):
         return self.id
+    
+    @meta('Duração')
+    def get_duracao(self):
+        return f'{self.duracao} minutos'
     
     @meta()
     def get_tags(self):
