@@ -3,6 +3,7 @@
 src/django/slth/cmd/init/boilerplate/package-lock.json
 slthcore.egg-info
 slthcore.egg-info
+profissionais.csv
 PKG-INFO
 SOURCES.txt
 media
