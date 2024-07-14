@@ -106,6 +106,7 @@ window.addEventListener("popstate", (e) => {
 });
 
 window.reload = function (url) {
+  if(url==null) url = document.location.href;
   const name = url.split("/app/")[1].split("/")[0];
   if (COMPONENT_REGISTRY[name]) {
     request("GET", apiurl(url), function (data) {
@@ -140,10 +141,10 @@ window.reload = function (url) {
 
 window.load = function (url) {
   if (url.indexOf(window.origin) >= 0 || url.startsWith("/")) {
-    if (url != document.location.href && url != document.location.pathname) {
-      window.history.pushState({ url: url }, "", url);
-    }
     request("GET", apiurl(url), function (data) {
+      if (url != document.location.href && url != document.location.pathname) {
+        window.history.pushState({ url: url }, "", url);
+      }
       window.loaddata(data);
       window.scrollTo({ top: 0,  behavior: 'smooth' });
     });

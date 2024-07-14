@@ -166,6 +166,7 @@ class FormMixin:
             style=self.get_metadata("style"),
             url=absolute_url(self.request),
             info=self._info,
+            image=self._image,
         )
         data.update(
             controls=self.controller.controls, width=self.get_metadata("width", "100%")
@@ -466,7 +467,6 @@ class FormMixin:
                     if field_name not in inline_fields
                 }
             )
-            print(self.request.POST)
             for attr_name in dir(self._endpoint):
                 if attr_name.startswith('clean_'):
                     try:
@@ -514,6 +514,7 @@ class Form(DjangoForm, FormMixin):
         self._display = []
         self._endpoint = endpoint
         self._info = None
+        self._image = None
         self._message = None
         self._redirect = None
         self._dispose = False
@@ -548,6 +549,7 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._display = []
         self._endpoint = endpoint
         self._info = None
+        self._image = None
         self._message = None
         self._redirect = None
         self._dispose = False

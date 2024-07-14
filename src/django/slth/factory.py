@@ -18,6 +18,7 @@ class FormFactory:
         self._redirect = None
         self._message = None
         self._dispose = False
+        self._image = None
 
     def _append_field(self, field_name):
         if ':' in field_name:
@@ -25,6 +26,10 @@ class FormFactory:
             self._actions[field_name] = action_name
         self._fieldlist.append(field_name)
         return field_name
+    
+    def image(self, image) -> 'FormFactory':
+        self._image = image
+        return self
 
     def fields(self, *names, **values) -> 'FormFactory':
         not_str = {name for name in names if not isinstance(name, str)}
@@ -112,6 +117,7 @@ class FormFactory:
         form._message = self._message
         form._redirect = self._redirect
         form._dispose = self._dispose
+        form._image = self._image
         for name in self._fieldlist:
             if name not in form.fields:
                 form.fields[name] = getattr(endpoint, name)

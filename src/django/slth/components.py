@@ -170,9 +170,10 @@ class Table(dict):
 
 
 class TemplateContent(dict):
-    def __init__(self, name, context):
+    def __init__(self, name, context, autoreload=None):
         self["type"] = "html"
         self["content"] = render_to_string(name, context)
+        self["autoreload"] = autoreload * 1000 if autoreload else None
 
 
 class Banner(dict):

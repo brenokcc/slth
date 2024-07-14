@@ -45,13 +45,17 @@ function request(method, path, callback, data) {
     .then(function (response) {
       httpResponse = response;
       contentType = httpResponse.headers.get("Content-Type");
-      if (contentType == "application/json") return response.text();
-      else if (
+      if (contentType == "application/json"){
+        return response.text();
+      } else if (
         contentType.indexOf("text") < 0 ||
-        contentType.indexOf("csv") >= 0
-      )
+        contentType.indexOf("csv") >= 0 ||
+        contentType.indexOf("pdf") >= 0
+      ) {
         return response.arrayBuffer();
-      else response.text();
+      } else {
+        response.text();
+      }
     })
     .then((result) => {
       if (contentType == "application/json") {
@@ -63,7 +67,8 @@ function request(method, path, callback, data) {
         }
       } else if (
         contentType.indexOf("text") < 0 ||
-        contentType.indexOf("csv") >= 0
+        contentType.indexOf("csv") >= 0 ||
+        contentType.indexOf("pdf") >= 0
       ) {
         var file = window.URL.createObjectURL(
           new Blob([new Uint8Array(result)], { type: contentType })
@@ -78,7 +83,6 @@ function request(method, path, callback, data) {
         else if (contentType.indexOf("png") >= 0) a.download = "Download.png";
         document.body.appendChild(a);
         a.click();
-        if (callback) callback({}, httpResponse);
       } else {
         if (callback) callback(result, httpResponse);
       }

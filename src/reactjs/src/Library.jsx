@@ -11,6 +11,11 @@ import format from "./Formatter.jsx";
 import { StyleSheet} from "./StyleSheet.jsx"
 
 function Html(props) {
+  useEffect(() => {
+    if(props.data.autoreload){
+      setTimeout(window.reload, props.data.autoreload);
+    }
+  }, []);
   return <div dangerouslySetInnerHTML={{ __html: props.data.content }}></div>;
 }
 
@@ -421,6 +426,10 @@ function Scheduler(props) {
 
 
   StyleSheet(`
+    .scheduler{
+      width: 100%;
+      max-width: 100%;
+    }
     .scheduler .periods span{
       margin-right: 30px;
     }

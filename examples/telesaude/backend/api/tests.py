@@ -264,6 +264,11 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click("Noite")
             self.click((datetime.now() + timedelta(hours=1)).strftime('%d/%m/%Y %H:00'))
             self.click('Enviar')
+
+            self.click('Anexar Termo de Consentimento')
+            self.enter('Imagem', 'tests/imagem.png')
+            self.click('Enviar')
+
             self.logout('779.067.860-41')
 
         # Acessando teleconsulta como paciente
@@ -271,10 +276,8 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('577.106.830-61', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
-            
+
             self.click('Sala Virtual')
-            self.enter('Imagem', 'tests/imagem.png')
-            self.click('Enviar')
 
             # self.click('Anexar Arquivo')
             # self.enter('Nome', 'Exame')
@@ -289,6 +292,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Acessar')
             
             self.click('Assinar Termo de Consentimento')
+            self.click('Notificação')
+            self.click('Enviar')
+
             self.click('Enviar')
 
             self.click('Sala Virtual')
@@ -342,8 +348,12 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
             self.click('Fábio Júnir (CPF: 385.895.870-02 / CRM: CRM/RN 38589587002)')
             self.click((datetime.now() + timedelta(hours=2)).strftime('%d/%m/%Y %H:00'))
-            breakpoint()
             self.click('Enviar')
+
+            self.click('Anexar Termo de Consentimento')
+            self.enter('Imagem', 'tests/imagem.png')
+            self.click('Enviar')
+
             self.logout('779.067.860-41')
 
         # Acessando tele-interconsulta como paciente
@@ -353,8 +363,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Acessar')
 
             self.click('Sala Virtual')
-            self.enter('Imagem', 'tests/imagem.png')
-            self.click('Enviar')
 
             # self.click('Anexar Arquivo')
             # self.enter('Nome', 'Exame')
@@ -370,6 +378,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.wait()
 
             self.click('Assinar Termo de Consentimento')
+            self.click('Notificação')
+            self.click('Enviar')
+
             self.click('Enviar')
 
             self.click('Sala Virtual')
@@ -392,6 +403,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.click('Acessar')
 
             self.click('Assinar Termo de Consentimento')
+            self.click('Notificação')
+            self.click('Enviar')
+            
             self.click('Enviar')
 
             self.click('Sala Virtual')

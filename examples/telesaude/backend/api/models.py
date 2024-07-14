@@ -1,8 +1,10 @@
 import os
 import hashlib
 import base64
+from uuid import uuid1
 from PIL import Image as PILImage
 import requests
+from django.conf import settings
 from slth.factory import FormFactory
 from slth.serializer import Serializer
 from . import signer
@@ -18,6 +20,7 @@ from slth.db import models, meta, role
 from slth.models import User, RoleFilter
 from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge, TemplateContent
 from time import sleep
+from slth.printer import qrcode_base64
 
 
 class CIDQuerySet(models.QuerySet):
@@ -432,6 +435,7 @@ class ProfissionalSaudeQueryset(models.QuerySet):
             .fields("get_estabelecimento", "especialidade")
             .actions('definirhorarioprofissionalsaude')
         ).cards()
+
 @role('ps', username='pessoa_fisica__cpf')
 class ProfissionalSaude(models.Model):
     pessoa_fisica = models.ForeignKey(
@@ -542,10 +546,14 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .serializer()
-            .actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude", "editarprofissionalsaude")
+            #.actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude", "editarprofissionalsaude")
             .fieldset("Dados Gerais", (("pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
-            .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
+            .group()
+                .fieldset("Outras Informações", (("programa_provab", "programa_mais_medico"), ("residente", "perceptor"),),)
+                .fieldset("Horário de Atendimento", ("get_horarios_atendimento",))
+                .fieldset("Agenda", ("get_agenda",))
+            .parent()
             #.fieldset("Configuração", ("zoom_token",))
         )
 
@@ -574,7 +582,7 @@ class ProfissionalSaude(models.Model):
         for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_profissional_saude", "atendimentos_profissional_saude__especialista_id"):
             descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
             if atendimento or available:
-                scheduler.append(data_hora, f'{descricao} #{atendimento}' if atendimento else None, icon=icon)
+                scheduler.append(data_hora, f'{descricao} {atendimento}' if atendimento else None, icon=icon)
         for data_hora, atendimento, especialista_id in qs.values_list("data_hora", "atendimentos_especialista", "atendimentos_especialista__especialista_id"):
             if atendimento:
                 descricao, icon = ('Teleinterconsulta', 'people-group') if especialista_id else ('Teleconsulta', 'people-arrows')
@@ -619,6 +627,11 @@ class ProfissionalSaude(models.Model):
     @meta('Estabelecimento')
     def get_estabelecimento(self):
         return self.nucleo if self.nucleo_id else self.unidade
+    
+    def save(self, *args, **kwargs):
+        if self.zoom_token is None:
+           self.zoom_token = os.environ.get('ZOOM_TOKEN') 
+        super().save(*args, **kwargs)
 
 
 class HorarioAtendimento(models.Model):
@@ -817,6 +830,7 @@ class Atendimento(models.Model):
     senha_webconf = models.CharField(verbose_name='Senha da WebConf', null=True)
     limite_webconf = models.DateTimeField(verbose_name='Limite da WebConf', null=True)
 
+    token = models.CharField(verbose_name='Token', null=True, blank=True)
 
     objects = AtendimentoQuerySet()
 
@@ -863,16 +877,17 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('salavirtual', 'finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'termoconsentimento', 'anexartermoconsentimento', 'assinartermoconsentimento')
+            .actions('finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'imprimirtermoconsentimento', 'anexartermoconsentimento', 'assinartermoconsentimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas')
             .fieldset(
                 "Dados Gerais",
                 (
                     ("tipo", "unidade", "unidade__municipio"),
                     ("agendado_para", "finalizado_em", "duracao_webconf"),
+                    "get_link_webconf"
                 ) 
             )
             .fieldset("Web Conferência", (("numero_webconf", "senha_webconf", "limite_webconf"),), roles=('su',))
-            .group().actions('anexararquivo', 'registrarecanminhamentoscondutas')
+            .group()
                 .section('Detalhamento')
                     .fieldset(
                         "Dados do Paciente", (
@@ -881,7 +896,7 @@ class Atendimento(models.Model):
                         ), attr="paciente"
                     )
                     .fieldset(
-                        "Dados do Responsável", (
+                        "Profissional Responsável", (
                             ("pessoa_fisica__nome", "pessoa_fisica__cpf"),
                             ("registro_profissional", "especialidade", "registro_especialista"),
                         ), attr="profissional"
@@ -938,7 +953,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'get_arquivo').actions('assinaranexo', 'assinaranexoqrcode')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo').actions('assinaranexo', 'assinaranexoqrcode')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -956,28 +971,53 @@ class Atendimento(models.Model):
             return timesince(self.agendado_para, self.finalizado_em)
         return "-"
     
-    @meta()
+    def is_termo_consentimento_assinado(self):
+        return True
+        termo_consentimento = self.get_termo_consentimento()
+        if termo_consentimento:
+            qtd_assinaturas = termo_consentimento.assinaturas.count()
+            return qtd_assinaturas == (2 if self.especialista_id else 1)
+        return False
+
+    @meta('Termo de Consentimento')
     def get_termo_consentimento(self):
-        return TemplateContent('termo_consentimento.html', dict(atendimento=self))
+        return self.anexoatendimento_set.filter(nome='Termo de Consentimento').order_by('id').last()
 
     def get_agendado_para(self):
         return Badge("#5ca05d", self.agendado_para.strftime('%d/%m/%Y %H:%M'), icon='clock')
+
+    @meta('Link WebConf')
+    def get_link_webconf(self):
+        return '{}/app/salaespera/?token={}'.format(settings.SITE_URL, self.token)
+    
+    def get_qrcode_link_webconf(self):
+        return qrcode_base64(self.get_link_webconf())
 
     def __str__(self):
         return "%s - %s" % (self.id, self.assunto)
 
     def save(self, *args, **kwargs):
-        if not self.data:
+        if self.token is None:
+            self.token = uuid1().hex
+        if self.data is None:
             self.data = timezone.now()
         super(Atendimento, self).save(*args, **kwargs)
 
     def post_save(self):
-        if not self.horarios_profissional_saude.exists():
-            horario_profissional = self.profissional.horarioprofissionalsaude_set.filter(data_hora=self.agendado_para).first()
-            if horario_profissional is None:
-                horario_profissional = HorarioProfissionalSaude.objects.create(data_hora=self.agendado_para, profissional_saude=self.profissional)
-            self.horarios_profissional_saude.add(horario_profissional)
+        minutos = [0]
+        if self.duracao >= 40: minutos.append(20)
+        if self.duracao == 60: minutos.append(40)
+        # atendimentos marcados pelo próprio profissional não requer que o horário esteva previamente marcado em sua agenda
+        for minuto in minutos:
+            data_hora = self.agendado_para + timedelta(minutes=minuto)
+            if not self.profissional.horarioprofissionalsaude_set.filter(data_hora=data_hora).exists():
+                HorarioProfissionalSaude.objects.create(data_hora=data_hora, profissional_saude=self.profissional)
         
+        for minuto in minutos:
+            self.horarios_profissional_saude.add(self.profissional.horarioprofissionalsaude_set.get(data_hora=self.agendado_para + timedelta(minutes=minuto)))
+            if self.especialista_id:
+                self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(data_hora=self.agendado_para + timedelta(minutes=minuto)))
+  
 class AnexoAtendimento(models.Model):
     atendimento = models.ForeignKey(
         Atendimento, on_delete=models.CASCADE
@@ -985,6 +1025,7 @@ class AnexoAtendimento(models.Model):
     nome = models.CharField(verbose_name='Nome', default='')
     arquivo = models.FileField(max_length=200, upload_to="anexos_teleconsuta")
     autor = models.ForeignKey(PessoaFisica, null=True, on_delete=models.CASCADE)
+    assinaturas = models.ManyToManyField(PessoaFisica, verbose_name='Assinaturas', blank=True, related_name='anexos_assinados')
 
     class Meta:
         verbose_name = "Anexo de Solicitação"
@@ -1000,29 +1041,40 @@ class AnexoAtendimento(models.Model):
     def get_arquivo(self):
         return FileLink(self.arquivo, icon='file', modal=True)
 
-    def possui_assinatura(self, cpf, nome):
-        data = self.arquivo.read()
-        def index_of(n=1):
-            if n == 1:
-                return data.find(b'/ByteRange')
-            else:
-                return data.find(b'/ByteRange', index_of(n - 1) + 1)
+    def possui_assinatura(self, cpf):
+        if os.path.exists(self.arquivo.path):
+            data = self.arquivo.read()
+            def index_of(n=1):
+                if n == 1:
+                    return data.find(b'/ByteRange')
+                else:
+                    return data.find(b'/ByteRange', index_of(n - 1) + 1)
 
-        for i in range(1, data.count(b'/ByteRange') + 1):
-            n = index_of(i)
-            start = data.find(b'[', n)
-            stop = data.find(b']', start)
-            assert n != -1 and start != -1 and stop != -1
-            br = [int(i, 10) for i in data[start + 1: stop].split()]
-            contents = data[br[0] + br[1] + 1: br[2] - 1]
-            datas = bytes.fromhex(contents.decode('utf8'))
-            try:
-                cpf = cpf.replace('.', '').replace('-', '')
-                nome = nome.upper()
-                datas.index(f'{nome}:{cpf}'.encode())
-                return True
-            except ValueError:
-                return False
+            for i in range(1, data.count(b'/ByteRange') + 1):
+                n = index_of(i)
+                start = data.find(b'[', n)
+                stop = data.find(b']', start)
+                assert n != -1 and start != -1 and stop != -1
+                br = [int(i, 10) for i in data[start + 1: stop].split()]
+                contents = data[br[0] + br[1] + 1: br[2] - 1]
+                datas = bytes.fromhex(contents.decode('utf8'))
+                try:
+                    cpf = cpf.replace('.', '').replace('-', '')
+                    datas.index(cpf.encode())
+                    return True
+                except ValueError:
+                    return False
+        return False
+            
+    def checar_assinaturas(self):
+        if self.possui_assinatura(self.atendimento.profissional.pessoa_fisica.cpf):
+            print(self.pk, 111111111)
+            self.assinaturas.add(self.atendimento.profissional.pessoa_fisica)
+        if self.atendimento.especialista:
+            if self.possui_assinatura(self.atendimento.especialista.pessoa_fisica.cpf):
+                print(self.pk, 22222222)
+                self.assinaturas.add(self.atendimento.especialista.pessoa_fisica)
+    
 
 class AvaliacaoAtendimento(models.Model):
     SATISFACAO = (

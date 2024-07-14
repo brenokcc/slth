@@ -30,6 +30,7 @@ from .components import (
     Response,
     Boxes,
     IconSet,
+    TemplateContent,
 )
 from .exceptions import JsonResponseException, ReadyResponseException
 from .utils import build_url, append_url
@@ -152,26 +153,28 @@ class Endpoint(metaclass=EnpointMetaclass):
     def redirect(self, url):
         raise JsonResponseException(dict(type="redirect", url=url))
     
-    def render(self, data, template=None, pdf=False):
+    def render(self, data, template=None, pdf=False, autoreload=None):
         base_url='http://localhost:8000'
         data.update(base_url=base_url)
-        buffer = io.BytesIO()
-        if template:
+        if template is None:
+            template = '{}.html'.format(template or self.__class__.__name__.lower())
+        if pdf:
+            buffer = io.BytesIO()
             if isinstance(template, str):
                 templates = template,
             else:
                 templates = template
-        else:
-            templates = '{}.html'.format(template or self.__class__.__name__.lower()),
-        pages = []
-        for template in templates:
-            html = render_to_string(template, data)
-            doc = HTML(string=html).render()
-            pages.extend(doc.pages)
-        new_doc = doc.copy(pages=pages)
-        new_doc.write_pdf(buffer, base_url=base_url, stylesheets=[])
-        buffer.seek(0)
-        raise ReadyResponseException(HttpResponse(buffer, content_type='application/pdf'))
+            pages = []
+            for template in templates:
+                html = render_to_string(template, data)
+                if pdf:
+                    doc = HTML(string=html).render()
+                    pages.extend(doc.pages)
+            new_doc = doc.copy(pages=pages)
+            new_doc.write_pdf(buffer, base_url=base_url, stylesheets=[])
+            buffer.seek(0)
+            raise ReadyResponseException(HttpResponse(buffer, content_type='application/pdf'))
+        return TemplateContent(template, data, autoreload=autoreload)
 
     def getform(self, form):
         return form

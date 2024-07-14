@@ -76,7 +76,7 @@ function Application(props) {
     window.addEventListener("resize", () => {
       const menu = document.querySelector("aside");
       if (menu) {
-        menu.style.display = window.innerWidth < SMALL_WIDTH ? "none" : "block";
+        menu.style.display = window.innerWidth < SMALL_WIDTH ? "none" : "inline-block";
       }
     });
 
@@ -88,7 +88,9 @@ function Application(props) {
 
   function toggleMenu() {
     const menu = document.querySelector("aside");
-    menu.style.display = menu.style.display == "none" ? "block" : "none";
+    const main = document.querySelector("main");
+    menu.style.display = menu.style.display == "none" ? "inline-block" : "none";
+    main.style.width = menu.style.display == "none" ? "100%" : "calc(100% - 350px)"
   }
 
   function onLogoClick(e) {
@@ -261,10 +263,10 @@ function Application(props) {
       window.application.menu.items.length > 0 && (
         <aside
           style={{
-            flexGrow: 2,
+            verticalAlign: "top",
             maxWidth: "350px",
             minWidth: "350px",
-            display: window.innerWidth < SMALL_WIDTH ? "none" : "block",
+            display: window.innerWidth < SMALL_WIDTH ? "none" : "inline-block",
           }}
         >
           <Menu />
@@ -295,8 +297,9 @@ function Application(props) {
   }
 
   function renderMain() {
+    const sub = props.data.menu && props.data.menu.items.length > 0 ? 350 : 0;
     return (
-      <main id="main" style={{width: "100vw"}}>
+      <main id="main" style={{display: "inline-block", width: "calc(100% - "+ sub +"px)"}}>
         {renderBreadcrumbs()}
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>
@@ -328,7 +331,7 @@ function Application(props) {
         <div
           style={{
             width: "100%",
-            display: "flex",
+            display: "block",
             minHeight: window.innerHeight - 70,
           }}
         >

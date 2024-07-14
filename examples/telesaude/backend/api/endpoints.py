@@ -182,7 +182,7 @@ class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
         return self.check_role('a')
     
     def contribute(self, entrypoint):
-        if entrypoint == 'menu' and self.check_role('o'):
+        if entrypoint == 'menu' and self.check_role('o', superuser=False):
             return False
         return super().contribute(entrypoint)
 
@@ -247,7 +247,7 @@ class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
         )
 
     def check_permission(self):
-        return self.check_role('g', 'ps') or self.instance.paciente.cpf == self.request.user.username
+        return self.check_role('g', 'ps', 'o') or self.instance.paciente.cpf == self.request.user.username
 
 
 class ProximosAtendimentosProfissionalSaude(endpoints.ListEndpoint[Atendimento]):
@@ -281,7 +281,7 @@ class AgendaAtendimentos(endpoints.ListEndpoint[Atendimento]):
         return (
             super().get().all().actions('cadastraratendimento', 'visualizaratendimento')
             .lookup('g', profissional__nucleo__gestores__cpf='username')
-            .lookup('o', especialista__nucleo__operadores__cpf='username')
+            .lookup('o', unidade__nucleo__operadores__cpf='username')
             .lookup('ps', profissional__pessoa_fisica__cpf='username', especialista__pessoa_fisica__cpf='username')
             .lookup('p', paciente__cpf='username')
             .calendar("agendado_para")
@@ -336,9 +336,7 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         verbose_name = 'Cadastrar Atendimento'
 
     def get(self):
-        return (
-            super().get().hidden('especialista')
-        )
+        return super().get().hidden('especialista')
     
     def getform(self, form):
         form = super().getform(form)
@@ -425,6 +423,10 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
 
     def check_permission(self):
         return self.check_role('o', 'ps')
+    
+    def post(self):
+        return self.redirect('/api/visualizaratendimento/{}/'.format(self.instance.pk))
+
 
 class CertificadosDigitais(endpoints.AdminEndpoint[CertificadoDigital]):
     def check_permission(self):
@@ -555,6 +557,20 @@ class DefinirHorarioProfissionaisSaude(endpoints.Endpoint):
             profissional_saude.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
         return super().post()
 
+
+class SalaEspera(endpoints.PublicEndpoint):
+    class Meta:
+        verbose_name = 'Sala de Espera'
+
+    def get(self):
+        atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
+        if atendimento.numero_webconf:
+            if self.request.user.is_authenticated:
+                self.redirect('/api/salavirtual/{}/'.format(atendimento.pk))
+            self.redirect('/api/salavirtual/{}/?token={}'.format(atendimento.pk, atendimento.token))
+        return self.render(dict(atendimento=atendimento), autoreload=10)
+
+
 class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
 
     class Meta:
@@ -563,11 +579,14 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Sala Virtual'
 
     def get(self):
-        if not RUNNING_TESTING:
-            self.instance.check_webconf()
-        if self.instance.paciente.cpf == self.request.user.username:
-            if not self.instance.anexoatendimento_set.filter(nome='Termo de Consentimento').exists():
-                self.redirect(f'/api/anexartermoconsentimento/{self.instance.pk}/')
+        # se a sala virtual ainda não foi criada
+        if self.instance.numero_webconf is None and not RUNNING_TESTING:
+            # criar sala virtual caso esteja sendo acessado pelo profissional responsável
+            if self.instance.profissional.pessoa_fisica.cpf == self.request.user.username:
+                self.instance.check_webconf()
+            # redirecionar para a sala de espera
+            else:
+                self.redirect('/api/salaespera/?token={}'.format(self.instance.token))
         return (
             self.serializer().actions('anexararquivo')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
@@ -576,13 +595,40 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
         )
     
     def check_permission(self):
-        return self.instance.finalizado_em is None and (self.check_role('ps') or self.instance.paciente.cpf == self.request.user.username)
+        return (
+            self.instance.finalizado_em is None
+            and self.instance.is_termo_consentimento_assinado()
+            and (
+                self.check_role('ps')
+                or self.instance.paciente.cpf == self.request.user.username
+                or self.request.GET.get('token') == self.instance.token
+            )
+        )
+
+
+class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
+    def get(self):
+        cpf = self.request.user.username if self.request.user.is_authenticated else self.instance.paciente.cpf
+        return ZoomMeet(self.instance.numero_webconf, self.instance.senha_webconf, cpf)
+    
+    def check_permission(self):
+        return (
+            self.instance.finalizado_em is None
+            and not RUNNING_TESTING
+            and (
+                self.request.GET.get('token') == self.instance.token
+                or self.request.user.username == self.instance.paciente.cpf
+                or self.request.user.username == self.instance.profissional.pessoa_fisica.cpf
+                or self.instance.especialista and self.request.user.username == self.instance.especialista.pessoa_fisica.cpf
+            )
+        )
+
 
 class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
 
     class Meta:
         icon = 'file-signature'
-        verbose_name = 'Registrar Condutas e Enaminhamentos'
+        verbose_name = 'Registrar Enaminhamento'
 
     def get(self):
         responsavel = ProfissionalSaude.objects.get(
@@ -605,17 +651,8 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
         self.redirect(f'/api/visualizaratendimento/{self.source.id}/')
 
     def check_permission(self):
-        return self.source.finalizado_em is None and self.check_role('ps')
+        return self.source.finalizado_em is None and self.check_role('ps') and self.source.is_termo_consentimento_assinado()
 
-
-class VideoChamada(endpoints.InstanceEndpoint[Atendimento]):
-    def get(self):
-        return ZoomMeet(self.instance.numero_webconf, self.instance.senha_webconf, self.request.user.username)
-    
-    def check_permission(self):
-        return self.request.user.is_superuser or self.request.user.username in (
-            self.instance.profissional.pessoa_fisica.cpf, self.instance.especialista.pessoa_fisica.cpf if self.instance.especialista_id else '', self.instance.paciente.cpf
-        ) and not RUNNING_TESTING
 
 class AnexarArquivo(endpoints.ChildEndpoint):
     class Meta:
@@ -623,12 +660,20 @@ class AnexarArquivo(endpoints.ChildEndpoint):
         verbose_name = 'Anexar Arquivo'
 
     def get(self):
-        autor = PessoaFisica.objects.filter(cpf=self.request.user.username).first() or self.source.especialista.pessoa_fisica
+        autor = PessoaFisica.objects.filter(cpf=self.request.user.username).first() or self.source.paciente
         instance = AnexoAtendimento(atendimento=self.source, autor=autor)
         return self.formfactory(instance).fields('nome', 'arquivo')
     
     def check_permission(self):
-        return self.source.finalizado_em is None and self.check_role('p', 'ps')
+        return (
+            self.source.finalizado_em is None
+            and (
+                self.request.GET.get('token') == self.source.token
+                or self.request.user.username == self.source.paciente.cpf
+                or self.request.user.username == self.source.profissional.pessoa_fisica.cpf
+                or self.source.especialista and self.request.user.username == self.source.especialista.pessoa_fisica.cpf
+            )
+        )
     
 
 class FinalizarAtendimento(endpoints.ChildEndpoint):
@@ -751,17 +796,17 @@ class ImprimirAtendimento(endpoints.InstanceEndpoint[Atendimento]):
     def get(self):
         self.render(dict(nome='X', qrcode=(printer.qrcode_base64('https://zoom.us/'))), pdf=True)
 
-class TermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
+class ImprimirTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
     class Meta:
         icon = 'print'
         modal = False
-        verbose_name = 'Termo de Consentimento'
+        verbose_name = 'Imprimir Termo de Consentimento'
 
     def get(self):
         self.render(dict(atendimento=self.instance), pdf=True)
 
     def check_permission(self):
-        return self.check_role('ps', 'o', 'p')
+        return self.check_role('ps', 'o')
 
 
 class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
@@ -769,12 +814,15 @@ class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
     class Meta:
         icon = 'upload'
         modal = False
-        verbose_name = 'Termo de Consentimento'
+        verbose_name = 'Anexar Termo de Consentimento'
 
     def get(self):
         return self.formfactory().fields('imagem')
 
     def post(self):
+        termo_consentimento = self.instance.get_termo_consentimento()
+        if termo_consentimento:
+            termo_consentimento.delete()
         imagem = printer.image_base64(self.request.FILES['imagem'].read())
         signature = printer.Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
         signature.add_signer('{} - {}'.format(self.instance.profissional.pessoa_fisica.nome, self.instance.profissional.get_registro_profissional()), None)
@@ -786,7 +834,7 @@ class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
         self.redirect(f'/api/visualizaratendimento/{self.instance.pk}/')
 
     def check_permission(self):
-        return self.check_role('ps', 'o', 'p')
+        return self.check_role('ps', 'o')
 
 
 class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
@@ -803,7 +851,6 @@ class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
             self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
-        nome = 'Carlos Breno Pereira Silva' or profissional_saude.pessoa_fisica.nome
         code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
         redirect_url = 'push://http://viddas.com.br'
         url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authorizations?client_id={}&code_challenge={}&code_challenge_method=S256&response_type=code&scope=signature_session&login_hint={}&lifetime=900&redirect_uri={}'.format(os.environ.get('VIDAAS_API_KEY'), code_verifier, cpf, redirect_url)
@@ -833,7 +880,7 @@ class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
             access_token = response['access_token']
             print(access_token, 11111)
             caminho_arquivo = self.instance.arquivo.path
-            if not self.instance.possui_assinatura(cpf, nome):
+            if not self.instance.possui_assinatura(cpf):
                 url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
                 filename = caminho_arquivo.split('/')[-1]
                 filecontent = open(caminho_arquivo, 'r+b').read()
@@ -846,7 +893,10 @@ class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
                 response = requests.post(url, json=data, headers=headers).json()
                 file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
                 open(caminho_arquivo, 'w+b').write(file_content)
-        self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
+                self.instance.checar_assinaturas()
+            self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
+        else:
+            raise endpoints.ValidationError('Não foi possível realizar a assinatura do documento. Tente outra vez!')
 
     def check_permission(self):
         return self.check_role('ps')
@@ -864,7 +914,6 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
         self.cache.set('vidaas_forward', self.request.path)
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
-        nome = 'Carlos Breno Pereira Silva' or profissional_saude.pessoa_fisica.nome
         code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
         redirect_url = self.absolute_url('/app/vidaas/')
         authorization_code = self.request.GET.get('code')
@@ -881,7 +930,7 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
             access_token = response['access_token']
             print(access_token, 11111)
             caminho_arquivo = self.instance.arquivo.path
-            if not self.instance.possui_assinatura(cpf, nome):
+            if not self.instance.possui_assinatura(cpf):
                 url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
                 filename = caminho_arquivo.split('/')[-1]
                 filecontent = open(caminho_arquivo, 'r+b').read()
@@ -894,6 +943,7 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
                 response = requests.post(url, json=data, headers=headers).json()
                 file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
                 open(caminho_arquivo, 'w+b').write(file_content)
+                self.instance.checar_assinaturas()
                 self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
 
     def check_permission(self):
@@ -901,21 +951,29 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
     
 
 class AssinarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
+    tipo_assinatura = forms.ChoiceField(label='Tipo', choices=[['QrCode', 'QrCode'], ['Notificação', 'Notificação']], pick=True)
     class Meta:
         modal = False
         icon = 'signature'
         verbose_name = 'Assinar Termo de Consentimento'
 
     def get(self):
-        anexo = self.get_anexo()
+        return self.formfactory().image('/static/images/signature.png').fields('tipo_assinatura')
+
+    def post(self):
+        tipo_assinatura = self.cleaned_data['tipo_assinatura']
+        anexo = self.instance.get_termo_consentimento()
         if anexo:
-            self.redirect(f'/api/assinaranexo/{anexo.id}/')
+            if tipo_assinatura == 'QrCode':
+                self.redirect(f'/api/assinaranexoqrcode/{anexo.id}/')
+            else:
+                self.redirect(f'/api/assinaranexo/{anexo.id}/')
         else:
             raise endpoints.ValidationError('O termo de consentimento ainda não foi enviado.')
         return super().post()
     
-    def get_anexo(self):
-        return self.instance.anexoatendimento_set.filter(nome='Termo de Consentimento').order_by('id').last()
-    
     def check_permission(self):
-        return self.check_role('ps')
+        return self.check_role('ps') and self.instance.get_termo_consentimento()
+
+
+    

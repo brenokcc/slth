@@ -68,7 +68,7 @@ function Menu() {
       return false;
     } else {
       const menu = document.querySelector("aside");
-      menu.style.display = window.innerWidth < 800 ? "none" : "block";
+      menu.style.display = window.innerWidth < 800 ? "none" : "inline-block";
     }
   }
 

@@ -19,7 +19,7 @@ function SystemLayout({ header, main, aside, footer }) {
   useEffect(() => {
     window.addEventListener("resize", (e) => {
       const menu = document.querySelector("aside");
-      menu.style.display = window.innerWidth < 800 ? "none" : "block";
+      menu.style.display = window.innerWidth < 800 ? "none" : "inline-block";
     });
   }, []);
 

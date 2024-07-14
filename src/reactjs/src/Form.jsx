@@ -1333,6 +1333,12 @@ function Form(props) {
     return <div id="output" style={{ marginTop: 30 }}></div>;
   }
 
+  function renderImage(){
+    if(props.data.image){
+      return <div style={{margin: "auto", width: "100%", textAlign:"center"}}><img src={props.data.image}></img></div>
+    }
+  }
+
   function render() {
     //<Icons />
     return (
@@ -1349,6 +1355,7 @@ function Form(props) {
         <div>{false && JSON.stringify(props.data)}</div>
         <div style={{ padding: 5 }}>
           {renderTitle()}
+          {renderImage()}
           {renderInstruction()}
           {renderDisplay()}
           {renderFields()}

@@ -73,7 +73,7 @@ application:
     building:Unidades de Saúde: unidades
     stethoscope:Profissionais de Saúde: profissionaissaude
     users:Pessoas Físicas: pessoafisicas
-    laptop-file:Teleconsultas: atendimentos
+    laptop-file:Atendimentos: atendimentos
     #file-signature:Certificados Digitais: certificadosdigitais
   theme:
     colors:
