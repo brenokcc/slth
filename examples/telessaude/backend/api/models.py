@@ -546,7 +546,7 @@ class ProfissionalSaude(models.Model):
         return (
             super()
             .serializer()
-            #.actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude", "editarprofissionalsaude")
+            .actions("agendaprofissionalsaude", "alteraragendaprofissionalsaude", "definirhorarioprofissionalsaude", "editarprofissionalsaude")
             .fieldset("Dados Gerais", (("pessoa_fisica"),))
             .fieldset("Dados Profissionais", (("especialidade", "get_estabelecimento"), ("conselho_profissional", "registro_profissional"), ("conselho_especialista", "registro_especialista"),),)
             .group()
@@ -776,8 +776,8 @@ class Atendimento(models.Model):
         null=True, blank=True, pick = True
     )
 
-    area = models.ForeignKey(
-        Area, verbose_name='Área', on_delete=models.CASCADE, pick=True
+    especialidade = models.ForeignKey(
+        Especialidade, verbose_name='Especialidade', on_delete=models.CASCADE, pick=True
     )
 
     tipo = models.ForeignKey(
@@ -855,7 +855,7 @@ class Atendimento(models.Model):
             .fieldset(
                 "Dados Gerais",
                 (
-                    "unidade", "tipo", "area",
+                    "unidade", "tipo", "especialidade",
                 ),
             )
             .fieldset(
@@ -909,7 +909,7 @@ class Atendimento(models.Model):
                     )
                     .fieldset(
                         "Dados da Consulta", (
-                            ("assunto", "area"),
+                            ("assunto", "especialidade"),
                             "duvida",
                             ("cid", "ciap"),
                         )

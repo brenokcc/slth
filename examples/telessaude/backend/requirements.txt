@@ -1,3 +1,4 @@
 slthlib
 slthcore
-
+qrcode
+weasyprint

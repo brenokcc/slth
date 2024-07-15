@@ -357,38 +357,38 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
             qs = queryset.none()
         return qs
     
-    def get_area_queryset(self, queryset, values):
+    def get_especialidade_queryset(self, queryset, values):
         tipo = values.get('tipo')
         if tipo:
             if self.check_role('o'):
                 return queryset
             elif self.check_role('ps'):
                 if tipo.id == TipoAtendimento.TELECONSULTA:
-                    return queryset.filter(especialidade__profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
+                    return queryset.filter(profissionalsaude__pessoa_fisica__cpf=self.request.user.username)
                 else:
                     return queryset
         return queryset.none()
         
     def on_tipo_change(self, controller, values):
         tipo = values.get('tipo')
-        controller.reload('area', 'profissional', 'especialista', 'agendado_para')
+        controller.reload('especialidade', 'profissional', 'especialista', 'agendado_para')
         if tipo and tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
             controller.show('especialista')
         else:
             controller.hide('especialista')
     
-    def on_area_change(self, controller, values):
+    def on_especialidade_change(self, controller, values):
         controller.reload('profissional', 'especialista', 'agendado_para')
         controller.set(profissional=None)
 
     def get_profissional_queryset(self, queryset, values):
         tipo = values.get('tipo')
         unidade = values.get('unidade')
-        area = values.get('area')
-        if unidade and area and tipo:
+        especialidade = values.get('especialidade')
+        if unidade and especialidade and tipo:
             queryset = queryset.filter(unidade=unidade)
             if tipo.id == TipoAtendimento.TELECONSULTA:
-                queryset = queryset.filter(especialidade__area=area)
+                queryset = queryset.filter(especialidade=especialidade)
             if self.check_role('ps'):
                 queryset = queryset.filter(pessoa_fisica__cpf=self.request.user.username)
             return queryset
@@ -396,11 +396,10 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
     
     def get_especialista_queryset(self, queryset, values):
         tipo = values.get('tipo')
-        area = values.get('area')
-        if tipo and area:
+        especialidade = values.get('especialidade')
+        if tipo and especialidade:
             if tipo.id == TipoAtendimento.TELE_INTERCONSULTA:
-                queryset = queryset.filter(nucleo__isnull=False, especialidade__area=area)
-            print(tipo, area, queryset)
+                queryset = queryset.filter(nucleo__isnull=False, especialidade=especialidade)
             return queryset
         return queryset.none()
     
@@ -540,6 +539,9 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
     def post(self):
         self.instance.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
         return super().post()
+    
+    def check_permission(self):
+        return self.check_role('g', 'o')
 
 
 class DefinirHorarioProfissionaisSaude(endpoints.Endpoint):
