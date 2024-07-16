@@ -7,15 +7,19 @@
         text-justify: inter-word;
         text-indent: 50px;
     }
-    .small {
-        font-size: 12px;
-    }
     .signature{
         text-align: center;
         width: 300px;
         margin:auto
     }
 </style>
+{% if impressao %}
+<style>
+    .small {
+        font-size: 12px;
+    }
+</style>
+{% endif %}
 
 <div style="text-align: center;"><img style="width: 200px;" src="{{ base_url }}/static/images/logos/logo4.png"/></div>
 <h3 style="text-align: center;">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA ATENDIMENTO A DISTÂNCIA - {{ atendimento.tipo|upper }} </h3>
@@ -49,63 +53,66 @@
 <p class="paragraph small">
     Por fim, declaro ter lido as orientações contidas no presente instrumento, as quais entendi completamente e aceito, expressando o meu pleno consentimento para a realização da teleinterconsulta.
 </p>
-<br>
-<br>
-{% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
+
+{% if impressao %}
+    <br>
+    <br>
+    {% if atendimento.paciente.nome_responsavel and atendimento.paciente.cpf_responsavel %}
+        <div class="small signature">
+            <div style="border-bottom: solid 1px #000;"></div>
+            <span class="bold">
+                {{ atendimento.paciente.nome_responsavel }}
+                ({{ atendimento.paciente.cpf_responsavel }})
+            </span>
+            <br><i>Responsável</i>
+        </div>
+    {% else %}
+        <div class="small signature">
+            <div style="border-bottom: solid 1px #000;"></div>
+            <span class="bold">
+                {{ atendimento.paciente.nome }}
+                ({{ atendimento.paciente.cpf }})
+            </span>
+            <br><i>Paciente</i>
+        </div>
+    {% endif %}
+    <br>
+    <br>
     <div class="small signature">
-        <div style="border-bottom: solid 1px #000;"></div>
+        <div style="border-bottom: solid 1px #000;">[Assinatura Digital]</div>
         <span class="bold">
-            {{ atendimento.paciente.nome_responsavel }}
-            ({{ atendimento.paciente.cpf_responsavel }})
+            {{ atendimento.profissional.pessoa_fisica.nome }}
+            {{ atendimento.profissional.get_registro_profissional }}
         </span>
-        <br><i>Responsável</i>
+        <br><i>Médico Assistente</i>
     </div>
-{% else %}
+    {% if atendimento.especialista_id %}
+    <br>
+    <br>
     <div class="small signature">
-        <div style="border-bottom: solid 1px #000;"></div>
+        <div style="border-bottom: solid 1px #000;">[Assinatura Digital]</div>
         <span class="bold">
-            {{ atendimento.paciente.nome }}
-            ({{ atendimento.paciente.cpf }})
+            {{ atendimento.especialista.pessoa_fisica.nome }}
+            {{ atendimento.especialista.get_registro_profissional }}
         </span>
-        <br><i>Paciente</i>
+        <br><i> Médico Especialista</i>
     </div>
-{% endif %}
-<br>
-<br>
-<div class="small signature">
-    <div style="border-bottom: solid 1px #000;">[Assinatura Digital]</div>
-    <span class="bold">
-        {{ atendimento.profissional.pessoa_fisica.nome }}
-        {{ atendimento.profissional.get_registro_profissional }}
-    </span>
-    <br><i>Médico Assistente</i>
-</div>
-{% if atendimento.especialista_id %}
-<br>
-<br>
-<div class="small signature">
-    <div style="border-bottom: solid 1px #000;">[Assinatura Digital]</div>
-    <span class="bold">
-        {{ atendimento.especialista.pessoa_fisica.nome }}
-        {{ atendimento.especialista.get_registro_profissional }}
-    </span>
-    <br><i> Médico Especialista</i>
-</div>
-{% endif %}
+    {% endif %}
 
 
-<table>
-    <tr>
-        <td style="width: 150px;">
-            <div style="float:right; width: 150px;">
-                <img style="width:150px" src="data:image/png;base64,{{ atendimento.get_qrcode_link_webconf }}" alt="{{ signature.validation_url  }}" />
-            </div>
-        </td>
-        <td style="vertical-align:middle">
-            <p class="small">
-                Para realizar o tele-atendimento no dia e horário marcados (<span class="bold">{{ atendimento.agendado_para }}</span>),
-                acesse <span class="bold">{{ atendimento.get_link_webconf }}</span> ou leia o QrCode com a câmera do seu celular ou tablet.
-            </p>
-        </td>
-    </tr>
-</table>
+    <table>
+        <tr>
+            <td style="width: 150px;">
+                <div style="float:right; width: 150px;">
+                    <img style="width:150px" src="data:image/png;base64,{{ atendimento.get_qrcode_link_webconf }}" alt="{{ signature.validation_url  }}" />
+                </div>
+            </td>
+            <td style="vertical-align:middle">
+                <p class="small">
+                    Para realizar o tele-atendimento no dia e horário marcados (<span class="bold">{{ atendimento.agendado_para }}</span>),
+                    acesse <span class="bold">{{ atendimento.get_url_externa }}</span> ou leia o QrCode com a câmera do seu celular ou tablet.
+                </p>
+            </td>
+        </tr>
+    </table>
+{% endif %}

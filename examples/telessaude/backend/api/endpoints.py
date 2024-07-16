@@ -53,6 +53,16 @@ class Sexos(endpoints.AdminEndpoint[Sexo]):
     pass
 
 
+class TiposExame(endpoints.AdminEndpoint[TipoExame]):
+    def check_add_permission(self):
+        return super().check_add_permission() or self.check_role('ps')
+    
+
+class Medicamentos(endpoints.AdminEndpoint[Medicamento]):
+    def check_add_permission(self):
+        return super().check_add_permission() or self.check_role('ps')
+
+
 class Municipios(endpoints.AdminEndpoint[Municipio]):
     def check_permission(self):
         return self.check_role('a')
@@ -599,7 +609,6 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
     def check_permission(self):
         return (
             self.instance.finalizado_em is None
-            and self.instance.is_termo_consentimento_assinado()
             and (
                 self.check_role('ps')
                 or self.instance.paciente.cpf == self.request.user.username
@@ -653,7 +662,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
         self.redirect(f'/api/visualizaratendimento/{self.source.id}/')
 
     def check_permission(self):
-        return self.source.finalizado_em is None and self.check_role('ps') and self.source.is_termo_consentimento_assinado()
+        return self.source.finalizado_em is None and self.check_role('ps')
 
 
 class AnexarArquivo(endpoints.ChildEndpoint):
@@ -707,7 +716,7 @@ class Estatistica(endpoints.PublicEndpoint):
         return (
             Atendimento.objects
             .filters(
-                'area', 'unidade__municipio', 'unidade', 'profissional', 'especialista'
+                'especialidade__area', 'especialidade', 'unidade__municipio', 'unidade', 'profissional', 'especialista'
             )
             .bi(
                 ('get_total', 'get_total_profissioinais', 'get_total_pacientes'),
@@ -805,7 +814,7 @@ class ImprimirTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Imprimir Termo de Consentimento'
 
     def get(self):
-        self.render(dict(atendimento=self.instance), pdf=True)
+        self.render(dict(atendimento=self.instance, impressao=True), 'termoconsentimento.html', pdf=True)
 
     def check_permission(self):
         return self.check_role('ps', 'o')
@@ -837,6 +846,92 @@ class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
 
     def check_permission(self):
         return self.check_role('ps', 'o')
+
+
+class TeleAtendimento(endpoints.PublicEndpoint):
+    concordo = forms.BooleanField(label='Concordo e aceito com os termo acima apresentados')
+    
+    class Meta:
+        modal = False
+        verbose_name = None
+
+    def get(self):
+        atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
+        return self.formfactory(atendimento).fields('concordo').display(None, ('get_termo_consentimento_digital',))
+   
+    def post(self):
+        atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
+        atendimento.get_anexos().filter(nome='Termo de Consentimento').delete()
+        atendimento.criar_anexo('Termo de Consentimento', 'termoconsentimento.html', atendimento.paciente.cpf, {})
+        self.redirect('/api/salaespera/?token={}'.format(self.request.GET.get('token')))
+
+
+class EmitirAtestado(endpoints.InstanceEndpoint[Atendimento]):
+    quantidade_dias = forms.IntegerField(label='Quantidade de Dias')
+    
+    class Meta:
+        icon = 'file'
+        modal = True
+        verbose_name = 'Emitir Atestado'
+
+    def get(self):
+        return self.formfactory().fields('quantidade_dias')
+    
+    def post(self):
+        dados = dict(quantidade_dias=self.cleaned_data['quantidade_dias'])
+        self.instance.criar_anexo('Atestado Médico', 'atestadomedico.html', self.request.user.username, dados)
+        return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ps')
+    
+
+class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
+    tipos = forms.ModelMultipleChoiceField(TipoExame.objects)
+    
+    class Meta:
+        icon = 'file'
+        modal = True
+        verbose_name = 'Solicitar Exames'
+
+    def get(self):
+        return self.formfactory().fields('tipos:cadastrartipoexame')
+    
+    def post(self):
+        dados = dict(tipos=self.cleaned_data['tipos'])
+        self.instance.criar_anexo('Solicitação de Exame', 'solicitacaoexames.html', self.request.user.username, dados)
+        return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ps')
+
+
+class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
+    
+    class Meta:
+        icon = 'pen'
+        modal = True
+        verbose_name = 'Prescrever Medicamento'
+
+    def getform(self, form):
+        form = super().getform(form)
+        for i in range(0, 10):
+            form.fields[f'medicamento_{i}'] = forms.ModelChoiceField(Medicamento.objects, label=None if i else 'Medicamento', required=False)
+            form.fields[f'orientacao_{i}'] = forms.CharField(label=None if i else 'Orientação', required=False)
+        return form
+
+    def get(self):
+        return self.formfactory().fields(
+            *[(f'medicamento_{i}' if i else f'medicamento_{i}:cadastrarmedicamento', f'orientacao_{i}') for i in range(0, 10)]
+        )
+    
+    def post(self):
+        dados = dict(medicamentos=[(self.cleaned_data[f'medicamento_{i}'], self.cleaned_data[f'orientacao_{i}']) for i in range(0, 10)])
+        self.instance.criar_anexo('Prescrição Médica', 'prescricaomedica.html', self.request.user.username, dados)
+        return super().post()
+    
+    def check_permission(self):
+        return self.check_role('ps')
 
 
 class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):

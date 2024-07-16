@@ -1,0 +1,21 @@
+{% extends "documento.html" %}
+
+{% block title %}
+    Solicitação de Exames
+{% endblock %}
+
+{% block body %}
+    <table>
+        {% for tipo in tipos %}
+        <tr>
+            <td>
+                <span class="bold">{{ tipo.nome }}</span>
+                {% if tipo.detalhe %}<br>&nbsp;&nbsp;&nbsp;&nbsp;{{ tipo.detalhe }}{% endif %}
+            </td>
+            <td>
+                <span class="bold">TUSS: {{ tipo.tuss }}</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

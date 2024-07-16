@@ -7,21 +7,7 @@ application:
   version: 1.0.5
   sponsors:
     - /static/images/logos/logo4.png
-  oauth:
-    govbr:
-      name: SUAP
-      client_id: BWcQGJ2VMDtkIVyMi50vwarhQE6U3JkMoVOEjgFf
-      client_secret: o6fOH3bOHd3BxGzAN7KcT3vJTnDI3N9IGmfNqHXq23ocOMhvnTGSSHf2DpGdzyABvCSKZ6CpnhUUtEG3W7R4w9MMvYNH3dPBOPxbo7iNhcaTaFg1hjugrbJ7QjYiNKfn
-      redirect_uri: /app/login/
-      authorize_url: https://suaptreino.cfmv.gov.br/o/authorize/
-      access_token_url: https://suaptreino.cfmv.gov.br/o/token/
-      user_data_url: https://suaptreino.cfmv.gov.br/api/eu/
-      user_logout_url: 
-      user_scope:
-      user_data:
-        create: true
-        username: identificacao
-        email: email
+  oauth: {}
   groups:
     g: Gestor de Unidade Organizacional
     o: Operador de Unidade Organizacional
@@ -69,6 +55,7 @@ application:
       Municípios: municipios
       Áreas: areas
       Especialidades: especialidades
+      Tipos de Exame: tiposexame
     building-user:Núcleos de Telesaúde: nucleos
     building:Unidades de Saúde: unidades
     stethoscope:Profissionais de Saúde: profissionaissaude

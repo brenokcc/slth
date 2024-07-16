@@ -2,6 +2,10 @@ from datetime import datetime, timedelta
 from slth.selenium import SeleniumTestCase
 class IntegrationTestCase(SeleniumTestCase):
     
+    def proxima_hora(self):
+        agora = datetime.now()
+        return datetime(agora.year, agora.month, agora.day, agora.hour + 1)
+
     def test(self):
         self.create_superuser('000.000.000-00', '123')
 
@@ -246,8 +250,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('779.067.860-41', '123')
             self.click('Alterar Agenda')
             self.click("Noite")
-            for i in range(3):
-                self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
+            self.wait()
+            for i in [0, 20, 40]:
+                self.click((self.proxima_hora() + timedelta(minutes=i)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
             self.click('Agenda de Atendimentos')
             self.click('Cadastrar Atendimento')
@@ -262,7 +267,8 @@ class IntegrationTestCase(SeleniumTestCase):
             self.choose('CIAP', 'Febre')
             self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
             self.click("Noite")
-            self.click((datetime.now() + timedelta(hours=1)).strftime('%d/%m/%Y %H:00'))
+            self.wait()
+            self.click((self.proxima_hora() + timedelta(minutes=20)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
 
             self.click('Anexar Termo de Consentimento')
@@ -279,10 +285,10 @@ class IntegrationTestCase(SeleniumTestCase):
 
             self.click('Sala Virtual')
 
-            # self.click('Anexar Arquivo')
-            # self.enter('Nome', 'Exame')
-            # self.enter('Arquivo', 'tests/arquivo.pdf')
-            # self.click('Enviar')
+            self.click('Anexar Arquivo')
+            self.enter('Nome', 'Exame')
+            self.enter('Arquivo', 'tests/arquivo.pdf')
+            self.click('Enviar')
             self.logout('577.106.830-61')
 
         # Acessando como profissional de saúde
@@ -290,12 +296,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('779.067.860-41', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
-            
-            self.click('Assinar Termo de Consentimento')
-            self.click('Notificação')
-            self.click('Enviar')
-
-            self.click('Enviar')
 
             self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')
@@ -317,16 +317,18 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('385.895.870-02', '123')
             self.click('Alterar Agenda')
             self.click('Noite')
-            for i in range(3):
-                self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
+            self.wait()
+            for i in [0, 20, 40]:
+                self.click((self.proxima_hora() + timedelta(minutes=i)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
             self.logout('385.895.870-02')
 
             self.login('716.635.620-08', '123')
             self.click('Alterar Agenda')
             self.click('Noite')
-            for i in range(3):
-                self.click((datetime.now() + timedelta(hours=i)).strftime('%d/%m/%Y %H:00'))
+            self.wait()
+            for i in [0, 20, 40]:
+                self.click((self.proxima_hora() + timedelta(minutes=i)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
             self.logout('716.635.620-08')
 
@@ -347,7 +349,9 @@ class IntegrationTestCase(SeleniumTestCase):
             self.choose('CIAP', 'Febre')
             self.click('Fafá de Belém (CPF: 779.067.860-41 / CRM: CRM/RN 46677816028)')
             self.click('Fábio Júnir (CPF: 385.895.870-02 / CRM: CRM/RN 38589587002)')
-            self.click((datetime.now() + timedelta(hours=2)).strftime('%d/%m/%Y %H:00'))
+            self.click('Noite')
+            self.wait()
+            self.click((self.proxima_hora() + timedelta(minutes=40)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
 
             self.click('Anexar Termo de Consentimento')
@@ -364,10 +368,10 @@ class IntegrationTestCase(SeleniumTestCase):
 
             self.click('Sala Virtual')
 
-            # self.click('Anexar Arquivo')
-            # self.enter('Nome', 'Exame')
-            # self.enter('Arquivo', 'tests/arquivo.pdf')
-            # self.click('Enviar')
+            self.click('Anexar Arquivo')
+            self.enter('Nome', 'Exame')
+            self.enter('Arquivo', 'tests/arquivo.pdf')
+            self.click('Enviar')
             self.logout('577.106.830-61')
 
         # Acessando tele-interconsulta como tele-interconsultor
@@ -376,12 +380,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
             self.wait()
-
-            self.click('Assinar Termo de Consentimento')
-            self.click('Notificação')
-            self.click('Enviar')
-
-            self.click('Enviar')
 
             self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')
@@ -401,12 +399,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.login('779.067.860-41', '123')
             self.look_at('Próximos Atendimentos')
             self.click('Acessar')
-
-            self.click('Assinar Termo de Consentimento')
-            self.click('Notificação')
-            self.click('Enviar')
-            
-            self.click('Enviar')
 
             self.click('Sala Virtual')
             self.enter('S - subjetivo', 'Subjetivo....')

@@ -1,0 +1,18 @@
+{% extends "documento.html" %}
+
+{% block title %}
+    Prescrição Médica
+{% endblock %}
+
+{% block body %}
+    <ol>
+        {% for nome, orientacao in medicamentos %}
+            {% if nome %}
+            <li>
+                <span class="bold">{{ nome }}</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;{{ orientacao }}
+            </li>
+            {% endif %}
+        {% endfor %}
+    </ol>
+{% endblock %}

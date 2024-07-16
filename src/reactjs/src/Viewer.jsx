@@ -399,7 +399,7 @@ function Title(props) {
             {props.data.title}
           </h1>
         )}
-        <div style={{margin: 10}}><ObjectActions data={props.data} /></div>
+        <div style={{margin: 10, textAlign: "right"}}><ObjectActions data={props.data} /></div>
       </div>
     );
   }

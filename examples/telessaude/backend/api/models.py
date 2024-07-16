@@ -15,6 +15,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.timesince import timesince
+from slth import printer
+from django.core.files.base import ContentFile
 from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter
@@ -683,9 +685,9 @@ class HorarioProfissionalSaude(models.Model):
 class AtendimentoQuerySet(models.QuerySet):
     def all(self):
         return (
-            self.filters("area", "unidade", "paciente", "profissional", "especialista")
+            self.filters("especialidade", "unidade", "paciente", "profissional", "especialista")
             .fields(
-                ("area", "agendado_para", "tipo"),
+                ("especialidade", "agendado_para", "tipo"),
                 ("unidade", "profissional", "paciente"),
                 ("especialista", "get_duracao"), "get_tags"
             ).limit(5).order_by('-id')
@@ -712,7 +714,7 @@ class AtendimentoQuerySet(models.QuerySet):
     
     @meta('Total por Especialidade')
     def get_total_por_area(self):
-        return self.counter('area', chart='donut')
+        return self.counter('especialidade__area', chart='donut')
     
     @meta('Total por Mês')
     def get_total_por_mes(self):
@@ -720,7 +722,7 @@ class AtendimentoQuerySet(models.QuerySet):
     
     @meta('Atendimentos por Unidade e Especialidade')
     def get_total_por_area_e_unidade(self):
-        return self.counter('area', 'unidade')
+        return self.counter('especialidade__area', 'unidade')
     
     def agenda(self, profissional=None, especialista=None, is_teleconsulta=False):
         selectable = []
@@ -877,13 +879,13 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'imprimirtermoconsentimento', 'anexartermoconsentimento', 'assinartermoconsentimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas')
+            .actions('finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'imprimirtermoconsentimento', 'anexartermoconsentimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento')
             .fieldset(
                 "Dados Gerais",
                 (
                     ("tipo", "unidade", "unidade__municipio"),
                     ("agendado_para", "finalizado_em", "duracao_webconf"),
-                    "get_link_webconf"
+                    "get_url_externa"
                 ) 
             )
             .fieldset("Web Conferência", (("numero_webconf", "senha_webconf", "limite_webconf"),), roles=('su',))
@@ -953,7 +955,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo').actions('assinaranexo', 'assinaranexoqrcode')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo')# .actions('assinaranexo', 'assinaranexoqrcode')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -971,6 +973,10 @@ class Atendimento(models.Model):
             return timesince(self.agendado_para, self.finalizado_em)
         return "-"
     
+    @meta(None)
+    def get_termo_consentimento_digital(self):
+        return TemplateContent('termoconsentimento.html', dict(atendimento=self))
+
     def is_termo_consentimento_assinado(self):
         return True
         termo_consentimento = self.get_termo_consentimento()
@@ -986,12 +992,12 @@ class Atendimento(models.Model):
     def get_agendado_para(self):
         return Badge("#5ca05d", self.agendado_para.strftime('%d/%m/%Y %H:%M'), icon='clock')
 
-    @meta('Link WebConf')
-    def get_link_webconf(self):
-        return '{}/app/salaespera/?token={}'.format(settings.SITE_URL, self.token)
+    @meta('URL Externa')
+    def get_url_externa(self):
+        return '{}/app/teleatendimento/?token={}'.format(settings.SITE_URL, self.token)
     
     def get_qrcode_link_webconf(self):
-        return qrcode_base64(self.get_link_webconf())
+        return qrcode_base64(self.get_url_externa())
 
     def __str__(self):
         return "%s - %s" % (self.id, self.assunto)
@@ -1018,6 +1024,15 @@ class Atendimento(models.Model):
             if self.especialista_id:
                 self.horarios_especialista.add(self.especialista.horarioprofissionalsaude_set.get(data_hora=self.agendado_para + timedelta(minutes=minuto)))
   
+    def criar_anexo(self, nome, template, cpf, dados):
+        signature = printer.Signature(date=datetime.now(), validation_url='https://validar.iti.gov.br/')
+        signature.add_signer('{} - {}'.format(self.profissional.pessoa_fisica.nome, self.profissional.get_registro_profissional()), None)
+        autor = PessoaFisica.objects.get(cpf=cpf)
+        anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
+        content = printer.to_pdf(dict(atendimento=self, impressao=False, **dados), template, signature=signature)
+        anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(content.getvalue()))
+        anexo.save()
+
 class AnexoAtendimento(models.Model):
     atendimento = models.ForeignKey(
         Atendimento, on_delete=models.CASCADE
@@ -1222,4 +1237,44 @@ class Documento(models.Model):
     
     def get_codigo_autenticacao(self):
         return self.uuid[0:6]
+
+
+class TipoExameQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class TipoExame(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+    detalhe = models.CharField(verbose_name='Detalhe', blank=True, null=True)
+    tuss = models.CharField(verbose_name='TUSS', null=True)
+
+    class Meta:
+        verbose_name = 'Tipo de Exame'
+        verbose_name_plural = 'Tipos de Exames'
+
+    objects = TipoExameQuerySet()
+
+    def __str__(self):
+        return self.nome
+
+
+class MedicamentoQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class Medicamento(models.Model):
+    nome = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Medicamento'
+        verbose_name_plural = 'Medicamentos'
+
+    objects = MedicamentoQuerySet()
+
+    def __str__(self):
+        return self.nome
+
+    
 

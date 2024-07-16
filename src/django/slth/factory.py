@@ -108,7 +108,7 @@ class FormFactory:
                     model = type(self._instance)
                     fields = () if self._empty else (fieldlist if self._fieldlist else '__all__')
         
-        form = Form(instance=self._instance, endpoint=endpoint, initial=self._initial)
+        form = endpoint.getform(Form(instance=self._instance, endpoint=endpoint, initial=self._initial))
         form._key = endpoint.get_api_name()
         form._title = self._title
         form._method = self._method

@@ -1,0 +1,29 @@
+<style>
+    .bold{
+        font-weight: bold;
+    }
+    .paragraph {
+        text-align: justify;
+        text-justify: inter-word;
+        text-indent: 50px;
+    }
+    .signature{
+        text-align: center;
+        width: 300px;
+        margin:auto
+    }
+</style>
+{% if impressao %}
+<style>
+    .small {
+        font-size: 12px;
+    }
+</style>
+{% endif %}
+
+<div style="text-align: center;"><img style="width: 200px;" src="{{ base_url }}/static/images/logos/logo4.png"/></div>
+<h3 style="text-align: center;">
+    {% block title %}{% endblock %}
+</h3>
+
+{% block body %}{% endblock %}

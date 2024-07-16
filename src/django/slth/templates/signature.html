@@ -26,7 +26,7 @@
             <div>
                 <div style="float:left; width: 600px;">
                     <p>Este documento foi criado em {{ signature.date }}.
-                        Para comprovar sua autenticidade, faça a leitura do QRCode ao lado ou acesse <i>{{ signature.validation_url }}</i>
+                        Para comprovar as assinaturas, faça a leitura do QRCode ao lado ou acesse <i>{{ signature.validation_url }}</i>
                         {% if signature.verify_code or signature.auth_code  %}e forneça os dados abaixo:{% else %}.{% endif %}
                     </p>
                     {% if signature.verify_code or signature.auth_code  %}
