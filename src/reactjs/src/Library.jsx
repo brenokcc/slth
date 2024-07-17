@@ -286,9 +286,11 @@ function Shell(props) {
 function FileLink(props) {
   function render() {
     return props.data.url ? (
-      <Link href={props.data.url} imodal={props.data.modal ? true : false}>
+      <div style={{maxWidth:"100%"}}>
+        <Link href={props.data.url} imodal={props.data.modal ? true : false}>
         {props.data.icon ? <Icon icon={props.data.icon} /> : props.data.url}
       </Link>
+      </div>
     ) : (
       <span>-</span>
     );

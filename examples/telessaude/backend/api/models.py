@@ -20,7 +20,7 @@ from django.core.files.base import ContentFile
 from django.core.signing import Signer
 from slth.db import models, meta, role
 from slth.models import User, RoleFilter
-from slth.components import Scheduler, FileLink, WebConf, Image, Map, Text, Badge, TemplateContent
+from slth.components import Scheduler, FileLink, Image, Map, Text, Badge, TemplateContent
 from time import sleep
 from slth.printer import qrcode_base64
 
@@ -940,7 +940,7 @@ class Atendimento(models.Model):
     
     @meta('Número')
     def get_numero(self):
-        return Badge('#2670e8', self.id)
+        return Badge('#2670e8', str(self.id).rjust(6, '0'))
     
     @meta('Duração')
     def get_duracao(self):
@@ -1010,7 +1010,7 @@ class Atendimento(models.Model):
 
     @meta('URL Externa')
     def get_url_externa(self):
-        return '{}/app/teleatendimento/?token={}'.format(settings.SITE_URL, self.token)
+        return FileLink('{}/app/teleatendimento/?token={}'.format(settings.SITE_URL, self.token))
     
     def get_qrcode_link_webconf(self):
         return qrcode_base64(self.get_url_externa())

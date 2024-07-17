@@ -2,6 +2,7 @@ import os
 from uuid import uuid1
 from django.core.files.base import ContentFile
 from slth import endpoints
+from django.conf import settings
 from slth.components import Scheduler, ZoomMeet, TemplateContent, Response
 from .models import *
 from slth import forms
@@ -864,8 +865,7 @@ class ConfigurarZoom(endpoints.Endpoint):
 
     def get(self):
         authorization_code = self.request.GET.get('code')
-        print(authorization_code, 99999)
-        redirect_url = self.absolute_url('/app/configurarzoom/')
+        redirect_url = '{}/app/configurarzoom/'.format(settings.SITE_URL)
         if authorization_code:
             profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
             profissional_saude.configurar_zoom(authorization_code, redirect_url)
