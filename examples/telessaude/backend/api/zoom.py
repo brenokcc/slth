@@ -8,14 +8,10 @@ from django.shortcuts import render
 API_KEY = os.environ.get('ZOOM_API_KEY')
 API_SEC = os.environ.get('ZOOM_API_SEC')
 ACCOUNT_ID = os.environ.get('ZOOM_ACCOUNT_ID')
-REDIRECT_URL = os.environ.get('ZOOM_REDIRECT_URL', 'http://localhost:8000')
-
-ZOOM_SDK_KEY = os.environ.get('ZOOM_SDK_KEY')
-ZOOM_SDK_SEC = os.environ.get('ZOOM_SDK_SEC')
  
 
 def view(request):
-    return render(request, 'zoom.html', dict(ZOOM_SDK_KEY=ZOOM_SDK_KEY, ZOOM_SDK_SEC=ZOOM_SDK_SEC))
+    return render(request, 'zoom.html', dict(ZOOM_SDK_KEY=API_KEY, ZOOM_SDK_SEC=API_SEC))
  
 
 def create_meeting(topic):
@@ -38,18 +34,3 @@ def create_meeting(topic):
         limit = datetime.now() + timedelta(minutes=40)
         return number, password, limit
     return None, None, None
-
-def authorization_url():
-    return 'https://zoom.us/oauth/authorize?response_type=code&client_id=' + API_KEY + '&redirect_uri=' + REDIRECT_URL
-
-
-def tokens(code):
-    ZOOM_API_KEY='IaRHnNqCREiuvBSfrhwOuA'
-    ZOOM_API_SEC='zZBKpmuzveUnwOG3tCpnR3aAmBxx1zgl'
-    ZOOM_REDIRECT_URL='https://telesaude.aplicativo.click/redirect'
-    url = 'https://zoom.us/oauth/token?grant_type=authorization_code&code={}&redirect_uri={}'.format(code, ZOOM_REDIRECT_URL)
-    auth = base64.b64encode('{}:{}'.format(ZOOM_API_KEY, ZOOM_API_SEC).encode()).decode()
-    headers = {"Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic {}".format(auth)}
-    resp = requests.post(url, headers=headers).json()
-    access_token = resp['access_token']
-    refresh_token = resp['refresh_token']
