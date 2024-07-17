@@ -1013,7 +1013,7 @@ class Atendimento(models.Model):
         return FileLink('{}/app/teleatendimento/?token={}'.format(settings.SITE_URL, self.token))
     
     def get_qrcode_link_webconf(self):
-        return qrcode_base64(self.get_url_externa())
+        return qrcode_base64(self.get_url_externa()['url'])
 
     def __str__(self):
         return "%s - %s" % (self.id, self.assunto)
