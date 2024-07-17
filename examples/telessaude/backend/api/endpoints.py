@@ -1026,7 +1026,7 @@ class AssinarViaQrCode(endpoints.InstanceEndpoint[Atendimento]):
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
         code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
-        redirect_url = self.absolute_url('/app/vidaas/')
+        redirect_url = '{}/app/vidaas/'.format(settings.SITE_URL)
         authorization_code = self.request.GET.get('code')
         if authorization_code is None:
             url = 'https://certificado.vidaas.com.br/v0/oauth/authorize?client_id={}&code_challenge={}&code_challenge_method=S256&response_type=code&scope=signature_session&login_hint={}&lifetime=900&redirect_uri={}'.format(os.environ.get('VIDAAS_API_KEY'), code_verifier, cpf, redirect_url)
