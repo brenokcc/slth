@@ -774,7 +774,7 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
 
 
     def check_permission(self):
-        return 1 or self.source.finalizado_em is None and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
+        return (1 or self.source.finalizado_em is None) and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
 
 
 class FazerAlgo(endpoints.Endpoint):
@@ -928,7 +928,7 @@ class AnexarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
 
 
 class TeleAtendimento(endpoints.PublicEndpoint):
-    concordo = forms.BooleanField(label='Concordo e aceito com os termo acima apresentados')
+    concordo = forms.BooleanField(label='Concordo e aceito os termo acima apresentados')
     
     class Meta:
         modal = False

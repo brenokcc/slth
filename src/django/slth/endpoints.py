@@ -154,7 +154,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         raise JsonResponseException(dict(type="redirect", url=url))
     
     def render(self, data, template=None, pdf=False, autoreload=None):
-        base_url='http://localhost:8000'
+        base_url=settings.SITE_URL
         data.update(base_url=base_url)
         if template is None:
             template = '{}.html'.format(template or self.__class__.__name__.lower())

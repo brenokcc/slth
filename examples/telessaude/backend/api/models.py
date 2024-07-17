@@ -435,7 +435,7 @@ class Nucleo(models.Model):
     
     @meta('Unidades de Atuação')
     def get_unidades(self):
-        return self.unidades.all()
+        return self.unidades.all().actions('visualizarunidade', 'editarunidade')
     
     def __str__(self):
         return self.nome  
