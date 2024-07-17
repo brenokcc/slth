@@ -1020,10 +1020,9 @@ class AssinarViaQrCode(endpoints.InstanceEndpoint[Atendimento]):
         verbose_name = 'Assinar'
 
     def get(self):
-        url = f'/api/visualizaratendimento/{self.instance.pk}/'
         if RUNNING_TESTING:
-            self.redirect(url)
-        self.cache.set('vidaas_forward', url)
+            self.redirect(f'/api/visualizaratendimento/{self.instance.pk}/')
+        self.cache.set('vidaas_forward', self.request.path)
         profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
         cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
         code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
