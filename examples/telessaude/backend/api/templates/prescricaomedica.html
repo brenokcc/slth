@@ -5,6 +5,20 @@
 {% endblock %}
 
 {% block body %}
+
+    <table width="100%" style="width:100%">
+        <tr>
+            <td><span class="bold">Nome</span>:<br>{{ atendimento.paciente.nome }}</td>
+            <td><span class="bold">Sexo</span>:<br>{{ atendimento.paciente.sexo }}</td>
+            <td><span class="bold">Data de Nascimento</span>:<br>{{ atendimento.paciente.data_nascimento }}</td>
+        </tr>
+        {% if atendimento.paciente.endereco %}
+        <tr>
+            <td colspan="3"><span class="bold">Endereço</span>:<br>{{ atendimento.paciente.get_endereco }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
     <ol>
         {% for nome, orientacao in medicamentos %}
             {% if nome %}

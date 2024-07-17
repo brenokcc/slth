@@ -41,6 +41,7 @@ def to_pdf(data, template, file_name=None, signature=None):
     templates = []
     buffer = io.BytesIO()
     templates.append(template)
+    if data: data.update(base_url=settings.SITE_URL)
     if signature:
         data.update(signature=signature)
         templates.append('signature.html')

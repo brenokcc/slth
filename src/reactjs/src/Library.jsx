@@ -418,7 +418,7 @@ function Scheduler(props) {
   const FREE = "rgb(219, 237, 255)";
   const SELECTED = "rgb(89, 154, 242)";
   const BLOCKED = "rgb(246, 123, 135)";
-  const SELECTABLE = "rgb(100, 163, 127)";
+  const SELECTABLE = "rgb(92, 160, 93)";
   const SELECT = [];
   const DESELECT = []
   const WEEKDAYS = ["DOM", "SEG", "TER", "QAR", "QUI", "SEX", "SAB"]
@@ -620,6 +620,7 @@ function Scheduler(props) {
                         const td = {
                           backgroundColor: bgColor(value, dataLabel),
                           border: "solid 4px white",
+                          cursor: "pointer",
                         };
                         return (
                           <td

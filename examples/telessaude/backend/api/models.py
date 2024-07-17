@@ -156,7 +156,7 @@ class Municipio(models.Model):
         verbose_name_plural = "Municípios"
 
     def __str__(self):
-        return "(%s) %s/%s" % (self.codigo, self.nome, self.estado.sigla)
+        return "%s/%s" % (self.nome, self.estado.sigla)
 
 
 class UnidadeQuerySet(models.QuerySet):
@@ -285,7 +285,7 @@ class PessoaFisica(models.Model):
     data_nascimento = models.DateField(verbose_name='Data de Nascimento', null=True)
     cns = models.CharField(verbose_name='CNS', max_length=15, null=True, blank=True)
 
-    sexo = models.ForeignKey(Sexo, verbose_name='Sexo', null=True, on_delete=models.PROTECT, blank=True)
+    sexo = models.ForeignKey(Sexo, verbose_name='Sexo', null=True, on_delete=models.PROTECT, blank=True, pick=True)
 
     nome_responsavel = models.CharField(verbose_name='Nome do Responsável', max_length=80, null=True, blank=True)
     cpf_responsavel = models.CharField(verbose_name='CPF do Responsável', max_length=14, null=True, blank=True)
@@ -304,7 +304,7 @@ class PessoaFisica(models.Model):
         return (
             super()
             .formfactory()
-            .fieldset("Dados Gerais", (("cpf", "nome"), ("data_nascimento", "nome_social"), ("sexo", "telefone"),))
+            .fieldset("Dados Gerais", (("cpf", "nome"), ("data_nascimento", "nome_social"), "sexo",))
             .fieldset("Dados de Contato", (("email", "telefone"),))
             .fieldset("Dados do Responsável", (("cpf_responsavel", "nome_responsavel"),),)
             .fieldset("Endereço", (("cep", "bairro"), "endereco", ("numero", "municipio")))
@@ -331,7 +331,7 @@ class PessoaFisica(models.Model):
         else:
             return "%s - %s" % (self.nome, self.cpf)
 
-    def idade(self):
+    def get_idade(self):
         today = date.today()
         if self.data_nascimento:
             return (
@@ -344,6 +344,17 @@ class PessoaFisica(models.Model):
             )
         else:
             return "Não informada"
+        
+    def get_endereco(self):
+        if self.endereco:
+            endereco = [self.endereco]
+            if self.numero: endereco.append(self.numero)
+            if self.bairro: endereco.append(self.bairro)
+            if self.cep: endereco.append(self.cep)
+            if self.municipio: endereco.append(str(self.municipio))
+            if self.complemento: endereco.append(self.complemento)
+            return ', '.join(endereco)
+        return None
 
 
 class NucleoQuerySet(models.QuerySet):
@@ -569,6 +580,9 @@ class ProfissionalSaude(models.Model):
     def get_registro_profissional(self):
         return f'{self.conselho_profissional} {self.registro_profissional}'
     
+    def get_registro_especialista(self):
+        return f'{self.conselho_especialista} {self.registro_especialista}' if self.conselho_especialista else None
+    
     def pode_realizar_atendimento(self, data_hora, duracao):
         disponivel = self.horarioprofissionalsaude_set.filter(data_hora=data_hora).disponiveis().exists()
         if disponivel and duracao >= 40:
@@ -724,7 +738,7 @@ class AtendimentoQuerySet(models.QuerySet):
     def get_total_por_area_e_unidade(self):
         return self.counter('especialidade__area', 'unidade')
     
-    def agenda(self, profissional=None, especialista=None, is_teleconsulta=False):
+    def agenda(self, profissional=None, especialista=None, is_teleconsulta=False, is_proprio_profissional=False):
         selectable = []
         scheduled = {}
         midnight = datetime.combine(datetime.now().date(), time())
@@ -752,7 +766,7 @@ class AtendimentoQuerySet(models.QuerySet):
             watch=['profissional', 'especialista'],
             url='/api/consultarhorariosdisponiveis/',
             single_selection=True,
-            selectable=None if is_teleconsulta else selectable,
+            selectable=None if is_teleconsulta and is_proprio_profissional else selectable,
             readonly=not selectable
         )
         for dt, pk in scheduled.items():
@@ -879,7 +893,7 @@ class Atendimento(models.Model):
             super()
             .serializer()
             .fields('get_tags')
-            .actions('finalizaratendimento', 'enviarnotificacaoatendimento', 'imprimiratendimento', 'imprimirtermoconsentimento', 'anexartermoconsentimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento')
+            .actions('enviarnotificacaoatendimento', 'imprimiratendimento', 'imprimirtermoconsentimento', 'anexartermoconsentimento', 'anexararquivo', 'salavirtual', 'registrarecanminhamentoscondutas', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento', 'finalizaratendimento')
             .fieldset(
                 "Dados Gerais",
                 (
@@ -893,14 +907,16 @@ class Atendimento(models.Model):
                 .section('Detalhamento')
                     .fieldset(
                         "Dados do Paciente", (
-                            ("nome", "cpf"),
-                            ("data_nascimento", "sexo")
-                        ), attr="paciente"
+                            ("cpf", "nome"),
+                            ("sexo", "nome_social"),
+                            ("data_nascimento", "get_idade"),
+                            ("telefone", "email")
+                        ), attr="paciente", actions=('atualizarpaciente',)
                     )
                     .fieldset(
                         "Profissional Responsável", (
                             ("pessoa_fisica__nome", "pessoa_fisica__cpf"),
-                            ("registro_profissional", "especialidade", "registro_especialista"),
+                            ("get_registro_profissional", "get_registro_especialista"),
                         ), attr="profissional"
                     )
                     .fieldset(
@@ -924,7 +940,7 @@ class Atendimento(models.Model):
     
     @meta('Número')
     def get_numero(self):
-        return self.id
+        return Badge('#2670e8', self.id)
     
     @meta('Duração')
     def get_duracao(self):
@@ -955,7 +971,7 @@ class Atendimento(models.Model):
     
     @meta('Anexos')
     def get_anexos(self):
-        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo')# .actions('assinaranexo', 'assinaranexoqrcode')
+        return self.anexoatendimento_set.fields('get_nome_arquivo', 'autor', 'assinaturas', 'get_arquivo')
     
     @meta('Anexos')
     def get_anexos_webconf(self):
@@ -1029,6 +1045,7 @@ class Atendimento(models.Model):
         signature.add_signer('{} - {}'.format(self.profissional.pessoa_fisica.nome, self.profissional.get_registro_profissional()), None)
         autor = PessoaFisica.objects.get(cpf=cpf)
         anexo = AnexoAtendimento(atendimento=self, autor=autor, nome=nome)
+        dados.update(data_hora=date.today())
         content = printer.to_pdf(dict(atendimento=self, impressao=False, **dados), template, signature=signature)
         anexo.arquivo.save('{}.pdf'.format(uuid1().hex), ContentFile(content.getvalue()))
         anexo.save()
@@ -1082,12 +1099,12 @@ class AnexoAtendimento(models.Model):
         return False
             
     def checar_assinaturas(self):
+        if self.possui_assinatura('047.704.024-14'):
+            self.assinaturas.add(PessoaFisica.objects.get(cpf='047.704.024-14'))
         if self.possui_assinatura(self.atendimento.profissional.pessoa_fisica.cpf):
-            print(self.pk, 111111111)
             self.assinaturas.add(self.atendimento.profissional.pessoa_fisica)
         if self.atendimento.especialista:
             if self.possui_assinatura(self.atendimento.especialista.pessoa_fisica.cpf):
-                print(self.pk, 22222222)
                 self.assinaturas.add(self.atendimento.especialista.pessoa_fisica)
     
 

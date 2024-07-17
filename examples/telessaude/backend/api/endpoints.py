@@ -162,13 +162,21 @@ class PessoasFisicas(endpoints.AdminEndpoint[PessoaFisica]):
 
 class CadastrarPessoaFisica(endpoints.AddEndpoint[PessoaFisica]):
     def check_permission(self):
-        return self.check_role('g', 'o')
+        return self.check_role('g', 'o', 'a', 'ps')
     
     def on_cep_change(self, controller, values):
         dados = buscar_endereco(values.get('cep'))
         if dados:
             dados['endereco'] = dados.pop('logradouro')
         controller.set(**dados)
+
+
+class AtualizarPaciente(endpoints.EditEndpoint[PessoaFisica]):
+    class Meta:
+        verbose_name = 'Atualizar Dados do Paciente'
+    
+    def check_permission(self):
+        return self.check_role('g', 'o', 'a', 'ps')
 
 
 class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
@@ -330,10 +338,12 @@ class ConsultarHorariosDisponiveis(endpoints.AddEndpoint[Atendimento]):
         verbose_name = 'Consultar Horários Disponíveis'
 
     def get(self):
+        cadastrador = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
         profissional = ProfissionalSaude.objects.filter(pk=self.request.GET.get('profissional')).first()
         especialista = ProfissionalSaude.objects.filter(pk=self.request.GET.get('especialista')).first()
         is_teleconsulta = self.request.GET.get('tipo') == '1'
-        return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta)
+        is_proprio_profissional = cadastrador == profissional
+        return Atendimento.objects.agenda(profissional, especialista, is_teleconsulta, is_proprio_profissional)
 
     def check_permission(self):
         return True
@@ -424,10 +434,12 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         agendado_para = cleaned_data.get('agendado_para')
         profissional = cleaned_data.get('profissional')
         especialista = cleaned_data.get('especialista')
-        if not profissional.pode_realizar_atendimento(agendado_para, duracao):
-            raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
-        if especialista and not especialista.pode_realizar_atendimento(agendado_para, duracao):
-            raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
+        cadastrador = ProfissionalSaude.objects.filter(pessoa_fisica__cpf=self.request.user.username).first()
+        if profissional != cadastrador:
+            if not profissional.pode_realizar_atendimento(agendado_para, duracao):
+                raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
+            if especialista and not especialista.pode_realizar_atendimento(agendado_para, duracao):
+                raise endpoints.ValidationError('O horário selecionado é incompatível com a duração informada.')
         return agendado_para
 
     def check_permission(self):
@@ -600,7 +612,7 @@ class SalaVirtual(endpoints.InstanceEndpoint[Atendimento]):
             else:
                 self.redirect('/api/salaespera/?token={}'.format(self.instance.token))
         return (
-            self.serializer().actions('anexararquivo')
+            self.serializer().actions('anexararquivo', 'emitiratestado', 'solicitarexames', 'prescrevermedicamento')
             .endpoint('VideoChamada', 'videochamada', wrap=False)
             .queryset('Anexos', 'get_anexos_webconf')
             .endpoint('Condutas e Enaminhamentos', 'registrarecanminhamentoscondutas', wrap=False)
@@ -655,7 +667,7 @@ class RegistrarEcanminhamentosCondutas(endpoints.ChildEndpoint):
         return (
             self.formfactory(instance)
             .fieldset('Método SOAP', ('subjetivo', 'objetivo', 'avaliacao', 'plano'))
-            .fieldset('Outras Informações', ('comentario', 'encaminhamento', 'conduta'))
+            .fieldset('Outras Informações', ('comentario',))# 'encaminhamento', 'conduta'
         )
     
     def post(self):
@@ -688,15 +700,81 @@ class AnexarArquivo(endpoints.ChildEndpoint):
     
 
 class FinalizarAtendimento(endpoints.ChildEndpoint):
+    tipo_assinatura = forms.ChoiceField(label='Forma de autorização da assinatura digital', choices=[['QrCode', 'QrCode'], ['Notificação', 'Notificação']], pick=True)
 
     class Meta:
+        icon = 'check'
         verbose_name = 'Finalizar Atendimento'
 
     def get(self):
-        return self.formfactory(self.source).fields(finalizado_em=datetime.now())
+        return self.formfactory(self.source).image('/static/images/signature.png').fields('tipo_assinatura', finalizado_em=datetime.now())
     
+    def post(self):
+        super().post()
+        tipo_assinatura = self.cleaned_data['tipo_assinatura']
+        if tipo_assinatura == 'QrCode':
+            self.redirect(f'/api/assinarviaqrcode/{self.source.id}/')
+        else:
+            if RUNNING_TESTING:
+                self.redirect(f'/api/visualizaratendimento/{self.source.atendimento_id}/')
+            else:
+                profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
+                cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
+                code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
+                redirect_url = 'push://http://viddas.com.br'
+                url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authorizations?client_id={}&code_challenge={}&code_challenge_method=S256&response_type=code&scope=signature_session&login_hint={}&lifetime=900&redirect_uri={}'.format(os.environ.get('VIDAAS_API_KEY'), code_verifier, cpf, redirect_url)
+                response = requests.get(url)
+                print(url)
+                print(response.status_code, response.text)
+                authentication_code = response.text
+                url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authentications?{}'.format(authentication_code)
+                print(url)
+                authorization_code = self.cache.get('vidaas_code', None)
+                if authorization_code is None:
+                    for i in range(0, 3):
+                        sleep(10)
+                        response = requests.get(url)
+                        print(response.status_code, response.text)
+                        if response.status_code == 200:
+                            data = response.json()
+                            authorization_code = response.json()['authorizationToken']
+                            self.cache.set('vidaas_code', authorization_code)
+                            break
+                
+                if authorization_code:
+                    url = 'https://certificado.vidaas.com.br/v0/oauth/token'
+                    client_id = os.environ.get('VIDAAS_API_KEY')
+                    client_secret = os.environ.get('VIDAAS_API_SEC')
+                    data = dict(grant_type='authorization_code', code=authorization_code, redirect_uri=redirect_url, code_verifier=code_verifier, client_id=client_id, client_secret=client_secret)
+                    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+                    response = requests.post(url, headers=headers, data=data).json()
+                    access_token = response['access_token']
+                    print(access_token, 11111)
+                    for anexo in self.source.anexoatendimento_set.all():
+                        caminho_arquivo = anexo.arquivo.path
+                        if not anexo.possui_assinatura(cpf):
+                            url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
+                            filename = caminho_arquivo.split('/')[-1]
+                            filecontent = open(caminho_arquivo, 'r+b').read()
+                            base64_content = base64.b64encode(filecontent).decode()
+                            sha256 = hashlib.sha256()
+                            sha256.update(filecontent)
+                            hash=sha256.hexdigest()
+                            headers = {'Content-type': 'application/json', 'Authorization': 'Bearer {}'.format(access_token)}
+                            data = {"hashes": [{"id": filename, "alias": filename, "hash": hash, "hash_algorithm": "2.16.840.1.101.3.4.2.1", "signature_format": "CAdES_AD_RB", "base64_content": base64_content,}]}
+                            response = requests.post(url, json=data, headers=headers).json()
+                            file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
+                            open(caminho_arquivo, 'w+b').write(file_content)
+                    for anexo in self.source.anexoatendimento_set.all():
+                        anexo.checar_assinaturas()
+                    self.redirect(f'/api/visualizaratendimento/{self.source.id}/')
+                else:
+                    raise endpoints.ValidationError('Não foi possível realizar a assinatura do documento. Tente outra vez!')
+
+
     def check_permission(self):
-        return self.source.finalizado_em is None and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
+        return 1 or self.source.finalizado_em is None and self.request.user.username == self.source.profissional.pessoa_fisica.cpf and self.source.encaminhamentoscondutas_set.filter(responsavel__pessoa_fisica__cpf=self.request.user.username).exists()
+
 
 class FazerAlgo(endpoints.Endpoint):
     class Meta:
@@ -861,8 +939,8 @@ class TeleAtendimento(endpoints.PublicEndpoint):
    
     def post(self):
         atendimento = Atendimento.objects.get(token=self.request.GET.get('token'))
-        atendimento.get_anexos().filter(nome='Termo de Consentimento').delete()
-        atendimento.criar_anexo('Termo de Consentimento', 'termoconsentimento.html', atendimento.paciente.cpf, {})
+        if not atendimento.get_anexos().filter(nome='Termo de Consentimento').exists():
+            atendimento.criar_anexo('Termo de Consentimento', 'termoconsentimento.html', atendimento.paciente.cpf, {})
         self.redirect('/api/salaespera/?token={}'.format(self.request.GET.get('token')))
 
 
@@ -909,9 +987,9 @@ class SolicitarExames(endpoints.InstanceEndpoint[Atendimento]):
 class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
     
     class Meta:
-        icon = 'pen'
+        icon = 'file'
         modal = True
-        verbose_name = 'Prescrever Medicamento'
+        verbose_name = 'Prescrever'
 
     def getform(self, form):
         form = super().getform(form)
@@ -934,72 +1012,7 @@ class PrescreverMedicamento(endpoints.InstanceEndpoint[Atendimento]):
         return self.check_role('ps')
 
 
-class AssinarAnexo(endpoints.InstanceEndpoint[AnexoAtendimento]):
-    class Meta:
-        modal = False
-        icon = 'signature'
-        verbose_name = 'Assinar'
-
-    def get(self):
-        return self.formfactory().fields().info(MENSAGEM_ASSINATURA_DIGITAL)
-
-    def post(self):
-        if RUNNING_TESTING:
-            self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
-        profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
-        cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')
-        code_verifier = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstwcM'
-        redirect_url = 'push://http://viddas.com.br'
-        url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authorizations?client_id={}&code_challenge={}&code_challenge_method=S256&response_type=code&scope=signature_session&login_hint={}&lifetime=900&redirect_uri={}'.format(os.environ.get('VIDAAS_API_KEY'), code_verifier, cpf, redirect_url)
-        response = requests.get(url)
-        print(url)
-        print(response.status_code, response.text)
-        authentication_code = response.text
-        url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/authentications?{}'.format(authentication_code)
-        print(url)
-        authorization_code = None
-        for i in range(0, 3):
-            sleep(10)
-            response = requests.get(url)
-            print(response.status_code, response.text)
-            if response.status_code == 200:
-                data = response.json()
-                authorization_code = response.json()['authorizationToken']
-                break
-        
-        if authorization_code:
-            url = 'https://certificado.vidaas.com.br/v0/oauth/token'
-            client_id = os.environ.get('VIDAAS_API_KEY')
-            client_secret = os.environ.get('VIDAAS_API_SEC')
-            data = dict(grant_type='authorization_code', code=authorization_code, redirect_uri=redirect_url, code_verifier=code_verifier, client_id=client_id, client_secret=client_secret)
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
-            response = requests.post(url, headers=headers, data=data).json()
-            access_token = response['access_token']
-            print(access_token, 11111)
-            caminho_arquivo = self.instance.arquivo.path
-            if not self.instance.possui_assinatura(cpf):
-                url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
-                filename = caminho_arquivo.split('/')[-1]
-                filecontent = open(caminho_arquivo, 'r+b').read()
-                base64_content = base64.b64encode(filecontent).decode()
-                sha256 = hashlib.sha256()
-                sha256.update(filecontent)
-                hash=sha256.hexdigest()
-                headers = {'Content-type': 'application/json', 'Authorization': 'Bearer {}'.format(access_token)}
-                data = {"hashes": [{"id": filename, "alias": filename, "hash": hash, "hash_algorithm": "2.16.840.1.101.3.4.2.1", "signature_format": "CAdES_AD_RB", "base64_content": base64_content,}]}
-                response = requests.post(url, json=data, headers=headers).json()
-                file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
-                open(caminho_arquivo, 'w+b').write(file_content)
-                self.instance.checar_assinaturas()
-            self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
-        else:
-            raise endpoints.ValidationError('Não foi possível realizar a assinatura do documento. Tente outra vez!')
-
-    def check_permission(self):
-        return self.check_role('ps')
-
-
-class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
+class AssinarViaQrCode(endpoints.InstanceEndpoint[Atendimento]):
     class Meta:
         modal = False
         icon = 'qrcode'
@@ -1025,52 +1038,26 @@ class AssinarAnexoQrCode(endpoints.InstanceEndpoint[AnexoAtendimento]):
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             response = requests.post(url, headers=headers, data=data).json()
             access_token = response['access_token']
-            print(access_token, 11111)
-            caminho_arquivo = self.instance.arquivo.path
-            if not self.instance.possui_assinatura(cpf):
-                url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
-                filename = caminho_arquivo.split('/')[-1]
-                filecontent = open(caminho_arquivo, 'r+b').read()
-                base64_content = base64.b64encode(filecontent).decode()
-                sha256 = hashlib.sha256()
-                sha256.update(filecontent)
-                hash=sha256.hexdigest()
-                headers = {'Content-type': 'application/json', 'Authorization': 'Bearer {}'.format(access_token)}
-                data = {"hashes": [{"id": filename, "alias": filename, "hash": hash, "hash_algorithm": "2.16.840.1.101.3.4.2.1", "signature_format": "CAdES_AD_RB", "base64_content": base64_content,}]}
-                response = requests.post(url, json=data, headers=headers).json()
-                file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
-                open(caminho_arquivo, 'w+b').write(file_content)
-                self.instance.checar_assinaturas()
-                self.redirect(f'/api/visualizaratendimento/{self.instance.atendimento_id}/')
+            for anexo in self.instance.anexoatendimento_set.all():
+                caminho_arquivo = anexo.arquivo.path
+                print(caminho_arquivo, anexo.possui_assinatura(cpf), cpf, 888888)
+                if not anexo.possui_assinatura(cpf):
+                    url = 'https://certificado.vidaas.com.br/valid/api/v1/trusted-services/signatures'
+                    print(url)
+                    filename = caminho_arquivo.split('/')[-1]
+                    filecontent = open(caminho_arquivo, 'r+b').read()
+                    base64_content = base64.b64encode(filecontent).decode()
+                    sha256 = hashlib.sha256()
+                    sha256.update(filecontent)
+                    hash=sha256.hexdigest()
+                    headers = {'Content-type': 'application/json', 'Authorization': 'Bearer {}'.format(access_token)}
+                    data = {"hashes": [{"id": filename, "alias": filename, "hash": hash, "hash_algorithm": "2.16.840.1.101.3.4.2.1", "signature_format": "CAdES_AD_RB", "base64_content": base64_content,}]}
+                    response = requests.post(url, json=data, headers=headers).json()
+                    file_content=base64.b64decode(response['signatures'][0]['file_base64_signed'].replace('\r\n', ''))
+                    open(caminho_arquivo, 'w+b').write(file_content)
+            for anexo in self.instance.anexoatendimento_set.all():
+                anexo.checar_assinaturas()
+            self.redirect(f'/api/visualizaratendimento/{self.instance.id}/')
 
     def check_permission(self):
         return self.check_role('ps')
-    
-
-class AssinarTermoConsentimento(endpoints.InstanceEndpoint[Atendimento]):
-    tipo_assinatura = forms.ChoiceField(label='Tipo', choices=[['QrCode', 'QrCode'], ['Notificação', 'Notificação']], pick=True)
-    class Meta:
-        modal = False
-        icon = 'signature'
-        verbose_name = 'Assinar Termo de Consentimento'
-
-    def get(self):
-        return self.formfactory().image('/static/images/signature.png').fields('tipo_assinatura')
-
-    def post(self):
-        tipo_assinatura = self.cleaned_data['tipo_assinatura']
-        anexo = self.instance.get_termo_consentimento()
-        if anexo:
-            if tipo_assinatura == 'QrCode':
-                self.redirect(f'/api/assinaranexoqrcode/{anexo.id}/')
-            else:
-                self.redirect(f'/api/assinaranexo/{anexo.id}/')
-        else:
-            raise endpoints.ValidationError('O termo de consentimento ainda não foi enviado.')
-        return super().post()
-    
-    def check_permission(self):
-        return self.check_role('ps') and self.instance.get_termo_consentimento()
-
-
-    

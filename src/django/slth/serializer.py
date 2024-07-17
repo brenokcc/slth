@@ -276,8 +276,8 @@ class Serializer:
                                     fieldset_fields.append(getfield(obj, name, self.request))
                             for qualified_name in item['actions']:
                                 cls = slth.ENDPOINTS[qualified_name]
-                                if cls.instantiate(self.request, self.obj).check_permission():
-                                    fieldset_actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
+                                if obj and cls.instantiate(self.request, obj).check_permission():
+                                    fieldset_actions.append(cls.get_api_metadata(self.request, base_url, obj.pk))
                             data = dict(type='fieldset', title=title, key=key, url=url if reload else None, actions=fieldset_actions, data=fieldset_fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':

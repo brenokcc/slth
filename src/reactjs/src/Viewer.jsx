@@ -392,14 +392,15 @@ function Title(props) {
           color: ${Theme.colors.primary};
       }
     `)
+    const compactAction = window.innerWidth > 800 && props.data.actions.length < 4;
     return (
-      <div className="object-title" style={{flexDirection: window.innerWidth > 800 ? "row" : "column"}}>
+      <div className="object-title" style={{flexDirection: compactAction ? "row" : "column"}}>
         {props.data.title && (
           <h1 data-label={toLabelCase(props.data.title)}>
             {props.data.title}
           </h1>
         )}
-        <div style={{margin: 10, textAlign: "right"}}><ObjectActions data={props.data} /></div>
+        <div style={{margin: 10, textAlign:compactAction ?  "right" : "center", width: compactAction ? "auto" : "100%"}}><ObjectActions data={props.data} /></div>
       </div>
     );
   }
