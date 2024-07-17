@@ -1,4 +1,9 @@
-# Telesaúde
+# Tele Fiocruz
+
+
+Sistema de teleatendimento em saúde para realização de teleconsultas e teleinterconsultas em várias áreas (medicina, psicologia, fisioterapia etc.) e diversas especialidades. Os teleatendimentos possuem um fluxo completamente digital, uma vez que os termos de consentimento são aceites eletronicamente pelos pacientes e os documentos emitidos são assinados digitalmente pelos profissionais de saúde. Os registros cínicos são realizados através do método SOAP (Subjetivo / Objetivo / Avaliação / Plano) e as estatísticas relacionadas aos atendimentos alimentam automaticamente um painel disponibilizado tanto para os gestores quanto para a comunidade em geral.
+
+
 
 ## Migração
 

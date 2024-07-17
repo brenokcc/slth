@@ -364,7 +364,7 @@ class CadastrarAtendimento(endpoints.AddEndpoint[Atendimento]):
         form.fields['agendado_para'] = forms.SchedulerField(scheduler=Atendimento.objects.agenda())
         if self.check_role('ps'):
             form.fields['unidade'].pick = True
-            form.fields['profissional'].pick = True
+        form.fields['profissional'].pick = True
         return form
     
     def get_unidade_queryset(self, queryset, values):
