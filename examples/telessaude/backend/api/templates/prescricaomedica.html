@@ -10,7 +10,7 @@
         <tr>
             <td><span class="bold">Nome</span>:<br>{{ atendimento.paciente.nome }}</td>
             <td><span class="bold">Sexo</span>:<br>{{ atendimento.paciente.sexo }}</td>
-            <td><span class="bold">Data de Nascimento</span>:<br>{{ atendimento.paciente.data_nascimento }}</td>
+            <td><span class="bold">Data de Nascimento</span>:<br>{{ atendimento.paciente.data_nascimento|date:"SHORT_DATE_FORMAT" }}</td>
         </tr>
         {% if atendimento.paciente.endereco %}
         <tr>
@@ -18,6 +18,8 @@
         </tr>
         {% endif %}
     </table>
+
+    <br><br>
 
     <ol>
         {% for nome, orientacao in medicamentos %}
