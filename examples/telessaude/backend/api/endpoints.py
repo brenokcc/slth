@@ -567,6 +567,7 @@ class DefinirHorarioProfissionalSaude(endpoints.InstanceEndpoint[ProfissionalSau
 
 
 class DefinirHorarioProfissionaisSaude(endpoints.Endpoint):
+    profissionais = forms.ModelMultipleChoiceField(ProfissionalSaude.objects, label='Profissionais de Saúde')
     horarios = forms.SchedulerField(scheduler=Scheduler(weekly=True, chucks=3))
 
     class Meta:
@@ -574,10 +575,10 @@ class DefinirHorarioProfissionaisSaude(endpoints.Endpoint):
         verbose_name = "Definir Horários de Atendimento"
 
     def get(self):
-        return (self.formfactory().fields('horarios'))
+        return (self.formfactory().fields('profissionais', 'horarios'))
     
     def post(self):
-        for profissional_saude in ProfissionalSaude.objects.all():
+        for profissional_saude in self.cleaned_data['profissionais']:
             profissional_saude.atualizar_horarios_atendimento(self.cleaned_data['horarios']['select'], self.cleaned_data['horarios']['deselect'])
         return super().post()
 

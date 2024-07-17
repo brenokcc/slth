@@ -225,7 +225,9 @@ class Serializer:
             for qualified_name in self.metadata['actions']:
                 cls = slth.ENDPOINTS[qualified_name]
                 if cls.instantiate(self.request, self.obj).check_permission():
-                    actions.append(cls.get_api_metadata(self.request, base_url, self.obj.pk))
+                    action = cls.get_api_metadata(self.request, base_url, self.obj.pk)
+                    action['name'] = action['name'].replace(' {}'.format(self.obj._meta.verbose_name), '')
+                    actions.append(action)
             if leaf:
                 raise JsonResponseException(actions)
 
