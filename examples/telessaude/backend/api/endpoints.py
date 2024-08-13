@@ -21,6 +21,10 @@ MENSAGEM_ASSINATURA_DIGITAL = '''
 
 '''
 
+class Administradores(endpoints.AdminEndpoint[Administrador]):
+    pass
+
+
 class CIDs(endpoints.AdminEndpoint[CID]):
     def check_permission(self):
         return self.check_role('a')
@@ -55,11 +59,17 @@ class Sexos(endpoints.AdminEndpoint[Sexo]):
 
 
 class TiposExame(endpoints.AdminEndpoint[TipoExame]):
+    def check_permission(self):
+        return self.check_role('a')
+    
     def check_add_permission(self):
         return super().check_add_permission() or self.check_role('ps')
     
 
 class Medicamentos(endpoints.AdminEndpoint[Medicamento]):
+    def check_permission(self):
+        return self.check_role('a')
+    
     def check_add_permission(self):
         return super().check_add_permission() or self.check_role('ps')
 
@@ -70,7 +80,7 @@ class Municipios(endpoints.AdminEndpoint[Municipio]):
 
 class Nucleos(endpoints.AdminEndpoint[Nucleo]):
     def get(self):
-        return super().get().lookup(gestores__cpf='username')
+        return super().get().lookup(gestores__cpf='username').lookup('a')
     
     def check_permission(self):
         return self.check_role('a', 'g')
@@ -124,19 +134,21 @@ class CadastrarProfissionalSaudeUnidade(endpoints.RelationEndpoint[ProfissionalS
 
 class Unidades(endpoints.AdminEndpoint[Unidade]):
     def check_permission(self):
-        return self.check_role('g', 'a')
+        return self.check_role('a')
     
     def check_add_permission(self):
-        return self.check_role('g', 'a')
+        return self.check_role('a')
     
     def check_edit_permission(self):
-        return self.check_role('g', 'a')
+        return self.check_role('a')
     
     def check_delete_permission(self):
         return self.check_role('a')
     
     def check_view_permission(self):
-        return self.check_role('g', 'a')
+        return self.check_role('a')
+    
+
     
 
 class CadastrarUnidade(endpoints.AddEndpoint[Unidade]):
@@ -177,33 +189,34 @@ class AtualizarPaciente(endpoints.EditEndpoint[PessoaFisica]):
         verbose_name = 'Atualizar Dados do Paciente'
     
     def check_permission(self):
-        return self.check_role('g', 'o', 'a', 'ps')
+        return self.check_role('o', 'ps')
 
 
 class ProfissionaisSaude(endpoints.AdminEndpoint[ProfissionalSaude]):
     def get(self):
         return (
             super().get().lookup('a')
-            .lookup('g', nucleo__gestores__cpf='username')
+            #.lookup('g', nucleo__gestores__cpf='username')
             .lookup('o', nucleo__operadores__cpf='username')
         )
 
     def check_permission(self):
-        return self.check_role('g', 'o', 'a')
+        return self.check_role('o', 'a')
     
     def check_add_permission(self):
         return False
 
     def check_edit_permission(self):
-        return self.check_role('a', 'g')
+        return False
     
     def check_delete_permission(self):
-        return self.check_role('a')
+        return False
     
     def contribute(self, entrypoint):
         if entrypoint == 'menu' and self.check_role('o', superuser=False):
             return False
         return super().contribute(entrypoint)
+
 
 class EnviarNotificacaoAtendimento(endpoints.ChildEndpoint):
 
@@ -240,18 +253,22 @@ class EnviarNotificacaoAtendimento(endpoints.ChildEndpoint):
     def check_permission(self):
         return self.request.user.is_superuser
 
+
 class Atendimentos(endpoints.ListEndpoint[Atendimento]):
     
     class Meta:
         modal = False
         icon = "laptop-file"
-        verbose_name= 'Teleconsultas'
+        verbose_name= 'Atendimentos'
     
     def get(self):
-        return super().get().all().actions('visualizaratendimento', 'cadastraratendimento', 'delete')
+        return super().get().all().actions('visualizaratendimento', 'cadastraratendimento')
 
     def check_permission(self):
         return self.check_role('a', 'g')
+    
+    def check_delete_permission(self):
+        return self.check_role('a')
     
 
 class VisualizarAtendimento(endpoints.ViewEndpoint[Atendimento]):
@@ -463,6 +480,7 @@ class ProfissionaisSaudeEspecialidade(endpoints.InstanceEndpoint[Especialidade])
     def get(self):
         return self.instance.get_profissonais_saude()
     
+
 class ProfissionaisSaudeArea(endpoints.InstanceEndpoint[Area]):
     class Meta:
         icon = "stethoscope"
@@ -718,7 +736,7 @@ class FinalizarAtendimento(endpoints.ChildEndpoint):
             self.redirect(f'/api/assinarviaqrcode/{self.source.id}/')
         else:
             if RUNNING_TESTING:
-                self.redirect(f'/api/visualizaratendimento/{self.source.atendimento_id}/')
+                self.redirect(f'/api/visualizaratendimento/{self.source.id}/')
             else:
                 profissional_saude = ProfissionalSaude.objects.get(pessoa_fisica__cpf=self.request.user.username)
                 cpf = '04770402414' or profissional_saude.pessoa_fisica.cpf.replace('.', '').replace('-', '')

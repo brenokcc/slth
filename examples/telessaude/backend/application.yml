@@ -9,6 +9,7 @@ application:
     - /static/images/logos/logo4.png
   oauth: {}
   groups:
+    a: Administrador
     g: Gestor de Unidade Organizacional
     o: Operador de Unidade Organizacional
     ps: Profissinal de Saúde
@@ -44,6 +45,7 @@ application:
     tools:
     settings:
   menu:
+    user-gear:Administradores: administradores
     list:Cadastros Gerais:
       CIDs: cids
       CIAPs: ciaps
@@ -56,6 +58,7 @@ application:
       Áreas: areas
       Especialidades: especialidades
       Tipos de Exame: tiposexame
+      Medicamentos: medicamentos
     building-user:Núcleos de Telesaúde: nucleos
     building:Unidades de Saúde: unidades
     stethoscope:Profissionais de Saúde: profissionaissaude

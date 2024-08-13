@@ -25,6 +25,26 @@ from time import sleep
 from slth.printer import qrcode_base64
 
 
+class AdministradorQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+@role('a', username='cpf')
+class Administrador(models.Model):
+    nome = models.CharField(verbose_name='Nome', max_length=80)
+    cpf = models.CharField(verbose_name='CPF', max_length=14, unique=True)
+
+    class Meta:
+        verbose_name = 'Administrador'
+        verbose_name_plural = 'Administradores'
+
+    objects = AdministradorQuerySet()
+
+    def __str__(self):
+        return f'Administrador {self.id}'
+
+
 class CIDQuerySet(models.QuerySet):
     def all(self):
         return self.search('codigo', 'doenca')
@@ -759,7 +779,10 @@ class AtendimentoQuerySet(models.QuerySet):
               if horario.data_hora not in scheduled:
                 selectable.append(horario.data_hora)
             if especialista:
-                selectable = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista, data_hora__in=selectable).values_list('data_hora', flat=True)
+                qs = HorarioProfissionalSaude.objects.filter(data_hora__gte=midnight, profissional_saude=especialista)
+                if not is_proprio_profissional:
+                    qs = selectable.qs(data_hora__in=selectable)
+                selectable = qs.values_list('data_hora', flat=True)
 
         scheduler = Scheduler(
             chucks=3,
@@ -852,8 +875,8 @@ class Atendimento(models.Model):
 
     class Meta:
         icon = "laptop-file"
-        verbose_name = "Teleconsulta"
-        verbose_name_plural = "Teleconsultas"
+        verbose_name = "Atendimento"
+        verbose_name_plural = "Atendimentos"
 
     def check_webconf(self):
         from . import zoom
@@ -1264,6 +1287,7 @@ class TipoExameQuerySet(models.QuerySet):
 class TipoExame(models.Model):
     nome = models.CharField(verbose_name='Nome')
     detalhe = models.CharField(verbose_name='Detalhe', blank=True, null=True)
+    profissional_saude = models.ForeignKey(ProfissionalSaude, verbose_name='Profissional de Saúde', on_delete=models.CASCADE, null=True, blank=True)
     tuss = models.CharField(verbose_name='TUSS', null=True)
 
     class Meta:
@@ -1283,6 +1307,7 @@ class MedicamentoQuerySet(models.QuerySet):
 
 class Medicamento(models.Model):
     nome = models.CharField(verbose_name='Nome')
+    profissional_saude = models.ForeignKey(ProfissionalSaude, verbose_name='Profissional de Saúde', on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
         verbose_name = 'Medicamento'

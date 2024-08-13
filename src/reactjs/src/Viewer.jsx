@@ -386,6 +386,7 @@ function Title(props) {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
+        overflow-x: auto;
       }
       .object-title h1 {
           margin: 0;
@@ -400,7 +401,7 @@ function Title(props) {
             {props.data.title}
           </h1>
         )}
-        <div style={{margin: 10, textAlign:compactAction ?  "right" : "center", width: compactAction ? "auto" : "100%"}}><ObjectActions data={props.data} /></div>
+        <div style={{margin: 0, textAlign:compactAction ?  "right" : "center", width: compactAction ? "auto" : "100%"}}><ObjectActions data={props.data} /></div>
       </div>
     );
   }

@@ -178,7 +178,7 @@ class IntegrationTestCase(SeleniumTestCase):
 
         # Acessando como gestor de núcleo para cadastrar unidades e adiconar profissionais as unidades
         if self.step('4'):
-            self.login('466.778.160-28', '123')
+            self.login('000.000.000-00', '123')
 
             self.click('Unidades de Saúde')
             self.click('Cadastrar Unidade')
@@ -210,7 +210,7 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('Nº do Registro Profissional', '08239614000')
             self.click('Enviar')
 
-            self.logout('466.778.160-28')
+            self.logout('000.000.000-00')
 
         # Acessando como gestor de núcleo para vincular unidades e adicionar profissionais ao núcleo
         if self.step('5'):
@@ -255,7 +255,7 @@ class IntegrationTestCase(SeleniumTestCase):
                 self.click((self.proxima_hora() + timedelta(minutes=i)).strftime('%d/%m/%Y %H:%M'))
             self.click('Enviar')
             self.click('Agenda de Atendimentos')
-            self.click('Cadastrar Atendimento')
+            self.click('Cadastrar')
             self.click('Unidade Capim Macio')
             self.click('Teleconsulta')
             self.click('Clínico Geral')
@@ -303,12 +303,12 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('A - avaliação', 'Avaliação....')
             self.enter('P - Plano', 'Plano....')
             self.enter('Comentário', 'Comentário....')
-            self.enter('Encaminhamento', 'Encaminhamento....')
-            self.enter('Conduta', 'Conduta....')
             self.click('Enviar')
             self.click('Anexos')
             self.click('Encaminhamentos')
-            self.click('Finalizar Atendimento')
+            self.click('Finalizar')
+            self.click('Notificação')
+            self.wait()
             self.click('Enviar')
             self.logout('779.067.860-41')
 
@@ -336,7 +336,7 @@ class IntegrationTestCase(SeleniumTestCase):
         if self.step('10'):
             self.login('779.067.860-41', '123')
             self.click('Agenda de Atendimentos')
-            self.click('Cadastrar Atendimento')
+            self.click('Cadastrar')
             self.click('Unidade Capim Macio')
             self.click('Tele-interconsulta')
             self.click('Cardiologia')
@@ -387,8 +387,6 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('A - avaliação', 'Avaliação....')
             self.enter('P - Plano', 'Plano....')
             self.enter('Comentário', 'Comentário....')
-            self.enter('Encaminhamento', 'Encaminhamento....')
-            self.enter('Conduta', 'Conduta....')
             self.click('Enviar')
             self.click('Anexos')
             self.click('Encaminhamentos')
@@ -406,12 +404,12 @@ class IntegrationTestCase(SeleniumTestCase):
             self.enter('A - avaliação', 'Avaliação....')
             self.enter('P - Plano', 'Plano....')
             self.enter('Comentário', 'Comentário....')
-            self.enter('Encaminhamento', 'Encaminhamento....')
-            self.enter('Conduta', 'Conduta....')
             self.click('Enviar')
             self.click('Anexos')
             self.click('Encaminhamentos')
-            self.click('Finalizar Atendimento')
+            self.click('Finalizar')
+            self.click('Notificação')
+            self.wait()
             self.click('Enviar')
             self.logout('779.067.860-41')
 
