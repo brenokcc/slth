@@ -53,7 +53,7 @@ def dispatcher(request, **kwargs):
                         endpoint.start_audit_trail()
                         return endpoint.to_response()
                     else:
-                        url = '/api/login/'
+                        url = '/api/auth/login/'
                         if request.path != '/api/dashboard/':
                             url = '{}?next={}'.format(url, request.get_full_path())
                         return ApiResponse(dict(type="redirect", url=url), status=403)

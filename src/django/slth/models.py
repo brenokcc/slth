@@ -15,6 +15,8 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
 from slth import APPLICATON
+from django.contrib.auth.models import BaseUserManager
+
 
 
 class RoleFilter(models.Filter):
@@ -223,13 +225,36 @@ class Token(models.Model):
 
     def __str__(self):
         return self.key
-    
+
+
+class UserQuerySet(BaseUserManager):
+
+    def all(self):
+        return (
+            self.
+            search("username", "email")
+            .filters("is_superuser", "is_active")
+            .fields("username", "email", "get_roles")
+            .actions(
+                "user.add",
+                "user.view",
+                "user.edit",
+                "user.delete",
+                "user.sendpushnotification",
+                "user.changepassword",
+            )
+        )
+
+
 class User(User):
+    
     class Meta:
         icon = 'users'
         proxy = True
         verbose_name = 'Usuário'
         verbose_name_plural = 'Usuários'
+
+    objects = UserQuerySet()
 
     def formfactory(self):
         return (
@@ -285,7 +310,7 @@ class Log(models.Model):
 
 class DeletionQuerySet(models.QuerySet):
     def all(self):
-        return self.fields(('username', 'datetime', 'instance'), 'backup').search('username', 'instance').filters('datetime', 'restored').actions('restoredeletion').order_by('-id')
+        return self.fields(('username', 'datetime', 'instance'), 'backup').search('username', 'instance').filters('datetime', 'restored').actions('deletion.restore').order_by('-id')
 
 
 

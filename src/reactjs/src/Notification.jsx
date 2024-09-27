@@ -45,7 +45,7 @@ function PushWebNotification(props) {
                 data.append("subscription", subscriptionJson);
                 request(
                   "POST",
-                  "/api/pushsubscribe/",
+                  "/api/pushsubscription/subscribe/",
                   function (data) {
                     console.log(data);
                   },

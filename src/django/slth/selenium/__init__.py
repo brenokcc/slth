@@ -53,7 +53,7 @@ class SeleniumTestCase(LiveServerTestCase):
         self.current_username = None
         warnings.filterwarnings("ignore")
 
-        self._url = "/app/login/"
+        self._url = "/app/auth/login/"
         self._execute = 1
         self._step = 0
         self._adverb = 0
@@ -92,7 +92,7 @@ class SeleniumTestCase(LiveServerTestCase):
         self._url = url
 
     def login(self, username, password):
-        self.open('/app/login/')
+        self.open('/app/auth/login/')
         self.enter('Username', username)
         self.enter('Senha', password)
         self.click('Enviar')

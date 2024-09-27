@@ -179,9 +179,9 @@ function Application(props) {
             props.data.navbar.actions.length > 0 &&
             props.data.navbar.actions.map(function (action) {
               if (
-                action.url == "/api/login/" &&
+                action.url == "/api/auth/login/" &&
                 (props.data.navbar.user ||
-                  document.location.pathname == "/app/login/")
+                  document.location.pathname == "/app/auth/login/")
               ) {
                 return null;
               } else {

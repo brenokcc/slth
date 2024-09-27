@@ -32,9 +32,11 @@ application:
     boxes:
     search:
     usermenu:
-      - icons
-      - users
-      - logout
+      - dev.icons
+      - user.users
+      - log.logs
+      - deletion.deletions
+      - auth.logout
     adder:
     tools:
     settings:
@@ -42,7 +44,7 @@ application:
     users:Item 1:
       Item 1.1:
         Sair: logout
-    Sair: logout
+    Sair: auth.logout
   theme:
     colors:
       primary: "#1351b4"

@@ -1410,7 +1410,7 @@ function Form(props) {
               const tmp = e.target.innerHTML;
               e.target.innerHTML = "Aguarde... (0%)"
               function updateProgress(){
-                request('GET', '/api/taskprogress/'+data.task+'/', function callback(task) {
+                request('GET', '/api/task/progress/'+data.task+'/', function callback(task) {
                     if(task==null || task.progress == 100){
                       e.target.innerHTML = tmp;
                     } else {

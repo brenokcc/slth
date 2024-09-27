@@ -72,7 +72,9 @@ class QuerySet(models.QuerySet):
     def actions(self, *names, **replacement):
         if 'actions' not in self.metadata:
             self.metadata['actions'] = []
-        self.metadata['actions'].extend(names)
+        for k in names:
+            if k not in self.metadata['actions']:
+                self.metadata['actions'].append(k)
         for k, v in replacement.items():
             if k in self.metadata['actions']:
                 self.metadata['actions'].remove(k)

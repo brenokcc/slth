@@ -54,7 +54,7 @@ ComponentFactory.render = function (element) {
       ? window.reload("/app/dashboard/")
       : window.reload("/app/home/");
   } else if (
-    document.location.pathname == "/app/login/" &&
+    document.location.pathname == "/app/auth/login/" &&
     (localStorage.getItem("token") || localStorage.getItem("application"))
   ) {
     localStorage.removeItem("token");
