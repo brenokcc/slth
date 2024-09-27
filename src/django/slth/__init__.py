@@ -4,7 +4,7 @@ import yaml
 import json
 import warnings
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 from django.apps import apps
 from django.db import models
 from .queryset import QuerySet
@@ -19,6 +19,8 @@ from django.utils.autoreload import autoreload_started
 from django.core import serializers
 from .threadlocal import tl
 
+from decimal import Decimal
+
 warnings.filterwarnings('ignore', module='urllib3')
 
 FILENAME = 'application.yml'
@@ -32,6 +34,15 @@ if APPLICATON is None and os.path.exists(FILENAME):
         for variable in re.findall(r'\$[a-zA-z0-9_]+', content):
             content = content.replace(variable, os.environ.get(variable[1:], ''))
     APPLICATON = yaml.safe_load(content).get('application')
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        if isinstance(obj, date):
+            return obj.strftime("%d-%m-%Y")
+        return json.JSONEncoder.default(self, obj)
 
 
 class BaseManager(manager.BaseManager):
@@ -120,7 +131,7 @@ class ModelMixin(object):
                     objects.append(instance)
                     if instance.__class__.__name__ not in order:
                         order.append(instance.__class__.__name__)
-        backup  = json.dumps(dict(order=order, objects=serializers.serialize("python", objects)))
+        backup  = json.dumps(dict(order=order, objects=serializers.serialize("python", objects)), cls=JSONEncoder)
         instance = '{}.{}:{}'.format(self._meta.app_label, self._meta.model_name, self.pk)
         Deletion.objects.create(username=username, datetime=datetime.now(), instance=instance, backup=backup)
         return self.delete()

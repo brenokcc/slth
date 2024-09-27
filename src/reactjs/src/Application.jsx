@@ -319,6 +319,7 @@ function Application(props) {
             </div>)
           }
         </div>
+        <div>{Intl.DateTimeFormat().resolvedOptions().timeZone}</div>
         <div>Todos os direitos reservados</div>
         <div>{props.data.footer.version}</div>
       </div>

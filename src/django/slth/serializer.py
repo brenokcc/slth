@@ -170,7 +170,8 @@ class Serializer:
         return self
     
     def settitle(self, title) -> 'Serializer':
-        self.title = title
+        if title != 'Visualizar':
+            self.title = title
         return self
     
     def serialize(self, debug=False, forward_exception=False):
@@ -214,7 +215,7 @@ class Serializer:
 
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
-            if cls and cls.get_api_name() in self.metadata['allow']:
+            if cls:### and cls.get_key_name() in self.metadata['allow']:
                 endpoint = cls.instantiate(self.request, self.obj)
                 if endpoint.check_permission():
                     raise JsonResponseException(endpoint.serialize())
@@ -224,8 +225,9 @@ class Serializer:
             leaf = only and only[-1] == 'actions'
             for qualified_name in self.metadata['actions']:
                 cls = slth.ENDPOINTS[qualified_name]
-                if cls.instantiate(self.request, self.obj).check_permission():
-                    action = cls.get_api_metadata(self.request, base_url, self.obj.pk)
+                endpoint = cls.instantiate(self.request, self.obj)
+                if endpoint.check_permission():
+                    action = endpoint.get_api_metadata(self.request, base_url, self.obj.pk)
                     action['name'] = action['name'].replace(' {}'.format(self.obj._meta.verbose_name), '')
                     actions.append(action)
             if leaf:
@@ -278,8 +280,9 @@ class Serializer:
                                     fieldset_fields.append(getfield(obj, name, self.request))
                             for qualified_name in item['actions']:
                                 cls = slth.ENDPOINTS[qualified_name]
-                                if obj and cls.instantiate(self.request, obj).check_permission():
-                                    fieldset_actions.append(cls.get_api_metadata(self.request, base_url, obj.pk))
+                                endpoint = cls.instantiate(self.request, obj)
+                                if obj and endpoint.check_permission():
+                                    fieldset_actions.append(endpoint.get_api_metadata(self.request, base_url, obj.pk))
                             data = dict(type='fieldset', title=title, key=key, url=url if reload else None, actions=fieldset_actions, data=fieldset_fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':

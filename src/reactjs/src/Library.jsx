@@ -423,7 +423,7 @@ function Scheduler(props) {
   const SELECTABLE = "rgb(92, 160, 93)";
   const SELECT = [];
   const DESELECT = []
-  const WEEKDAYS = ["DOM", "SEG", "TER", "QAR", "QUI", "SEX", "SAB"]
+  const WEEKDAYS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"]
   const [data, setData] = useState(props.data);
 
 

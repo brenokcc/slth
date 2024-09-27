@@ -23,34 +23,39 @@ function PushWebNotification(props) {
         .then(function (swRegistration) {
           if (swRegistration) {
             const applicationServerKey = urlB64ToUint8Array(
-              "BLoLJSopQbe04v_zpegJmayhH2Px0EGzrFIlM0OedSOTYsMpO5YGmHOxbpPXdM09ttIuDaDTI86uC85JXZPpEtA"
+              "BFvGgHYReJWJuSyOChUCEs1VYqZVs3TLJAvSkMW8jVqqgdWVbArBL4Kd6ibPKWlQo8Q3BuWwomybqwzs-1Ic8GU"
             );
-            swRegistration.pushManager
-              .subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: applicationServerKey,
-              })
-              .then(function (subscription) {
-                console.log(subscription);
-                subscriptionJson = JSON.stringify(subscription);
-                console.log(subscriptionJson);
-                if (subscription) {
-                  alert("Notificação ativada com sucesso.");
-                  var data = new FormData();
-                  data.append("subscription", subscriptionJson);
-                  request(
-                    "POST",
-                    "/api/pushsubscribe/",
-                    function (data) {
-                      console.log(data);
-                    },
-                    data
-                  );
-                } else {
-                  alert("Problema ao ativar notificações.");
-                  return;
-                }
-              })
+            swRegistration.pushManager.getSubscription(function(subscription){
+              if(subscription){
+                subscription.unsubscribe();
+                console.log('unsubscribed');
+              }
+            })
+            swRegistration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: applicationServerKey,
+            })
+            .then(function (subscription) {
+              console.log(subscription);
+              subscriptionJson = JSON.stringify(subscription);
+              console.log(subscriptionJson);
+              if (subscription) {
+                alert("Notificação ativada com sucesso.");
+                var data = new FormData();
+                data.append("subscription", subscriptionJson);
+                request(
+                  "POST",
+                  "/api/pushsubscribe/",
+                  function (data) {
+                    console.log(data);
+                  },
+                  data
+                );
+              } else {
+                alert("Problema ao ativar notificações.");
+                return;
+              }
+            })
               .catch(function (err) {
                 alert("Problema ao tentar ativar notificações.");
                 console.log("Failed to subscribe the user: ", err);

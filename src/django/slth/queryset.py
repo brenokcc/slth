@@ -121,10 +121,8 @@ class QuerySet(models.QuerySet):
         self.metadata['calendar'] = name
         return self
     
-    def related_values(self, **kwargs):
-        self.metadata['relations'] = {
-            k: v if isinstance(v, int) else v.pk for k, v in kwargs.items()
-        }
+    def ignore(self, *names):
+        self.metadata['ignore'] = names
         return self
     
     def limit(self, limit, *limits):
@@ -233,7 +231,7 @@ class QuerySet(models.QuerySet):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
         title = title.title() if title and title.islower() else title
         attrname = self.metadata.get('attrname')
-        relations = self.metadata.get('relations')
+        ignore = self.metadata.get('ignore', ())
         renderer = self.metadata.get('renderer')
         reloadable = self.metadata.get('reloadable')
         bi = self.metadata.get('bi', [])
@@ -261,12 +259,9 @@ class QuerySet(models.QuerySet):
                 queryset_actions.append(cls)
 
         for cls in queryset_actions:
-            if cls.instantiate(self.request, self).check_permission():
-                action = cls.get_api_metadata(self.request, base_url)
-                action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name.title()), "")
-                if relations and cls.get_metadata('modal'):
-                        params = '&'.join(f'{k}={v}' for k, v in relations.items())
-                        action['url'] = append_url(action['url'], params)
+            endpoint = cls.instantiate(self.request, self)
+            if endpoint.check_permission():
+                action = endpoint.get_api_metadata(self.request, base_url)
                 actions.append(action)
 
         subset = self.parameter('subset')
@@ -283,7 +278,7 @@ class QuerySet(models.QuerySet):
 
         for lookup in qs.metadata.get('filters', ()):
             field = self.filter_field(lookup, base_url)
-            if field:
+            if field and lookup not in ignore:
                 filters.append(field)
         for filtername, filter in qs.metadata.get('custom_filters', {}).items():
             field = self.custom_filter_field(filtername, filter, base_url)
@@ -340,10 +335,7 @@ class QuerySet(models.QuerySet):
             title_func_name = '__str__'
             serializer:Serializer = qs.metadata.get('serializer')
             if serializer is None:
-                fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many)])
-                if relations:
-                    names = set(relations.keys())
-                    fields = [field_name for field_name in fields if field_name not in names]
+                fields = qs.metadata.get('fields', [field.name for field in (qs.model._meta.fields + qs.model._meta.many_to_many) if field.name not in ignore])
                 list_fields = [
                     f'get_{field_name}' if hasattr(qs.model, f'get_{field_name}') else
                     (f'get_{field_name}_display' if hasattr(qs.model, f'get_{field_name}_display')
@@ -357,12 +349,10 @@ class QuerySet(models.QuerySet):
                 serializer.obj = obj
                 serialized = serializer.serialize(forward_exception=True)
                 for cls in instance_actions:
-                    if cls.instantiate(self.request, obj).check_permission():
-                        action = cls.get_api_metadata(self.request, base_url, obj.pk)
+                    endpoint = cls.instantiate(self.request, obj)
+                    if endpoint.check_permission():
+                        action = endpoint.get_api_metadata(self.request, base_url, obj.pk)
                         action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
-                        if relations and cls.get_metadata('modal'):
-                            params = '&'.join(f'{k}={v}' for k, v in relations.items())
-                            action['url'] = append_url(action['url'], params)
                         serialized['actions'].append(action)
                 objs.append(serialized)
 

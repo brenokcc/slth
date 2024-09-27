@@ -34,12 +34,17 @@ def dispatcher(request, **kwargs):
             token = Token.objects.filter(key=request.META['HTTP_AUTHORIZATION'].split()[1]).first()
             if token:
                 request.user = token.user
+        elif 'token' in request.COOKIES:
+            token = Token.objects.filter(key=request.COOKIES.get('token')).first()
+            if token:
+                request.user = token.user
         if request.path == '/':
             cls = slth.ENDPOINTS.get(slth.APPLICATON['index'])
             url = build_url(request, cls.get_api_url())
             return ApiResponse(dict(type='redirect', url=url))
         else:
-            cls = slth.ENDPOINTS.get(request.path.split('/')[2])
+            tokens = [token for token in request.path.split('/')[2:] if token and not token.isdigit()]
+            cls = slth.ENDPOINTS.get('.'.join(tokens))
             if cls:
                 endpoint = None
                 try:
@@ -61,7 +66,7 @@ def dispatcher(request, **kwargs):
                     return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
                 finally:
                     if endpoint:
-                        endpoint.start_audit_trail()
+                        endpoint.finish_audit_trail()
             else:
                 return ApiResponse({}, status=404)
 

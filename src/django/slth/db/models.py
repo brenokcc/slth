@@ -1,5 +1,8 @@
 from uuid import uuid1
-from django.db.models import Model as DjangoModel
+import pytz
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.db.models import Model as DjangoModel, fields as DjangoFields
 from django.db.models import *
 from django.utils.translation import gettext_lazy as _
 from . import generic
@@ -106,6 +109,16 @@ class TextField(TextField):
     def __init__(self, *args, **kwargs):
         self.formatted= kwargs.pop('formatted', False)
         super().__init__(*args, **kwargs)
+
+
+class DateTimeField(DateTimeField):
+
+    def get_db_prep_value(self, value, *args, **kwargs):
+        return pytz.timezone(timezone.get_current_timezone_name()).localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None) if value else None
+    
+    def from_db_value(self, value, *args, **kwargs):
+        return pytz.timezone(timezone.get_default_timezone_name()).localize(value).astimezone(timezone.get_current_timezone()).replace(tzinfo=None) if value else None
+
 
 class FileField(FileField):
     def __init__(self, *args, extensions=('pdf',), max_size=5, **kwargs):

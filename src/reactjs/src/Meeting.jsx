@@ -20,7 +20,7 @@ function ZoomMeet(props){
       }
     `)
     function render(){
-        const url = `/zoom/?number=${props.data.number}&password=${props.data.password}&name=${props.data.name}`;
+        const url = `/zoom/?token=${props.data.token}&username=${props.data.username}`;
         return <div className="container"> 
             <iframe onLoad={onLoad} className="responsive-iframe" src={url}></iframe>
         </div>

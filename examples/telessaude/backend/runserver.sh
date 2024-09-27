@@ -1,2 +1,0 @@
-export POSTGRES_HOST=localhost
-export POSTGRES_DB=telesaude

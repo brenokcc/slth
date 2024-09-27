@@ -1,6 +1,5 @@
 import io
 import json
-import types
 import inspect
 import requests
 from weasyprint import HTML
@@ -34,7 +33,7 @@ from .components import (
 )
 from .exceptions import JsonResponseException, ReadyResponseException
 from .utils import build_url, append_url
-from .models import PushSubscription, Profile, User, Log
+from .models import PushSubscription, Profile, User, Log, Email
 from slth.queryset import QuerySet
 from slth import APPLICATON, ENDPOINTS
 from . import oauth
@@ -62,41 +61,9 @@ class EnpointMetaclass(type):
             name not in ("Endpoint", "ChildEndpoint")
             and "_ChildEndpoint" not in bases_names
         ):
-            ENDPOINTS[cls.__name__.lower()] = cls
-        if "AdminEndpoint" in bases_names[0:1]:
-            model = cls.__orig_bases__[0].__args__[0]
-            items = (
-                ("Cadastrar", AddEndpoint[model], "plus", "add"),
-                ("Editar", EditEndpoint[model], "pen", "edit"),
-                ("Visualizar", ViewEndpoint[model], "eye", "view"),
-                ("Excluir", DeleteEndpoint[model], "trash", "delete"),
-            )
-            for prefix, base, icon, action in items:
-                endpoint = types.new_class(f"{prefix}{model.__name__}", (base,), {})
-                endpoint.__admin__ = cls
-                endpoint.__action__ = action
-                endpoint.check_permission = lambda self: (
-                    getattr(self.__admin__.instantiate(self.request, self), f'check_{self.__action__}_permission')()
-                )
-                endpoint.Meta = type(
-                    "Meta",
-                    (),
-                    dict(
-                        icon=icon,
-                        modal=prefix != "Visualizar",
-                        verbose_name=f"{prefix} {model._meta.verbose_name}",
-                    ),
-                )
-            if "Meta" not in attrs:
-                cls.Meta = type(
-                    "Meta",
-                    (),
-                    dict(
-                        icon=getattr(model._meta, "icon", None),
-                        modal=False,
-                        verbose_name=f"{model._meta.verbose_name_plural}",
-                    ),
-                )
+            module = cls.__module__.split('.')[-1]
+            key = cls.__name__.lower() if module == 'endpoints' else f'{module}.{cls.__name__.lower()}'
+            ENDPOINTS[key] = cls
         return cls
 
 
@@ -203,7 +170,7 @@ class Endpoint(metaclass=EnpointMetaclass):
                 data = form
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
-        elif self.request.method == "POST" and not data:
+        elif self.request.method == "POST":# and not data:
             return self.post()
         return data
 
@@ -230,12 +197,34 @@ class Endpoint(metaclass=EnpointMetaclass):
     @classmethod
     def get_api_name(cls):
         return cls.__name__.lower()
+    
+    @classmethod
+    def get_key_name(cls):
+        module = cls.__module__.split('.')[-1]
+        if module == 'endpoints':
+            return cls.get_api_name()
+        else:
+            return "{}.{}".format(module, cls.get_api_name())
+    
+    @classmethod
+    def get_default_actions(cls):
+        actions = ['add', 'view', 'edit', 'delete']
+        module = cls.__module__.split('.')[-1]
+        if module == 'endpoints':
+            return actions
+        else:
+            return [f'{module}.{name}' for name in actions if f'{module}.{name}' in ENDPOINTS]
 
     @classmethod
     def get_api_url(cls, arg=None):
+        module = cls.__module__.split('.')[-1]
+        if module == 'endpoints':
+            url = "/api/{}/".format(cls.get_api_name())
+        else:
+            url = "/api/{}/{}/".format(module, cls.get_api_name())
         if arg:
-            return f"/api/{cls.get_api_name()}/{arg}/"
-        return f"/api/{cls.get_api_name()}/"
+            url = f"{url}{arg}/"
+        return url
 
     @classmethod
     def get_pretty_name(cls):
@@ -245,10 +234,6 @@ class Endpoint(metaclass=EnpointMetaclass):
                 name.append(" ")
             name.append(c)
         return "".join(name)
-
-    @classmethod
-    def get_qualified_name(cls):
-        return "{}.{}".format(cls.__module__, cls.__name__).lower()
 
     @classmethod
     def instantiate(cls, request, source):
@@ -266,28 +251,31 @@ class Endpoint(metaclass=EnpointMetaclass):
     @classmethod
     def get_api_url_pattern(cls):
         args = inspect.getfullargspec(cls.__init__).args[1:]
-        pattern = "{}/".format(cls.get_api_name())
+        module = cls.__module__.split('.')[-1]
+        if module == 'endpoints':
+            pattern = "{}/".format(cls.get_api_name())
+        else:
+            pattern = "{}/{}/".format(module, cls.get_api_name())
         for arg in args:
             pattern = "{}{}/".format(pattern, "<str:{}>".format(arg))
         return pattern
 
-    @classmethod
-    def get_api_metadata(cls, request, base_url, pk=None):
-        action_name = cls.get_metadata("verbose_name")
-        icon = cls.get_metadata("icon")
-        modal = cls.get_metadata("modal")
-        if cls.is_child():
-            url = append_url(base_url, f"action={cls.get_api_name()}")
+    def get_api_metadata(self, request, base_url, pk=None):
+        action_name = self.get_verbose_name()
+        icon = self.get_metadata("icon")
+        modal = self.get_metadata("modal")
+        if self.is_child():
+            url = append_url(base_url, f"action={self.get_key_name()}")
             url = f"{url}&id={pk}" if pk else url
         else:
-            url = build_url(request, f"/api/{cls.get_api_name()}/")
+            url = build_url(request, self.get_api_url())
             url = f"{url}{pk}/" if pk else url
         return dict(
             type="action",
             title=action_name,
             name=action_name,
             url=url,
-            key=cls.get_api_name(),
+            key=self.get_api_name(),
             icon=icon,
             modal=modal,
         )
@@ -299,8 +287,6 @@ class Endpoint(metaclass=EnpointMetaclass):
         if metaclass:
             value = getattr(metaclass, key, None)
         if value is None:
-            if key == "verbose_name":
-                value = cls.get_pretty_name()
             if key == "modal":
                 value = (
                     issubclass(cls, EditEndpoint)
@@ -312,6 +298,9 @@ class Endpoint(metaclass=EnpointMetaclass):
 
     def get_verbose_name(self):
         return self.get_metadata("verbose_name")
+    
+    def get_icon(self):
+        return self.get_metadata("icon")
     
     def get_instance(self):
         return None
@@ -330,7 +319,6 @@ class Endpoint(metaclass=EnpointMetaclass):
         if hasattr(tl, 'context') and tl.context['logs']:
             pk = tl.context['pk']
             instance = self.get_instance()
-            print(tl.context)
             if pk or isinstance(instance, Model):
                 model = '{}.{}'.format(instance._meta.app_label, instance._meta.model_name)
                 tl.context.update(model=model, pk=pk or instance.pk)
@@ -359,9 +347,12 @@ class ReportEndpoint(Endpoint):
 class ModelEndpoint(Endpoint):
     def __init__(self):
         self.model = self.__orig_bases__[0].__args__[0]
-        if isinstance(self.model, str):
-            self.model = self.objects(self.model).get(pk=self.pk)
+        # if isinstance(self.model, str):
+        #     self.model = self.objects(self.model).get(pk=self.pk)
         super().__init__()
+
+    def get_icon(self):
+        return self.model._meta.icon or super().get_icon()
 
 
 class AdminEndpoint(Generic[T], ModelEndpoint):
@@ -386,12 +377,33 @@ class AdminEndpoint(Generic[T], ModelEndpoint):
         return self.check_permission()
 
 
-class ListEndpoint(Generic[T], ModelEndpoint):
+class QuerySetEndpoint(Generic[T], ModelEndpoint):
+    class Meta:
+        modal = False
+
     def get(self) -> QuerySet:
-        return self.model.objects#.contextualize(self.request)
+        return self.model.objects.contextualize(self.request)
+    
+    def get_verbose_name(self):
+        return self.get_metadata('verbose_name', self.model._meta.verbose_name_plural)
+
+
+class ListEndpoint(Generic[T], ModelEndpoint):
+    class Meta:
+        modal = False
+
+    def get(self) -> QuerySet:
+        return self.model.objects.all().contextualize(self.request).actions(*self.get_default_actions())
+    
+    def get_verbose_name(self):
+        return self.get_metadata('verbose_name', self.model._meta.verbose_name_plural)
 
 
 class AddEndpoint(Generic[T], ModelEndpoint):
+    class Meta:
+        icon = 'plus'
+        modal = True
+
     def __init__(self):
         super().__init__()
         self.instance = self.model()
@@ -404,6 +416,9 @@ class AddEndpoint(Generic[T], ModelEndpoint):
     
     def formfactory(self):
         return self.instance.formfactory()
+    
+    def get_verbose_name(self):
+        return f'Cadastrar {self.model._meta.verbose_name}'
 
 
 class ModelInstanceEndpoint(ModelEndpoint):
@@ -429,21 +444,28 @@ class ViewEndpoint(Generic[T], ModelInstanceEndpoint):
     class Meta:
         icon = "eye"
         modal = False
-        verbose_name = "Visualizar"
+        verbose_name = 'Visualizar'
 
     def get(self) -> Serializer:
         return self.get_instance().serializer().contextualize(self.request)
 
-    def get_verbose_name(self):
-        return str(self.get_instance())
-
 
 class EditEndpoint(Generic[T], ModelInstanceEndpoint):
+    class Meta:
+        modal = True
+        icon = 'pen'
+        verbose_name = 'Editar'
+        
     def get(self) -> FormFactory:
         return self.get_instance().formfactory()
 
 
 class DeleteEndpoint(Generic[T], ModelInstanceEndpoint):
+    class Meta:
+        modal = True
+        icon = 'trash'
+        verbose_name = 'Excluir'
+
     def get(self) -> FormFactory:
         return self.formfactory(self.get_instance()).fields()
 
@@ -620,10 +642,6 @@ class Roles(ListEndpoint[Role]):
 class Logs(ListEndpoint[Log]):
     class Meta:
         modal = False
-        verbose_name = 'Histórico de Alterações'
-    
-    def get(self):
-        return super().get().all()
     
 
 class Deletions(ListEndpoint[Deletion]):
@@ -658,11 +676,13 @@ class Search(Endpoint):
         term = self.request.GET.get("term")
         if options is None and APPLICATON["dashboard"]["search"]:
             options = []
-            for endpoint in APPLICATON["dashboard"]["search"]:
-                cls = ENDPOINTS[endpoint]
-                url = build_url(self.request, cls.get_api_url())
-                verbose_name = cls.get_metadata("verbose_name")
-                options.append(dict(id=url, value=verbose_name))
+            for name in APPLICATON["dashboard"]["search"]:
+                cls = ENDPOINTS[name]
+                endpoint = cls.instantiate(self.request, self)
+                if endpoint.check_permission():
+                    url = build_url(self.request, endpoint.get_api_url())
+                    verbose_name = endpoint.get_verbose_name()
+                    options.append(dict(id=url, value=verbose_name))
             self.cache.set(key, options)
         if term:
             result = []
@@ -742,31 +762,33 @@ class Dashboard(Endpoint):
         serializer = Serializer(request=self.request)
         if APPLICATON["dashboard"]["boxes"]:
             boxes = Boxes("Acesso Rápido")
-            for endpoint in APPLICATON["dashboard"]["boxes"]:
-                cls = ENDPOINTS[endpoint]
-                if cls().contextualize(self.request).check_permission():
-                    icon = cls.get_metadata("icon", "check")
-                    label = cls.get_metadata("verbose_name")
+            for name in APPLICATON["dashboard"]["boxes"]:
+                cls = ENDPOINTS[name]
+                endpoint = cls().contextualize(self.request)
+                if endpoint.check_permission():
+                    icon = endpoint.get_icon() or "check"
+                    label = endpoint.get_verbose_name()
                     url = build_url(self.request, cls.get_api_url())
                     boxes.append(icon, label, url)
             serializer.append("Acesso Rápido", boxes)
         if APPLICATON["dashboard"]["top"]:
             group = serializer.group("Top")
-            for endpoint in APPLICATON["dashboard"]["top"]:
-                cls = ENDPOINTS[endpoint]
-                if cls.instantiate(
-                    self.request, self.request.user
-                ).check_permission():
+            for name in APPLICATON["dashboard"]["top"]:
+                cls = ENDPOINTS[name]
+                endpoint = cls.instantiate(self.request, self)
+                if endpoint.check_permission():
                     group.endpoint(
-                        cls.get_metadata("verbose_name"), cls, wrap=False
+                        endpoint.get_verbose_name(), cls, wrap=False
                     )
             group.parent()
         if APPLICATON["dashboard"]["center"]:
-            for endpoint in APPLICATON["dashboard"]["center"]:
-                cls = ENDPOINTS[endpoint]
-                serializer.endpoint(
-                    cls.get_metadata("verbose_name"), cls, wrap=False
-                )
+            for name in APPLICATON["dashboard"]["center"]:
+                cls = ENDPOINTS[name]
+                endpoint = cls.instantiate(self.request, self)
+                if endpoint.check_permission():
+                    serializer.endpoint(
+                        endpoint.get_verbose_name(), cls, wrap=False
+                    )
         return serializer
 
     def check_permission(self):
@@ -796,7 +818,7 @@ class Application(PublicEndpoint):
                     cls = ENDPOINTS[endpoint_name]
                     endpoint = cls().instantiate(self.request, self)
                     if endpoint.check_permission() and endpoint.contribute(entrypoint):
-                        label = cls.get_metadata("verbose_name")
+                        label = endpoint.get_verbose_name()
                         url = build_url(self.request, cls.get_api_url())
                         modal = cls.get_metadata("modal", False)
                         icon = cls.get_metadata("icon", None)
@@ -823,8 +845,6 @@ class Application(PublicEndpoint):
                             icon, label = k.split(":") if ":" in k else (None, k)
                             url = build_url(self.request, cls.get_api_url())
                             return dict(dict(label=label, url=url, icon=icon))
-                    else:
-                        print(v)
 
             for k, v in APPLICATON["menu"].items():
                 item = get_item(k, v)
@@ -894,7 +914,12 @@ class PushSubscribe(Endpoint):
         return True
 
 
-class PushSubscriptions(ListEndpoint[PushSubscription]):
+class Emails(AdminEndpoint[Email]):
+    class Meta:
+        verbose_name = "E-mails"
+
+
+class PushSubscriptions(AdminEndpoint[PushSubscription]):
     class Meta:
         verbose_name = "Notificações"
 

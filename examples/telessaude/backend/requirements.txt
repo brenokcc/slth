@@ -1,4 +1,0 @@
-slthlib
-slthcore
-qrcode
-weasyprint

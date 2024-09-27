@@ -5,7 +5,7 @@ import { toLabelCase } from "./Utils";
 import { closeDialog, openDialog } from "./Modal";
 import { ComponentFactory } from "./Root.jsx";
 import { showMessage, Info } from "./Message";
-import { request, appurl } from "./Request.jsx";
+import { request, appurl, store } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
 import { Button } from "./Button.jsx";
@@ -1400,12 +1400,7 @@ function Form(props) {
           ).style.display = "inline-block";
         }
         if (data.type == "response") {
-          if (data.store) {
-            Object.keys(data.store).map(function (k) {
-              if (data.store[k]) localStorage.setItem(k, data.store[k]);
-              else localStorage.removeItem(k, data.store[k]);
-            });
-          }
+          if (data.store) store(data.store);
           if (data.redirect && data.redirect.length > 2) {
             if (data.message) localStorage.setItem("message", data.message);
             document.location.href = appurl(data.redirect);

@@ -386,9 +386,10 @@ class FormMixin:
             data["onchange"] = absolute_url(self.request, f"on_change={name}")
         if name in self._actions:
             cls = ENDPOINTS[self._actions[name]]
-            if cls.instantiate(self.request, self).check_permission():
+            endpoint = cls.instantiate(self.request, self)
+            if endpoint.check_permission():
                 data.update(
-                    action=cls.get_api_metadata(
+                    action=endpoint.get_api_metadata(
                         self.request, absolute_url(self.request)
                     )
                 )

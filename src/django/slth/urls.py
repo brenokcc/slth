@@ -1,3 +1,4 @@
+import os
 import slth
 from django.apps import apps
 from django.conf import settings
@@ -13,8 +14,11 @@ for app_label in settings.INSTALLED_APPS:
         app = apps.get_app_config(app_label.split('.')[-1])
         fromlist = app.module.__package__.split('.')
         if app_label != 'slth':
-            __import__('{}.{}'.format(app_label, 'endpoints'), fromlist=fromlist)
-    except ImportError as e:
+            module = __import__('{}.{}'.format(app_label, 'endpoints'), fromlist=fromlist)
+            if os.path.dirname(module.__file__).endswith('endpoints'):
+                for name in [name for name in os.listdir(os.path.dirname(module.__file__)) if name.endswith('.py') and not name.startswith('__init__')]:
+                    __import__('{}.{}.{}'.format(app_label, 'endpoints', name[0:-3]), fromlist=fromlist)
+    except ModuleNotFoundError as e:
         if not e.name.endswith('endpoints'):
             raise e
     except BaseException as e:

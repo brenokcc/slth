@@ -1,6 +1,7 @@
 import os
 import json
 import binascii
+import traceback
 from .db import models, meta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -10,6 +11,7 @@ from django.apps import apps
 from datetime import datetime
 from django.utils.html import strip_tags
 from django.core import serializers
+from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
 from slth import APPLICATON
@@ -103,15 +105,6 @@ class Role(models.Model):
         return '{} - {}'.format(self.get_verbose_name(), scope_value) if scope_value else self.get_verbose_name()
 
 
-class EmailManager(models.Manager):
-    def all(self):
-        return self.order_by('-id')
-
-    def send(self, to, subject, content, from_email=None):
-        to = [to] if isinstance(to, str) else list(to)
-        return self.create(from_email=from_email or 'no-replay@mail.com', to=', '.join(to), subject=subject, content=content)
-
-
 class PushSubscription(models.Model):
     user = models.ForeignKey('auth.user', verbose_name='Usuário', on_delete=models.CASCADE)
     device = models.CharField(verbose_name='Dispositivo')
@@ -144,12 +137,27 @@ class Error(models.Model):
         verbose_name_plural = 'Erros'
 
 
+class EmailManager(models.Manager):
+    def all(self):
+        return self.order_by('-id')
+
+    def send(self, to, subject, content, send_at=None, action=None, url=None):
+        to = [to] if isinstance(to, str) else list(to)
+        return self.create(to=', '.join(to), subject=subject, content=content, send_at=send_at, action=action, url=url)
+
+
 class Email(models.Model):
-    from_email = models.EmailField('Remetente')
     to = models.TextField('Destinatário', help_text='Separar endereços de e-mail por ",".')
     subject = models.CharField('Assunto')
     content = models.TextField('Conteúdo', formatted=True)
+    send_at = models.DateTimeField('Data/Hora', null=True)
     sent_at = models.DateTimeField('Data/Hora', null=True)
+    attempt = models.IntegerField('Tentativa de Envio', default=0)
+    
+    action = models.CharField('Ação', null=True)
+    url = models.CharField('URL', null=True)
+
+    error = models.TextField('Erro', null=True)
 
     objects = EmailManager()
 
@@ -161,13 +169,32 @@ class Email(models.Model):
         return self.subject
 
     def save(self, *args, **kwargs):
+        self.from_email = settings.DEFAULT_FROM_EMAIL
+        if 1 or self.sent_at is None:
+            self.send()
+        super().save(*args, **kwargs)
+    
+    def send(self):
         to = [email.strip() for email in self.to.split(',')]
         msg = EmailMultiAlternatives(self.subject, strip_tags(self.content), self.from_email, to)
-        msg.attach_alternative(self.content, "text/html")
-        if self.sent_at is None:
-            msg.send(fail_silently=True)
-            self.sent_at = datetime.now()
-        super().save(*args, **kwargs)
+        content = render_to_string('email.html', dict(email=self, title=APPLICATON['title']))
+        msg.attach_alternative(content, "text/html")
+        self.send_at = datetime.now()
+        self.attempt = self.attempt + 1
+        try:
+            msg.send(fail_silently=False)
+            self.sent_at = self.send_at
+        except Exception as e:
+            self.error = str(e)
+            traceback.print_exc()
+        super().save()
+
+    def formfactory(self):
+        return super().formfactory().fieldset(
+            'Dados Gerais', ('subject', 'to', 'content')
+        ).fieldset(
+            'Botão', ('action', 'url')
+        )
 
 
 class Profile(models.Model):

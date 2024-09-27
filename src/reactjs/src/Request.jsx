@@ -2,18 +2,30 @@ import { showMessage } from "./Message";
 
 function Response(props) {
   const data = props.data;
-  if (data.store) {
-    Object.keys(data.store).map(function (k) {
-      if (data.store[k]) localStorage.setItem(k, data.store[k]);
-      else localStorage.removeItem(k, data.store[k]);
-    });
-  }
+  if (data.store) store(data.store);
   if (data.redirect && data.redirect.length > 2) {
     if (data.message) localStorage.setItem("message", data.message);
     document.location.href = appurl(data.redirect);
   } else {
     if (data.message) showMessage(data.message);
   }
+}
+
+function store(data){
+  Object.keys(data).map(function (k) {
+    if (data[k]){
+      localStorage.setItem(k, data[k]);
+      if(k=='token'){
+        document.cookie = "token="+data[k]+";path=/"
+      }
+    }
+    else{
+      localStorage.removeItem(k, data[k]);
+      if(k=='token'){
+        document.cookie = "token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      }
+    }
+  });
 }
 
 function buildurl(path) {
@@ -30,7 +42,7 @@ function appurl(path) {
 
 function request(method, path, callback, data) {
   const token = localStorage.getItem("token");
-  var headers = { Accept: "application/json" };
+  var headers = { Accept: "application/json", 'TZ': Intl.DateTimeFormat().resolvedOptions().timeZone };
   if (token) headers["Authorization"] = "Token " + token;
   const url = apiurl(path);
   var params = {
@@ -89,5 +101,5 @@ function request(method, path, callback, data) {
     });
 }
 
-export { Response, apiurl, appurl, request };
+export { Response, apiurl, appurl, request, store };
 export default request;
