@@ -28,12 +28,12 @@ from ..components import (
 )
 from ..exceptions import JsonResponseException, ReadyResponseException
 from ..utils import build_url, append_url
-from ..models import Profile, Log
+from ..models import Profile, Log, Job
 from slth.queryset import QuerySet
 from slth import APPLICATON, ENDPOINTS
 from .. import oauth
-from ..tasks import Task, TaskRunner
 from ..threadlocal import tl
+from ..tasks import Task
 
 
 T = TypeVar("T")
@@ -150,13 +150,16 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):
             form = self.getform(data.settitle(title).form(self))
-            if self.request.method == "POST" or self.request.GET.get("form") == title:
+            if self.request.method == "POST" or (title and self.request.GET.get("form") == title):
                 try:
-                    self.cleaned_data = form.submit()
-                    if form._message or form._redirect or form._dispose:
-                        return Response(form._message, form._redirect, dispose=form._dispose)
-                    else:
+                    if isinstance(self, DeleteEndpoint):
                         return self.post()
+                    else:
+                        self.cleaned_data = form.submit()
+                        if form._message or form._redirect or form._dispose:
+                            return Response(form._message, form._redirect, dispose=form._dispose)
+                        else:
+                            return self.post()
                 except ValidationError as e:
                     raise JsonResponseException(
                         dict(type="error", text="\n".join(e.messages), errors={})
@@ -172,8 +175,8 @@ class Endpoint(metaclass=EnpointMetaclass):
     def serialize(self):
         output = self.process()
         if isinstance(output, Task):
-            TaskRunner(output).start()
-            output = Response(f'Tarefa {output.key} iniciada.', task=output.key)
+            job = Job.objects.create(task=output)
+            output = Response(f'Tarefa {job.id} iniciada.', task=job.id)
         return serialize(output)
 
     def to_response(self):
@@ -200,15 +203,6 @@ class Endpoint(metaclass=EnpointMetaclass):
             return cls.get_api_name()
         else:
             return "{}.{}".format(module, cls.get_api_name())
-    
-    @classmethod
-    def get_default_actions(cls):
-        actions = ['add', 'view', 'edit', 'delete']
-        module = cls.__module__.split('.')[-1]
-        if module == 'endpoints':
-            return actions
-        else:
-            return [f'{module}.{name}' for name in actions if f'{module}.{name}' in ENDPOINTS]
 
     @classmethod
     def get_api_url(cls, arg=None):
@@ -360,6 +354,13 @@ class ListEndpoint(Generic[T], ModelEndpoint):
     
     def get_verbose_name(self):
         return self.get_metadata('verbose_name', self.model._meta.verbose_name_plural)
+    
+    def get_default_actions(self):
+        actions = ['add', 'view', 'edit', 'delete']
+        module = type(self).__module__.split('.')[-1]
+        if module == self.model.__name__.lower():
+            return [f'{module}.{name}' for name in actions if f'{module}.{name}' in ENDPOINTS]
+        return actions
 
 
 class AddEndpoint(Generic[T], ModelEndpoint):

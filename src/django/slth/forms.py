@@ -461,6 +461,7 @@ class FormMixin:
                 dict(type="error", text="Por favor, corrija os erros.", errors=errors)
             )
         else:
+            self.cleaned_data.update(**data)
             data.update(
                 {
                     field_name: self.cleaned_data.get(field_name)
@@ -476,7 +477,7 @@ class FormMixin:
                         fieldname = attr_name.replace('clean_', '')
                         raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
             with transaction.atomic():
-                self.cleaned_data = data
+                
                 if isinstance(self, DjangoModelForm):
                     self.instance.pre_save()
                     for inline_field_name in inline_fields:

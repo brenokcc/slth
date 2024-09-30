@@ -7,6 +7,7 @@ from django.db.models import *
 from django.utils.translation import gettext_lazy as _
 from . import generic
 from .. import ModelMixin
+from slth import  dumps, loads
 
 GenericField = generic.GenericField
 
@@ -118,6 +119,18 @@ class DateTimeField(DateTimeField):
     
     def from_db_value(self, value, *args, **kwargs):
         return pytz.timezone(timezone.get_default_timezone_name()).localize(value).astimezone(timezone.get_current_timezone()).replace(tzinfo=None) if value else None
+
+
+class TaskFied(TextField):
+    def get_db_prep_value(self, value, *args, **kwargs):
+        s = dumps(dict(module=value.__module__, classname=type(value).__name__, args=value.__initializer__[0], kwargs=value.__initializer__[1]))
+        return s
+
+    def from_db_value(self, value, *args, **kwargs):
+        data = loads(value)
+        module = __import__(data['module'], fromlist=data['module'].split('.'))
+        cls = getattr(module, data['classname'])
+        return cls(*data['args'], **data['kwargs'])
 
 
 class FileField(FileField):

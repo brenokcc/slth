@@ -1410,11 +1410,11 @@ function Form(props) {
               const tmp = e.target.innerHTML;
               e.target.innerHTML = "Aguarde... (0%)"
               function updateProgress(){
-                request('GET', '/api/task/progress/'+data.task+'/', function callback(task) {
+                request('GET', '/api/job/progress/'+data.task+'/', function callback(task) {
                     if(task==null || task.progress == 100){
                       e.target.innerHTML = tmp;
                     } else {
-                      e.target.innerHTML = "Aguarde... ("+task.progress+"%)";
+                      e.target.innerHTML = "Aguarde... ("+(task.progress || 0)+"%)";
                       setTimeout(updateProgress, 5000);
                     }
                 })

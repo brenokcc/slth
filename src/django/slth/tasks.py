@@ -1,41 +1,54 @@
-import traceback
 import time
-import datetime
 from django.apps import apps
 from threading import Thread
 from django.db import connection
 from django.core.cache import cache
-from uuid import uuid1
 
 
-class Task:
+def __init__(function):
+    def wrapper(*args, **kwargs):
+        args[0].__initializer__ = (args[1:], kwargs)
+        return function(*args, **kwargs)
+    return wrapper
+
+
+class TaskMetaclass(type):
+    def __new__(cls, name, bases, attrs, **kwargs):
+        if name != 'Task' and '__init__' in attrs:
+            attrs['__init__'] = __init__(attrs['__init__'])
+        return super().__new__(cls, name, bases, attrs, **kwargs)
+
+
+
+class Task(metaclass=TaskMetaclass):
 
     def __init__(self):
+        self.job = None
         self.total = 0
         self.partial = 0
         self.progress = 0
+        self.progress2 = 0
         self.error = None
         self.file_path = None
-        self.key = uuid1().hex
-        self.save()
-        self.sleep(1)
-
-    def save(self):
-        cache.set(self.key, dict(progress=self.progress, error=self.error, file_path=self.file_path), timeout=30)
-
-    def next(self):
-        self.partial += 1
-        self.progress = int(self.partial / self.total * 100) if self.total else 0
-        if self.progress == 100:
-            self.progress = 99
-        self.save()
 
     def iterate(self, iterable):
-        self.total = len(iterable)
+        if self.total == 0:
+            self.total = len(iterable)
         for obj in iterable:
-            self.next()
+            self.partial += 1
+            self.update()
             yield obj
+        self.update()
 
+    def update(self):
+        key = f'task-{self.job.name}'
+        self.progress = int(self.partial / self.total * 100) if self.total else 0
+        if self.progress == 0 or self.progress - self.progress2 > 5 or self.progress == 100:
+            self.progress2 = self.progress
+            data = dict(progress=self.progress, error=self.error, file_path=self.file_path)
+            print(f'Caching "{key}": {data}...')
+            cache.set(key, data, timeout=10)
+        
     def run(self):
         raise NotImplemented()
 
@@ -44,27 +57,3 @@ class Task:
 
     def objects(self, model):
         return apps.get_model(model).objects
-
-
-class TaskRunner(Thread):
-
-    def __init__(self, task, *args, **kwargs):
-        self.task = task
-        super().__init__(*args, **kwargs)
-
-    def run(self):
-        try:
-            self.task.file_path = self.task.run()
-            self.task.progress = 100
-            self.task.save()
-        except Exception as e:
-            traceback.print_exc()
-            try:
-                from sentry_sdk import capture_exception
-                capture_exception(e)
-            except Exception:
-                pass
-            self.task.error = 'Ocorreu um erro: {}'.format(str(e))
-            self.task.save()
-        finally:
-            connection.close()

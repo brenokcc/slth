@@ -1,21 +1,83 @@
 import os
 import json
+import time
 import binascii
+from uuid import uuid1
 import traceback
 from .db import models, meta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models.base import ModelBase
 from django.apps import apps
 from datetime import datetime
+from django.core.cache import cache
 from django.utils.html import strip_tags
 from django.core import serializers
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
+
 from slth import APPLICATON
 from django.contrib.auth.models import BaseUserManager
+
+
+class UserQuerySet(BaseUserManager):
+
+    def all(self):
+        return (
+            self.
+            search("username", "email")
+            .filters("is_superuser", "is_active")
+            .fields("username", "email", "get_roles")
+            .actions(
+                "user.add",
+                "user.view",
+                "user.edit",
+                "user.delete",
+                "user.sendpushnotification",
+                "user.changepassword",
+            )
+        )
+
+
+class User(User):
+    
+    class Meta:
+        icon = 'users'
+        proxy = True
+        verbose_name = 'Usuário'
+        verbose_name_plural = 'Usuários'
+
+    objects = UserQuerySet()
+
+    def formfactory(self):
+        return (
+            super().formfactory()
+            .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
+            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
+        )
+    
+    def serializer(self):
+        return (
+            super().serializer()
+            .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
+            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
+            .queryset('Notificação', 'get_push_subscriptions')
+            .queryset('Papéis', 'get_roles')
+        )
+    
+    @meta('Inscrições de Notificação')
+    def get_push_subscriptions(self):
+        return self.pushsubscription_set.fields('device')
+    
+    def send_push_notification(self, title, message, url=None):
+        send_push_web_notification(self, title, message, url=url)
+    
+    @meta('Papéis')
+    def get_roles(self):
+        return Role.objects.filter(username=self.username).fields('get_description')
 
 
 
@@ -34,6 +96,7 @@ class RoleFilter(models.Filter):
             usernames = Role.objects.filter(name=value).values_list('username', flat=True)
             queryset = queryset.filter(**{f'{self.username_field}__in': usernames})
         return queryset
+
 
 class RoleUserFilter(models.Filter):
     def get_label(self):
@@ -129,71 +192,202 @@ class PushSubscription(models.Model):
         return response.status_code == 201
 
 
+class ErrorManager(models.Manager):
+    pass
+
+
 class Error(models.Model):
     user = models.OneToOneField('auth.user', verbose_name='Usuário', on_delete=models.CASCADE, null=True)
     date = models.DateTimeField('Data/Hora')
     traceback = models.TextField('Rastreamento')
+
+    objects = ErrorManager()
 
     class Meta:
         verbose_name = 'Erro'
         verbose_name_plural = 'Erros'
 
 
+class JobManager(models.Manager):
+    def all(self):
+        return self.order_by('-id').rows()
+    
+    def create(self, task, name=None, start=None):
+        task_runner = super().create(name=name or uuid1().hex, task=task, start=start)
+        return task_runner
+    
+    def execute(self):
+        qs = self.filter(finish__isnull=True, attempt__lte=3, canceled=False)
+        qs = qs.filter(start__isnull=True) | qs.filter(start__lt=datetime.now())
+        for obj in qs:
+            try:
+                obj.task.job = obj
+                print(f'Executing job {obj.id}...')
+                obj.start = datetime.now()
+                obj.attempt += 1
+                obj.task.run()
+                obj.finish = datetime.now()
+                print(f'Job {obj.id} completed with success.')
+            except Exception as e:
+                traceback.print_exc()
+                obj.error = str(e)
+                if obj.attempt < 3:
+                    print(f'Job {obj.id} failed ({obj.error}) during attempt {obj.attempt}.')
+                else:
+                    obj.finish = datetime.now()
+                    print(f'Job {obj.id} completed with error ({obj.error}).')
+            finally:
+                obj.save()
+
+
+class Job(models.Model):
+    name = models.CharField("Nome", max_length=255, db_index=True)
+    user = models.ForeignKey(User, verbose_name='Usuário', null=True)
+    start = models.DateTimeField("Início", null=True)
+    finish = models.DateTimeField("Fim", null=True)
+    canceled = models.BooleanField(verbose_name='Cancelada', default=False)
+    attempt = models.IntegerField("Tentativa", default=0)
+    
+    task = models.TaskFied(verbose_name='Tarefa')
+    total = models.IntegerField(verbose_name='Total', default=0)
+    partial = models.IntegerField(verbose_name='Parcial', default=0)
+    
+    success = models.BooleanField(verbose_name='Successo', null=True)
+    error = models.TextField(verbose_name='Erro', null=True)
+
+    class Meta:
+        verbose_name = 'Tarefa'
+        verbose_name_plural = 'Tarefas'
+        
+    objects = JobManager()
+
+    def run(self):
+        raise NotImplementedError()
+    
+    def __str__(self):
+        return self.name
+    
+    def get_progress(self):
+        key = f'task-{self.name}'
+        return cache.get(key, {})
+
+
+class PushNotificationQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+    def create(self, to, title, message, send_at=None, action=None, url=None, key=None):
+        return super().create(
+            to=to, title=title, message=message, send_at=send_at, url=url, key=key
+        )
+    
+    def send(self):
+        qs = self.filter(attempt__lte=3, sent_at__isnull=True)
+        qs = qs.filter(send_at__isnull=True) | qs.filter(send_at__lte=datetime.now())
+        for obj in qs:
+            obj.send()
+
+
+class PushNotification(models.Model):
+    to = models.ForeignKey(User, verbose_name='To', on_delete=models.CASCADE)
+    title = models.CharField("Subject")
+    message = models.TextField("Content")
+    url = models.CharField("URL", null=True)
+    
+    send_at = models.DateTimeField("Send at", null=True)
+    sent_at = models.DateTimeField("Sent at", null=True)
+    attempt = models.IntegerField("Attempt", default=0)
+
+    error = models.TextField("Error", null=True)
+    key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+
+    class Meta:
+        verbose_name = 'Push Notification'
+        verbose_name_plural = 'Push Notifications'
+
+    objects = PushNotificationQuerySet()
+
+    def __str__(self):
+        return f'Push Notification {self.title} to {self.to}'
+
+    def send(self):
+        self.attempt = self.attempt + 1
+        try:
+            print(f'Sending notification "{self.title}" to "{self.to}"...')
+            send_push_web_notification(self.to, self.title, self.message, url=self.url)
+            self.sent_at = datetime.now()
+            print(f'Notification "{self.title}" to "{self.to}" sent with success.')
+        except Exception as e:
+            self.error = str(e)
+            print(f'Notification "{self.title}" to "{self.to}" failed during attempt {self.attempt}.')
+            traceback.print_exc()
+        finally:
+            super().save()
+
+
 class EmailManager(models.Manager):
     def all(self):
-        return self.order_by('-id')
+        return self.order_by('-id').rows()
 
-    def send(self, to, subject, content, send_at=None, action=None, url=None):
+    def create(self, to, subject, content, send_at=None, action=None, url=None, key=None):
         to = [to] if isinstance(to, str) else list(to)
-        return self.create(to=', '.join(to), subject=subject, content=content, send_at=send_at, action=action, url=url)
+        if key:
+            self.filter(key=key, sent_at__isnull=False).delete()
+        return super().create(
+            to=" ".join(to), subject=subject, content=content, send_at=send_at, action=action, url=url, key=key
+        )
+    
+    def send(self):
+        qs = self.filter(attempt__lte=3, sent_at__isnull=True)
+        qs = qs.filter(send_at__isnull=True) | qs.filter(send_at__lte=datetime.now())
+        for obj in qs:
+            obj.send()
 
 
 class Email(models.Model):
-    to = models.TextField('Destinatário', help_text='Separar endereços de e-mail por ",".')
-    subject = models.CharField('Assunto')
-    content = models.TextField('Conteúdo', formatted=True)
-    send_at = models.DateTimeField('Data/Hora', null=True)
-    sent_at = models.DateTimeField('Data/Hora', null=True)
-    attempt = models.IntegerField('Tentativa de Envio', default=0)
-    
-    action = models.CharField('Ação', null=True)
-    url = models.CharField('URL', null=True)
+    to = models.TextField("To", help_text="Separated by space")
+    subject = models.CharField("Subject")
+    content = models.TextField("Content")
+    send_at = models.DateTimeField("Send at", null=True)
+    sent_at = models.DateTimeField("Sent at", null=True)
+    attempt = models.IntegerField("Attempt", default=0)
 
-    error = models.TextField('Erro', null=True)
+    action = models.CharField("Action", null=True)
+    url = models.CharField("URL", null=True)
+
+    error = models.TextField("Error", null=True)
+    key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
 
     objects = EmailManager()
 
     class Meta:
-        verbose_name = 'E-mail'
-        verbose_name_plural = 'E-mails'
+        verbose_name = "E-mail"
+        verbose_name_plural = "E-mails"
 
     def __str__(self):
         return self.subject
 
-    def save(self, *args, **kwargs):
-        self.from_email = settings.DEFAULT_FROM_EMAIL
-        if 1 or self.sent_at is None:
-            self.send()
-        super().save(*args, **kwargs)
-    
     def send(self):
-        to = [email.strip() for email in self.to.split(',')]
-        msg = EmailMultiAlternatives(self.subject, strip_tags(self.content), self.from_email, to)
-        content = render_to_string('email.html', dict(email=self, title=APPLICATON['title']))
-        msg.attach_alternative(content, "text/html")
-        self.send_at = datetime.now()
+        to = [email.strip() for email in self.to.split()]
+        msg = EmailMultiAlternatives(self.subject, strip_tags(self.content), settings.DEFAULT_FROM_EMAIL, to)
+        html = render_to_string('email.html', dict(email=self, title=APPLICATON['title']))
+        msg.attach_alternative(html, "text/html")
         self.attempt = self.attempt + 1
         try:
+            print(f'Sending e-mail "{self.subject}" to "{self.to}"...')
             msg.send(fail_silently=False)
-            self.sent_at = self.send_at
+            self.sent_at = datetime.now()
+            print(f'E-mail "{self.subject}" to "{self.to}" sent with success.')
         except Exception as e:
             self.error = str(e)
+            print(f'Email "{self.subject}" to "{self.to}" failed during attempt {self.attempt}.')
             traceback.print_exc()
-        super().save()
+        finally:
+            super().save()
 
     def formfactory(self):
         return super().formfactory().fieldset(
-            'Dados Gerais', ('subject', 'to', 'content')
+            'Dados Gerais', ('subject', 'to', 'content', 'send_at')
         ).fieldset(
             'Botão', ('action', 'url')
         )
@@ -225,63 +419,6 @@ class Token(models.Model):
 
     def __str__(self):
         return self.key
-
-
-class UserQuerySet(BaseUserManager):
-
-    def all(self):
-        return (
-            self.
-            search("username", "email")
-            .filters("is_superuser", "is_active")
-            .fields("username", "email", "get_roles")
-            .actions(
-                "user.add",
-                "user.view",
-                "user.edit",
-                "user.delete",
-                "user.sendpushnotification",
-                "user.changepassword",
-            )
-        )
-
-
-class User(User):
-    
-    class Meta:
-        icon = 'users'
-        proxy = True
-        verbose_name = 'Usuário'
-        verbose_name_plural = 'Usuários'
-
-    objects = UserQuerySet()
-
-    def formfactory(self):
-        return (
-            super().formfactory()
-            .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
-            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
-        )
-    
-    def serializer(self):
-        return (
-            super().serializer()
-            .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
-            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
-            .queryset('Notificação', 'get_push_subscriptions')
-            .queryset('Papéis', 'get_roles')
-        )
-    
-    @meta('Inscrições de Notificação')
-    def get_push_subscriptions(self):
-        return self.pushsubscription_set.fields('device')
-    
-    def send_push_notification(self, title, message, url=None):
-        send_push_web_notification(self, title, message, url=url)
-    
-    @meta('Papéis')
-    def get_roles(self):
-        return Role.objects.filter(username=self.username).fields('get_description').actions('delete')
 
 
 class LogQuerySet(models.QuerySet):

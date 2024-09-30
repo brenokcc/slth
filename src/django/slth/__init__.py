@@ -5,7 +5,6 @@ import json
 import warnings
 from pathlib import Path
 from datetime import datetime, date
-from django.apps import apps
 from django.db import models
 from .queryset import QuerySet
 from django.db.models import manager
@@ -14,10 +13,13 @@ from django.db.models.deletion import Collector
 from .factory import FormFactory
 import django.db.models.options as options
 from django.db.models.base import ModelBase
+from django.db.models import Model
 from django.core.exceptions import FieldDoesNotExist
 from django.utils.autoreload import autoreload_started
 from django.core import serializers
+from django.utils import autoreload
 from .threadlocal import tl
+from django.apps import apps as django_apps
 
 from decimal import Decimal
 
@@ -26,6 +28,7 @@ warnings.filterwarnings('ignore', module='urllib3')
 FILENAME = 'application.yml'
 ENDPOINTS = {}
 PROXIED_MODELS = []
+THREADS = []
 APPLICATON = None
 
 if APPLICATON is None and os.path.exists(FILENAME):
@@ -39,10 +42,45 @@ if APPLICATON is None and os.path.exists(FILENAME):
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
-            return float(obj)
-        if isinstance(obj, date):
-            return obj.strftime("%d-%m-%Y")
+            return dict(type='decimal', value=float(obj))
+        elif isinstance(obj, datetime):
+            return dict(type='datetime', value=obj.isoformat())
+        elif isinstance(obj, date):
+            return dict(type='date', value=obj.isoformat())
+        elif isinstance(obj, QuerySet):
+            return dict(type='queryset', value=obj.dump())
+        elif isinstance(obj, Model):
+            return dict(type='object', model=obj._meta.label.lower(), pk=obj.pk)
         return json.JSONEncoder.default(self, obj)
+
+
+class JSONDecoder(json.JSONDecoder):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        type = obj.get('type')
+        if type:
+            if type == 'decimal':
+                return Decimal(obj['value'])
+            elif type == 'datetime':
+                return datetime.fromisoformat(obj['value'])
+            elif type == 'date':
+                return date.fromisoformat(obj['value'])
+            elif type == 'queryset':
+                return QuerySet.load(obj['value'])
+            elif type == 'object':
+                return django_apps.get_model(obj['model']).objects.get(pk=obj['pk'])
+        return obj
+
+
+def dumps(data):
+    return json.dumps(data, cls=JSONEncoder)
+
+
+def loads(data):
+    return json.loads(data, cls=JSONDecoder)
 
 
 class BaseManager(manager.BaseManager):
@@ -53,7 +91,7 @@ class BaseManager(manager.BaseManager):
         return self.get_queryset().all()
 
     def __call__(self, model):
-        return apps.get_model(model)
+        return django_apps.get_model(model)
 
 
 class Manager(BaseManager.from_queryset(QuerySet)):
@@ -90,7 +128,7 @@ class ModelMixin(object):
             obj = self
             for attr_name in username_lookup.split('__'):
                 obj = getattr(obj, attr_name)
-            roles = apps.get_model('api.role').objects.filter(username=obj)
+            roles = django_apps.get_model('api.role').objects.filter(username=obj)
             setattr(self, '_roles', roles)
         return roles
 
@@ -98,7 +136,7 @@ class ModelMixin(object):
         obj = self
         for attr_name in username_lookup.split('__'):
             obj = getattr(obj, attr_name)
-        return apps.get_model('auth.user').objects.get(username=obj)
+        return django_apps.get_model('auth.user').objects.get(username=obj)
     
     def serializer(self) -> Serializer:
         return Serializer(self)
@@ -131,7 +169,7 @@ class ModelMixin(object):
                     objects.append(instance)
                     if instance.__class__.__name__ not in order:
                         order.append(instance.__class__.__name__)
-        backup  = json.dumps(dict(order=order, objects=serializers.serialize("python", objects)), cls=JSONEncoder)
+        backup  = dumps(dict(order=order, objects=serializers.serialize("python", objects)))
         instance = '{}.{}:{}'.format(self._meta.app_label, self._meta.model_name, self.pk)
         Deletion.objects.create(username=username, datetime=datetime.now(), instance=instance, backup=backup)
         return self.delete()
@@ -222,3 +260,16 @@ def meta(verbose_name=None):
         function.verbose_name = verbose_name
         return function
     return decorate
+
+
+original_trigger_reload = autoreload.trigger_reload
+
+def trigger_reload(filename):
+    print('Stoping sloth thread....')
+    for thread in THREADS:
+        thread.stop()
+        thread.join()
+    print('Thread stopped!')
+    original_trigger_reload(filename)
+
+autoreload.trigger_reload = trigger_reload

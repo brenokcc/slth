@@ -1,4 +1,7 @@
 import slth
+import pickle
+import base64
+import zlib
 from django.apps import apps
 from django.db import models
 from django.db.models import manager, Q, CharField, CASCADE
@@ -474,3 +477,15 @@ class QuerySet(models.QuerySet):
             day=day, month=month, year=year, next=dict(month=next.month, year=next.year),
             previous=dict(month=previous.month, year=previous.year)
         )
+    
+    def dump(self):
+        query = base64.b64encode(zlib.compress(pickle.dumps(self.query))).decode()
+        return {'model': self.model._meta.label.lower(), 'query': query}
+    
+    @classmethod
+    def load(cls, data):
+        model = apps.get_model(data['model'])
+        query = pickle.loads(zlib.decompress(base64.b64decode(data['query'].encode())))
+        queryset = model.objects.none()
+        queryset.query = query
+        return queryset

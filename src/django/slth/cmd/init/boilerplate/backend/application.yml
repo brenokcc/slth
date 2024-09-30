@@ -35,6 +35,9 @@ application:
       - dev.icons
       - user.users
       - log.logs
+      - email.emails
+      - pushsubscription.pushsubscriptions
+      - job.jobs
       - deletion.deletions
       - auth.logout
     adder:

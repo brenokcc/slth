@@ -83,3 +83,27 @@ Open the browser and access http://127.0.0.1:8000/
 | February | $80     |
 | March    | $420    |
 
+
+
+###### JOB ######
+
+from slth.models import Job
+from api.tasks import FazerAlgumaCoisa
+job = Job.objects.create(name='T14', task=FazerAlgumaCoisa(15))
+
+job.get_progress()
+
+###### NOTIFICATION ######
+
+from slth.models import User
+from slth.models import PushNotification
+to = User.objects.get(username='000.000.000-00')
+push_notification = PushNotification.objects.create(to=to, title='Notificação de teste', message='Isso é um teste', url='https://google.com')
+
+
+###### E-MAIL ######
+
+from slth.models import User
+from slth.models import Email
+to = 'brenokcc@yahoo.com.br'
+email = Email.objects.create(to=to, subject='E-mail de teste', content='Isso é um teste', action='Acessar Agora', url='https://google.com')
