@@ -20,7 +20,7 @@ class Thread(threading.Thread):
         while not self._stop_event.is_set():
             # print('.')
             apps.get_model("slth", "email").objects.send()
-            apps.get_model("slth", "pushnotification").objects.execute()
+            apps.get_model("slth", "pushnotification").objects.send()
             apps.get_model("slth", "job").objects.execute() 
             time.sleep(10)
     
