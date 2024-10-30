@@ -23,7 +23,7 @@ function Menu() {
           <div>
             <Link
               dataLabel="Editar Perfil"
-              href="/api/editprofile/"
+              href="/api/profile/userprofile/"
               style={{ textDecoration: "none"}}
             >
               {window.application.menu.user}

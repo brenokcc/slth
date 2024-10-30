@@ -396,7 +396,7 @@ class Email(models.Model):
 class Profile(models.Model):
     
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    photo = models.ImageField(verbose_name=_("Foto"), width=500, blank=True, null=True, extensions=['png', 'jpg', 'jpeg'])
+    photo = models.ImageField(verbose_name=_("Foto"), upload_to='profile', width=500, blank=True, null=True, extensions=['png', 'jpg', 'jpeg'])
 
     class Meta:
         verbose_name = _("Profile")
