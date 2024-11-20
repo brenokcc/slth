@@ -1,6 +1,5 @@
 import io
 import inspect
-from weasyprint import HTML
 from ..models import Log
 from django.apps import apps
 from typing import TypeVar, Generic
@@ -130,6 +129,7 @@ class Endpoint(metaclass=EnpointMetaclass):
             for template in templates:
                 html = render_to_string(template, data)
                 if pdf:
+                    from weasyprint import HTML
                     doc = HTML(string=html).render()
                     pages.extend(doc.pages)
             new_doc = doc.copy(pages=pages)

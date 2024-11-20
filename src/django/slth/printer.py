@@ -2,7 +2,6 @@ import io
 import qrcode
 import base64
 from datetime import datetime
-from weasyprint import HTML
 from django.conf import settings
 from django.template.loader import render_to_string
 
@@ -38,6 +37,7 @@ def image_base64(image_bytes):
 
 
 def to_pdf(data, template, file_name=None, signature=None):
+    from weasyprint import HTML
     templates = []
     buffer = io.BytesIO()
     templates.append(template)
