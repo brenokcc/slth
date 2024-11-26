@@ -4,7 +4,7 @@ import hashlib
 import base64
 import os
 import re
-import requests
+import slthlib
 from datetime import datetime
 import tempfile
 from PIL import Image, ImageDraw, ImageFont
@@ -145,8 +145,9 @@ class PdfSigner:
         img = Image.new('RGB', (w, h), (255, 255, 255))
         img1 = ImageDraw.Draw(img)
         img1.rectangle([(3, 3), (w - 3, h - 3)], fill=bgcolor, outline=bgcolor)
-        font = ImageFont.truetype(os.path.join('/Users/breno/Documents/Workspace/suap', 'comum', 'static/comum/font/MicrosoftSansSerif.ttf'), 25)
-        bold = ImageFont.truetype(os.path.join('/Users/breno/Documents/Workspace/suap', 'comum', 'static/comum/font/MicrosoftSansSerifBold.ttf'), 25)
+        fontdir = os.path.join(os.path.dirname(slthlib.__file__), 'static', 'fonts')
+        font = ImageFont.truetype(os.path.join(fontdir, 'MicrosoftSansSerif.ttf'), 25)
+        bold = ImageFont.truetype(os.path.join(fontdir, 'MicrosoftSansSerifBold.ttf'), 25)
         x, y = 380, 10
         img1.text((x, y), 'DOCUMENTO ASSINADO DIGITALMENTE', (0, 0, 0), font=font)
         y += 45
@@ -157,7 +158,8 @@ class PdfSigner:
         img1.text((x, y), 'Verifique em https://verificador.iti.br', (0, 0, 0), font=font)
         y += 35
         tmp = tempfile.NamedTemporaryFile(suffix='.jpeg', delete=False)
-        logo = Image.open(os.path.join(os.path.dirname(__file__), 'images', 'icp-brasil.png'))
+        imgdir = os.path.join(os.path.dirname(slthlib.__file__), 'static', 'images')
+        logo = Image.open(os.path.join(imgdir, 'icp-brasil.png'))
         img.paste(logo.resize((int(logo.width*0.6), int(logo.height*0.6))), (5, 10))
         img = img.convert("RGB")
         img.save(tmp.name, format='jpeg')
