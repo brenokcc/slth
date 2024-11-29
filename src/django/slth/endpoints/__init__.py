@@ -112,7 +112,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         return False
 
     def redirect(self, url):
-        raise JsonResponseException(dict(type="redirect", url=url))
+        raise JsonResponseException(dict(type="redirect", url=url, autosubmit=self.request.GET.get('autosubmit')))
     
     def render(self, data, template=None, pdf=False, autoreload=None):
         base_url=settings.SITE_URL
@@ -396,8 +396,8 @@ class ModelInstanceEndpoint(ModelEndpoint):
 
 class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):
 
-    def formfactory(self) -> FormFactory:
-        return FormFactory(self.get_instance())
+    def formfactory(self, instance=None) -> FormFactory:
+        return FormFactory(instance or self.get_instance())
 
     def serializer(self) -> Serializer:
         return Serializer(self.get_instance()).contextualize(self.request)

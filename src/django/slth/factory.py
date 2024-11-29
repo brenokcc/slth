@@ -1,5 +1,7 @@
 from django.db.models import Model
 from .serializer import Serializer
+
+
 class FormFactory:
     def __init__(self, instance, endpoint=None, method='POST'):
         self._instance = instance
@@ -19,6 +21,11 @@ class FormFactory:
         self._message = None
         self._dispose = False
         self._image = None
+        self._autosubmit = None
+
+    def autosubmit(self, seconds):
+        self._autosubmit = seconds
+        return self
 
     def _append_field(self, field_name):
         if ':' in field_name:
@@ -118,6 +125,7 @@ class FormFactory:
         form._redirect = self._redirect
         form._dispose = self._dispose
         form._image = self._image
+        form._autosubmit = self._autosubmit
         for name in self._fieldlist:
             if name not in form.fields:
                 form.fields[name] = getattr(endpoint, name)

@@ -312,7 +312,9 @@ class Serializer:
                         endpoint = cls.instantiate(self.request, self.obj)
                         if endpoint.check_permission():
                             if not lazy:
+                                self.request.subpath = cls.get_api_url(self.obj.id) if cls.has_args() else cls.get_api_url()
                                 returned = endpoint.process()
+                                del self.request.subpath
                             path = self.path + [key]
                             if wrap:
                                 data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))
@@ -322,6 +324,7 @@ class Serializer:
                             if isinstance(data, dict):
                                 data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                             if leaf: raise JsonResponseException(data)
+                            
                 elif datatype == 'component':
                     title = item['title']
                     component = item['component']

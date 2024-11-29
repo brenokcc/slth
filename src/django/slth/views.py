@@ -18,7 +18,8 @@ from django.views.decorators.cache import never_cache, cache_control
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
-    vite = not socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(('127.0.0.1',5173))
+    # host.docker.internal
+    vite = not socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(('localhost',5173))
     return render(request, 'index.html', dict(vite=vite, application=APPLICATON))
 
 def service_worker(request):

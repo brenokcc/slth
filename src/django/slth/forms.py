@@ -167,6 +167,7 @@ class FormMixin:
             url=absolute_url(self.request),
             info=self._info,
             image=self._image,
+            autosubmit=self._autosubmit,
         )
         data.update(
             controls=self.controller.controls, width=self.get_metadata("width", "100%")
@@ -525,6 +526,7 @@ class Form(DjangoForm, FormMixin):
         self._actions = {}
         self._method = "POST"
         self._key = self._title.lower()
+        self._autosubmit = None
 
         self.fieldsets = {}
         self.fields = {}
@@ -560,6 +562,7 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._actions = {}
         self._method = "POST"
         self._key = self._title.lower()
+        self._autosubmit = None
 
         self.fieldsets = {}
         self.request = endpoint.request

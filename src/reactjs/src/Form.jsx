@@ -1287,6 +1287,12 @@ function FormContent(props) {
 function Form(props) {
   const id = Math.random();
 
+  useEffect(() => {
+    if(props.data.autosubmit){
+      setInterval(submit, props.data.autosubmit*1000)
+    }
+  }, []);
+
   function renderTitle() {
     const style = { margin: 0, color: Theme.colors.primary};
     return <h1 style={style}>{props.data.title}</h1>;
@@ -1371,7 +1377,7 @@ function Form(props) {
   }
 
   function submit(e) {
-    e.preventDefault();
+    if(e) e.preventDefault();
     var url = props.data.url;
     var form = document.getElementById(id);
     var data = new FormData(form);
@@ -1386,6 +1392,7 @@ function Form(props) {
         new URLSearchParams(data).toString();
       data = null;
     }
+    if(props.data.autosubmit && e == null) url += "&autosubmit=1";
     request(
       form.method.toUpperCase(),
       url,

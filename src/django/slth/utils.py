@@ -3,7 +3,7 @@ from django.template.engine import Engine
 
 
 def build_url(request, path=None):
-    return path or request.path if request else ''
+    return path or getattr(request, 'subpath', request.path) if request else ''
 
 def absolute_url(request, *querystrings):
     url = build_url(request)

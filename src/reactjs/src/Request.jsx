@@ -72,7 +72,7 @@ function request(method, path, callback, data) {
     .then((result) => {
       if (contentType == "application/json") {
         var data = JSON.parse(result || "{}");
-        if (typeof data == "object" && data.type == "redirect") {
+        if (typeof data == "object" && data.type == "redirect" && !data.autosubmit) {
           document.location.href = appurl(data.url);
         } else {
           if (callback) callback(data, httpResponse);
