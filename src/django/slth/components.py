@@ -169,6 +169,13 @@ class Table(dict):
         )
 
 
+class HtmlContent(dict):
+    def __init__(self, content, autoreload=None):
+        self["type"] = "html"
+        self["content"] = content
+        self["autoreload"] = autoreload * 1000 if autoreload else None
+
+
 class TemplateContent(dict):
     def __init__(self, name, context, autoreload=None):
         self["type"] = "html"
@@ -217,12 +224,13 @@ class ZoomMeet(dict):
 
 
 class Navbar(dict):
-    def __init__(self, title, subtitle=None, logo=None, user=None, search=False, roles=None):
+    def __init__(self, title, subtitle=None, logo=None, user=None, photo=None, search=False, roles=None):
         self["type"] = "navbar"
         self["title"] = title
         self["subtitle"] = subtitle
         self["logo"] = logo
         self["user"] = user
+        self["photo"] = photo
         self["usermenu"] = []
         self["adder"] = []
         self["tools"] = []

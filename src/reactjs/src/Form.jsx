@@ -1400,7 +1400,7 @@ function Form(props) {
         form
           .querySelectorAll(".error")
           .forEach((el) => (el.style.display = "none"));
-        if (e.target.dataset.spinning) {
+        if (e && e.target.dataset.spinning) {
           e.target.querySelector("i.fa-spin").style.display = "none";
           e.target.querySelector(
             "i.fa-" + e.target.dataset.spinning

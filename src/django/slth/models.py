@@ -18,6 +18,7 @@ from django.core import serializers
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
+from .components import HtmlContent
 
 from slth import APPLICATON
 from django.contrib.auth.models import BaseUserManager
@@ -327,7 +328,7 @@ class PushNotification(models.Model):
 
 class EmailManager(models.Manager):
     def all(self):
-        return self.order_by('-id').rows()
+        return self.fields('subject', 'to', 'content', 'send_at', 'sent_at').search('subject', 'content', 'to').filters('send_at__gte', 'send_at__lte', 'sent_at__gte', 'sent_at__lte').rows().order_by('-id')
 
     def create(self, to, subject, content, send_at=None, action=None, url=None, key=None):
         to = [to] if isinstance(to, str) else list(to)
@@ -391,6 +392,16 @@ class Email(models.Model):
         ).fieldset(
             'Botão', ('action', 'url')
         )
+    
+    def serializer(self):
+        return super().serializer().fieldset(
+            'Dados Gerais', ('subject', 'to', 'get_content', ('send_at', 'sent_at'))
+        ).fieldset(
+            'Botão', ('action', 'url')
+        )
+    
+    def get_content(self):
+        return HtmlContent(self.content)
 
 
 class Profile(models.Model):

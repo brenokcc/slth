@@ -98,9 +98,8 @@ function QuerySet(props) {
   }
 
   function showLoader(show) {
-    document.getElementById("loader-" + props.data.id).style.display = show
-      ? "block"
-      : "none";
+    const loader = document.getElementById("loader-" + props.data.id);
+    if(loader) loader.style.display = show ? "block" : "none";
   }
 
   function renderTabs() {

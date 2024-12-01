@@ -331,7 +331,7 @@ class ModelEndpoint(Endpoint):
         super().__init__()
 
     def get_icon(self):
-        return self.model._meta.icon or super().get_icon()
+        return super().get_icon() or getattr(self.model._meta, 'icon', None)
 
 
 class QuerySetEndpoint(Generic[T], ModelEndpoint):
@@ -564,17 +564,22 @@ class Dashboard(Endpoint):
 class Application(PublicEndpoint):
     def get(self):
         user = None
+        photo = None
         navbar = None
         menu = None
         icon = build_url(self.request, APPLICATON["logo"])
         logo = build_url(self.request, APPLICATON["logo"])
         if self.request.user.is_authenticated:
             user = self.request.user.username.split()[0].split("@")[0]
+            profile = Profile.objects.filter(user=self.request.user).first()
+            photo = profile and profile.photo and build_url(self.request, profile.photo.url)
+
         navbar = Navbar(
             title=APPLICATON["title"],
             subtitle=APPLICATON["subtitle"],
             logo=logo,
             user=user,
+            photo=photo,
             search=False,
             roles=' | '.join((str(role) for role in self.objects('slth.role').filter(username=self.request.user.username)))
         )

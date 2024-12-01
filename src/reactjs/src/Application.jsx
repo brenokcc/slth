@@ -89,8 +89,10 @@ function Application(props) {
   function toggleMenu() {
     const menu = document.querySelector("aside");
     const main = document.querySelector("main");
-    menu.style.display = menu.style.display == "none" ? "inline-block" : "none";
-    main.style.width = menu.style.display == "none" ? "100%" : "calc(100% - 350px)"
+    if(menu){
+      menu.style.display = menu.style.display == "none" ? "inline-block" : "none";
+      main.style.width = menu.style.display == "none" ? "100%" : "calc(100% - 350px)"
+    }
   }
 
   function onLogoClick(e) {
@@ -120,7 +122,7 @@ function Application(props) {
     return props.data.navbar ? (
       <div style={style}>
         <div style={{ padding: 20 }}>
-          {props.data.menu && (
+          {props.data.menu && props.data.menu.items.length > 0 && (
             <Icon
               icon="navicon"
               style={{ fontSize: "1.5rem", marginRight: 10, cursor: "pointer" }}
@@ -241,7 +243,7 @@ function Application(props) {
                 dataLabel={toLabelCase(props.data.navbar.user)}
               >
                 <img
-                  src="/static/images/user.svg"
+                  src={props.data.navbar.photo || "/static/images/user.svg"}
                   style={{
                     width: 30,
                     height: 30,

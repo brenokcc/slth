@@ -148,7 +148,7 @@ function Menu() {
     };
     return (
       <div style={style} className="menu">
-        {renderUser()}
+        {/*renderUser()*/}
         {renderItems()}
       </div>
     );
