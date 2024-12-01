@@ -1,6 +1,7 @@
 from .. import endpoints
 from .. import forms
 from ..models import Profile
+from ..components import Response
 
 
 class UserProfile(endpoints.Endpoint):
@@ -27,7 +28,7 @@ class UserProfile(endpoints.Endpoint):
                 self.request.user.save()
         else:
             raise forms.ValidationError('Repita a mesma senha.')
-        return super().post()
+        return Response(message="Ação realizada com sucesso", store=dict(application=None), redirect='/api/dashboard/')
     
     def get_profile(self):
         return Profile.objects.get_or_create(user=self.request.user, defaults=dict(photo=None))[0]

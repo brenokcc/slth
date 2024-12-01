@@ -14,6 +14,10 @@ from .utils import build_url
 from slth import APPLICATON
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache, cache_control
+import os
+from django.conf import settings
+from django.http import FileResponse, HttpResponseNotFound
+
 
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
@@ -24,6 +28,12 @@ def index(request, path=None):
 
 def service_worker(request):
     return render(request, 'service-worker.js', content_type='text/javascript')
+
+def media(request, file_path):
+    full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+    if os.path.exists(full_path):
+        return FileResponse(open(full_path, 'rb'))
+    return HttpResponseNotFound()
 
 @csrf_exempt
 def dispatcher(request, **kwargs):
