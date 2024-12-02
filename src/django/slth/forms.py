@@ -9,7 +9,7 @@ from .models import Token, Profile
 from django.db import transaction
 from django.db.models import Manager
 from .exceptions import JsonResponseException
-from .utils import absolute_url, build_url
+from .utils import absolute_url, build_url, append_url
 from .serializer import Serializer
 from slth import ENDPOINTS
 from .components import Scheduler
@@ -351,6 +351,7 @@ class FormMixin:
             elif ftype == "scheduler":
                 data.update(scheduler=field.scheduler)
             elif ftype == "choice" or pick:
+                choiceurl = self._endpoint.baseurl if self._endpoint else None
                 if name in self.request.GET and not choices_field_name:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:
@@ -364,7 +365,7 @@ class FormMixin:
                                 [dict(id=obj.id, value=str(obj).strip()) for obj in qs[0:(50 if pick else 25)]]
                             )
                         else:
-                            data["choices"] = absolute_url(
+                            data["choices"] = append_url(choiceurl, f"choices={fname}") if choiceurl else  absolute_url(
                                 self.request, f"choices={fname}"
                             )
                     else:
@@ -378,7 +379,7 @@ class FormMixin:
                                 dict(id=str(k), value=v) for k, v in field.choices
                             ]
                     if pick:
-                        data.update(pick=absolute_url(
+                        data.update(pick=append_url(choiceurl, f"choices={fname}") if choiceurl else  absolute_url(
                             self.request, f"choices={fname}"
                         ))
 

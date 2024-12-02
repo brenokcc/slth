@@ -65,6 +65,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     cache = cache
 
     def __init__(self):
+        self.baseurl = None
         self.request = None
         self.source = None
         self.instantiator = None
@@ -231,7 +232,9 @@ class Endpoint(metaclass=EnpointMetaclass):
             args = (source,) if cls.has_args() else ()
         else:
             args = (source.pk,) if cls.has_args() else ()
-        return cls(*args).configure(source).contextualize(request)
+        endpoint = cls(*args).configure(source).contextualize(request)
+        endpoint.baseurl = cls.get_api_url(*args)
+        return endpoint
 
     @classmethod
     def has_args(cls):
@@ -572,7 +575,7 @@ class Application(PublicEndpoint):
         if self.request.user.is_authenticated:
             user = self.request.user.username.split()[0].split("@")[0]
             profile = Profile.objects.filter(user=self.request.user).first()
-            photo = profile and profile.photo and build_url(self.request, profile.photo.url)
+            photo = profile and profile.photo and build_url(self.request, profile.photo.url) or None
 
         navbar = Navbar(
             title=APPLICATON["title"],
