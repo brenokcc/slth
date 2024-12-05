@@ -1456,7 +1456,7 @@ function Form(props) {
             }
           });
           showMessage(message, true);
-        } else {
+        } else if (data.type != "redirect")  {
           const output = document.querySelector("#output");
           output.innerHTML = "";
           ReactDOM.createRoot(

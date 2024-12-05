@@ -3,10 +3,11 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from slth import forms
 from django.contrib.auth import authenticate
-from ..models import Token
+from ..models import Token, UserTimeZone, TimeZone
 from ..components import Response
 from .. import oauth
 from . import PublicEndpoint, Endpoint
+from django.utils import timezone
 
 
 class Login(PublicEndpoint):
@@ -39,6 +40,14 @@ class Login(PublicEndpoint):
         )
         if user:
             token = Token.objects.create(user=user)
+            current_timezone = timezone.get_current_timezone()
+            timezone_instance = TimeZone.objects.get_or_create(name=current_timezone.__str__())[0]
+            user_timezone = UserTimeZone.objects.filter(user=user).first()
+            if user_timezone is None:
+                UserTimeZone.objects.create(user=user, timezone=timezone_instance)
+            else:
+                user_timezone.key = current_timezone.__str__()
+                user_timezone.save()
             return Response(
                 message="Bem-vindo!",
                 redirect=self.request.GET.get("next", "/api/dashboard/"),

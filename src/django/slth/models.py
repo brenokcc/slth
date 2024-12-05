@@ -1,6 +1,6 @@
 import os
 import json
-import time
+import pytz
 import binascii
 from uuid import uuid1
 import traceback
@@ -9,7 +9,6 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models.base import ModelBase
 from django.apps import apps
 from datetime import datetime
 from django.core.cache import cache
@@ -19,7 +18,6 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
 from .components import HtmlContent
-
 from slth import APPLICATON
 from django.contrib.auth.models import BaseUserManager
 
@@ -64,7 +62,7 @@ class User(User):
         return (
             super().serializer()
             .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
-            .fieldset('Dados de Acesso', ('username', ('is_superuser', 'is_active'),))
+            .fieldset('Dados de Acesso', (('username', 'get_timezone'), ('is_superuser', 'is_active'),))
             .queryset('Notificação', 'get_push_subscriptions')
             .queryset('Papéis', 'get_roles')
         )
@@ -79,6 +77,11 @@ class User(User):
     @meta('Papéis')
     def get_roles(self):
         return Role.objects.filter(username=self.username).fields('get_description')
+    
+    @meta('Fuso Horário')
+    def get_timezone(self):
+        user_timezone = self.usertimezone_set.first()
+        return user_timezone.key if user_timezone else None
 
 
 
@@ -506,6 +509,31 @@ class Deletion(models.Model):
             self.restored = True
             self.save()
 
+
+class TimeZone(models.Model):
+    name = models.CharField(verbose_name='Nome')
+
+    class Meta:
+        verbose_name = 'Fuso Horário'
+        verbose_name_plural = 'Fusos Horários'
+
+    def __str__(self):
+        return self.name
+    
+    def localtime(self, datetime=None):
+        return datetime.astimezone(pytz.timezone(self.name)).replace(tzinfo=None)
+
+
+class UserTimeZone(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name='Usuário', on_delete=models.CASCADE)
+    timezone = models.ForeignKey(TimeZone, verbose_name='Fuso Horário', on_delete=models.CASCADE, null=True)
+
+    class Meta:
+        verbose_name = 'Fuso Horário do Usuário'
+        verbose_name_plural = 'Fusos Horários do Usuário'
+
+    def __str__(self):
+        return '{} - {}'.format(self.user.username, self.key)
 
 
 # class Task(models.Model):
