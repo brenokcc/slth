@@ -57,3 +57,4 @@ class SendPushNotification(endpoints.ChildInstanceEndpoint):
             self.cleaned_data["title"], self.cleaned_data["message"], url=self.cleaned_data["url"]
         )
         return Response(message="Notificação enviada com sucesso.")
+

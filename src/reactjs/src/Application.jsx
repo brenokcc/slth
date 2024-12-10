@@ -88,10 +88,8 @@ function Application(props) {
 
   function toggleMenu() {
     const menu = document.querySelector("aside");
-    const main = document.querySelector("main");
     if(menu){
       menu.style.display = menu.style.display == "none" ? "inline-block" : "none";
-      main.style.width = menu.style.display == "none" ? "100%" : "calc(100% - 350px)"
     }
   }
 
@@ -268,7 +266,10 @@ function Application(props) {
             verticalAlign: "top",
             maxWidth: "350px",
             minWidth: "350px",
-            display: window.innerWidth < SMALL_WIDTH ? "none" : "inline-block",
+            display: window.innerWidth < SMALL_WIDTH ? "none" : "block",
+            float: "left",
+            minHeight: window.innerHeight+"px",
+            backgroundColor: "white",
           }}
         >
           <Menu />
@@ -299,9 +300,8 @@ function Application(props) {
   }
 
   function renderMain() {
-    const sub = props.data.menu && props.data.menu.items.length > 0 ? 350 : 0;
     return (
-      <main id="main" style={{display: "inline-block", width: "calc(100% - "+ sub +"px)"}}>
+      <main id="main" style={{width:"100%", overflowX:"auto"}}>
         {renderBreadcrumbs()}
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>
@@ -334,8 +334,8 @@ function Application(props) {
         <div
           style={{
             width: "100%",
-            display: "block",
             minHeight: window.innerHeight - 70,
+            display: "flex",
           }}
         >
           {renderAside()}

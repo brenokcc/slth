@@ -6,8 +6,24 @@ from django.contrib.auth import authenticate
 from ..models import Token, UserTimeZone, TimeZone
 from ..components import Response
 from .. import oauth
-from . import PublicEndpoint, Endpoint
+from . import PublicEndpoint, Endpoint, ChildInstanceEndpoint
 from django.utils import timezone
+
+def login_response(user, redirect='/api/dashboard/'):
+    token = Token.objects.create(user=user)
+    current_timezone = timezone.get_current_timezone()
+    timezone_instance = TimeZone.objects.get_or_create(name=current_timezone.__str__())[0]
+    user_timezone = UserTimeZone.objects.filter(user=user).first()
+    if user_timezone is None:
+        UserTimeZone.objects.create(user=user, timezone=timezone_instance)
+    else:
+        user_timezone.key = current_timezone.__str__()
+        user_timezone.save()
+    return Response(
+        message="Bem-vindo!",
+        redirect=redirect,
+        store=dict(token=token.key, application=None),
+    )
 
 
 class Login(PublicEndpoint):
@@ -24,12 +40,7 @@ class Login(PublicEndpoint):
         if code:
             user = oauth.authenticate(code)
             if user:
-                token = Token.objects.create(user=user)
-                return Response(
-                    message="Bem-vindo!",
-                    redirect="/api/dashboard/",
-                    store=dict(token=token.key, application=None),
-                )
+                return login_response(user)
         return self.formfactory().fields("username", "password")
 
     def post(self):
@@ -39,20 +50,7 @@ class Login(PublicEndpoint):
             password=self.cleaned_data.get("password"),
         )
         if user:
-            token = Token.objects.create(user=user)
-            current_timezone = timezone.get_current_timezone()
-            timezone_instance = TimeZone.objects.get_or_create(name=current_timezone.__str__())[0]
-            user_timezone = UserTimeZone.objects.filter(user=user).first()
-            if user_timezone is None:
-                UserTimeZone.objects.create(user=user, timezone=timezone_instance)
-            else:
-                user_timezone.key = current_timezone.__str__()
-                user_timezone.save()
-            return Response(
-                message="Bem-vindo!",
-                redirect=self.request.GET.get("next", "/api/dashboard/"),
-                store=dict(token=token.key, application=None),
-            )
+            return login_response(user)
         else:
             raise ValidationError("Login e senha não conferem")
 
@@ -71,3 +69,15 @@ class Logout(Endpoint):
 
     def check_permission(self):
         return self.request.user.is_authenticated
+
+
+class LoginAs(ChildInstanceEndpoint):
+    class Meta:
+        icon = "user-secret"
+        verbose_name = "Login As"
+
+    def get(self):
+        return self.formfactory().fields().info("Você acessará o sistema com o usuário {}.".format(self.source))
+    
+    def post(self):
+        return login_response(self.source)

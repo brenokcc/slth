@@ -5,7 +5,7 @@ install_requires = []
 
 setup(
     name='slthcore',
-    version='0.3.8',
+    version='0.3.9',
     packages=find_packages(),
     install_requires=install_requires,
     include_package_data=True,

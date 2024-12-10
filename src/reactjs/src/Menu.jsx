@@ -144,7 +144,6 @@ function Menu() {
     const style = {
       marginTop: 10,
       height: "100%",
-      borderRight: "solid 1px #EEE",
     };
     return (
       <div style={style} className="menu">

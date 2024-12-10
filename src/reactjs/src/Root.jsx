@@ -37,12 +37,14 @@ const APPLICATION_URL = "/api/application/";
 const APPLICATION_DATA = localStorage.getItem("application");
 
 function ComponentFactory(props) {
-  const func = COMPONENT_REGISTRY[props.data.type];
-  return func ? (
-    React.createElement(func, { data: props.data })
-  ) : (
-    <div>{JSON.stringify(props.data)}</div>
-  );
+  if(props.data){
+    const func = COMPONENT_REGISTRY[props.data.type];
+    return func ? (
+      React.createElement(func, { data: props.data })
+    ) : (
+      <div>{JSON.stringify(props.data)}</div>
+    );
+  }
 }
 ComponentFactory.register = function (func, name) {
   COMPONENT_REGISTRY[name.toLowerCase()] = func;

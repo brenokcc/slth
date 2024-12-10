@@ -37,6 +37,7 @@ class UserQuerySet(BaseUserManager):
                 "user.delete",
                 "user.sendpushnotification",
                 "user.changepassword",
+                "auth.loginas",
             )
         )
 
@@ -81,7 +82,7 @@ class User(User):
     @meta('Fuso Horário')
     def get_timezone(self):
         user_timezone = self.usertimezone_set.first()
-        return user_timezone.key if user_timezone else None
+        return user_timezone.timezone.name if user_timezone else None
 
 
 
