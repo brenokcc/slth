@@ -19,6 +19,7 @@ from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification
 from .components import HtmlContent
 from slth import APPLICATON
+from django.utils import timezone
 from django.contrib.auth.models import BaseUserManager
 
 
@@ -521,8 +522,9 @@ class TimeZone(models.Model):
     def __str__(self):
         return self.name
     
-    def localtime(self, datetime=None):
-        return datetime.astimezone(pytz.timezone(self.name)).replace(tzinfo=None)
+    def localtime(self, value):
+        value_in_default_time_zone = pytz.timezone(timezone.get_current_timezone_name()).localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
+        return value_in_default_time_zone.astimezone(pytz.timezone(self.name)).replace(tzinfo=None)
 
 
 class UserTimeZone(models.Model):

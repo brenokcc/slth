@@ -115,10 +115,16 @@ class TextField(TextField):
 class DateTimeField(DateTimeField):
 
     def get_db_prep_value(self, value, *args, **kwargs):
-        return pytz.timezone(timezone.get_current_timezone_name()).localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None) if value else None
+        return self.get_current_timezone().localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None) if value else None
     
     def from_db_value(self, value, *args, **kwargs):
-        return pytz.timezone(timezone.get_default_timezone_name()).localize(value).astimezone(timezone.get_current_timezone()).replace(tzinfo=None) if value else None
+        return pytz.timezone(timezone.get_default_timezone_name()).localize(value).astimezone(self.get_current_timezone()).replace(tzinfo=None) if value else None
+
+    def get_current_timezone(self):
+        current_timezone_name = timezone.get_current_timezone_name()
+        if current_timezone_name and current_timezone_name[0] in ('+', '-'):
+            current_timezone_name = "Etc/GMT{}".format(int(current_timezone_name))
+        return pytz.timezone(current_timezone_name)
 
 
 class TaskFied(TextField):
