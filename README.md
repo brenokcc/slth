@@ -14,7 +14,7 @@ mkdir project
 cd project
 python -m venv .venv
 source .venv/bin/activate
-pip install slthlib slth
+pip install slthlib slthcore
 python -m slth.cmd.init
 ```
 

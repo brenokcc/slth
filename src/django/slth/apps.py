@@ -21,8 +21,11 @@ class Thread(threading.Thread):
             # print('.')
             apps.get_model("slth", "email").objects.send()
             apps.get_model("slth", "pushnotification").objects.send()
-            apps.get_model("slth", "job").objects.execute() 
-            time.sleep(10)
+            apps.get_model("slth", "job").objects.execute()
+            for i in range(0, 10):
+                if self._stop_event.is_set():
+                    break
+                time.sleep(1)
     
     def stop(self):
         print("Stopping e-mail thread...")
