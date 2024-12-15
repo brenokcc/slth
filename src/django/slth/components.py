@@ -302,7 +302,7 @@ class Scheduler(dict):
         end_time=23,
         chucks=2,
         start_day=None,
-        days=14,
+        days=7,
         single_selection=False,
         input_name="schedule",
         readonly=False,

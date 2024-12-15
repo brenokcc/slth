@@ -351,7 +351,7 @@ class FormMixin:
             elif ftype == "scheduler":
                 data.update(scheduler=field.scheduler)
             elif ftype == "choice" or pick:
-                choiceurl = self._endpoint.baseurl if self._endpoint else None
+                choiceurl = self._endpoint.base_url if self._endpoint else None
                 if name in self.request.GET and not choices_field_name:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:

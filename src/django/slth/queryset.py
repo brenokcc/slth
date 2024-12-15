@@ -27,6 +27,7 @@ class QuerySet(models.QuerySet):
         self.metadata = {}
         self.instance = None
         self.request = None
+        self.base_url = None
         super().__init__(*args, **kwargs)
 
     def total(self, x=None):
@@ -252,7 +253,7 @@ class QuerySet(models.QuerySet):
         instance_actions = []
         queryset_actions = []
 
-        base_url = append_url(build_url(self.request), 'only={}'.format(attrname) if attrname else '')
+        base_url = append_url(build_url(self.request, self.base_url), 'only={}'.format(attrname) if attrname else '')
         if self.request.GET.urlencode():
             base_url = append_url(base_url, self.request.GET.urlencode())
 

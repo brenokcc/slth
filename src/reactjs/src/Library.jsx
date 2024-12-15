@@ -9,6 +9,7 @@ import { toLabelCase } from "./Utils";
 import { Link } from "./Link";
 import format from "./Formatter.jsx";
 import { StyleSheet} from "./StyleSheet.jsx"
+import { Button } from "./Button.jsx";
 
 function Html(props) {
   useEffect(() => {
@@ -20,7 +21,7 @@ function Html(props) {
 }
 
 function Banner(props) {
-  return <img src={props.data.src} style={{ width: "100%" }} />;
+  return <img src={props.data.src} style={{ width: "100%", height: "200px", objectFit: "cover" }} />;
 }
 
 function Image(props) {
@@ -425,12 +426,16 @@ function Scheduler(props) {
   const DESELECT = []
   const WEEKDAYS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"]
   const [data, setData] = useState(props.data);
+  const [week, setWeek] = useState(1);
 
 
   StyleSheet(`
     .scheduler{
       width: 100%;
       max-width: 100%;
+    }
+    .scheduler .periods{
+      text-align: center;
     }
     .scheduler .periods span{
       margin-right: 30px;
@@ -439,16 +444,32 @@ function Scheduler(props) {
       display: none;
     }
   `)
+
+  function loadWeek(number){
+      const form = document.getElementsByName(props.data.input_name)[0].closest("form");
+      const url = form ? add_form_params(props.data.url, form, props.data.input_name) + "&week="+(number || week) : props.data.url + "?week="+(number || week);
+      request("GET", url, function(data){
+          console.log(data);
+          setData(data);
+      });
+  }
+
+  function previousWeek(){
+    if(week>1){
+      loadWeek(week-1);
+      setWeek(week-1);
+    }
+  }
+
+  function nextWeek(){
+    loadWeek(week+1);
+    setWeek(week+1);
+  }
   
   useEffect(() => {
     document.getElementById(id).querySelector(".input-periodo-2").checked = true;
     document.getElementById(id).querySelector(".input-periodo-3").checked = true;
-    window['reload-'+props.data.input_name+'-field'] = function(){
-      const form = document.getElementsByName(props.data.input_name)[0].closest("form");
-        request("GET", add_form_params(props.data.url, form, props.data.input_name), function(data){
-          setData(data);
-      });
-    }
+    window['reload-'+props.data.input_name+'-field'] = loadWeek
   }, []);
 
   function bgColor(value, dataLabel) {
@@ -580,12 +601,38 @@ function Scheduler(props) {
       <div id={id} style={style} className="scheduler">
         {props.data.title && <h2>{ props.data.title }</h2>}
         <input id={"input" + id} type="hidden" name={props.data.input_name} />
-        <div className="periods">
-          <input className="input-periodo-1" type="checkbox" data-label="madrugada" onChange={(e)=>checkPeriod(1, e.target.checked)}/> <span>Madrugada</span>
-          <input className="input-periodo-2" type="checkbox" data-label="manha" onChange={(e)=>checkPeriod(2, e.target.checked)}/> <span>Manhã</span>
-          <input className="input-periodo-3" type="checkbox" data-label="tarde" onChange={(e)=>checkPeriod(3, e.target.checked)}/> <span>Tarde</span>
-          <input className="input-periodo-4" type="checkbox" data-label="noite" onChange={(e)=>checkPeriod(4, e.target.checked)}/> <span>Noite</span>
-        </div>
+        <table style={{width: "100%"}}>
+          <tbody>
+            <tr>
+              {props.data.url &&
+              <td align="left" width={10}>
+                <Button
+                  primary
+                  icon="chevron-left"
+                  onClick={() => previousWeek()}
+                />
+              </td>
+              }
+              <td align="center">
+                <div className="periods">
+                  <input className="input-periodo-1" type="checkbox" data-label="madrugada" onChange={(e)=>checkPeriod(1, e.target.checked)}/> <span>Madrugada</span>
+                  <input className="input-periodo-2" type="checkbox" data-label="manha" onChange={(e)=>checkPeriod(2, e.target.checked)}/> <span>Manhã</span>
+                  <input className="input-periodo-3" type="checkbox" data-label="tarde" onChange={(e)=>checkPeriod(3, e.target.checked)}/> <span>Tarde</span>
+                  <input className="input-periodo-4" type="checkbox" data-label="noite" onChange={(e)=>checkPeriod(4, e.target.checked)}/> <span>Noite</span>
+                </div>
+              </td>
+              {props.data.url &&
+              <td align="right" width={10}>
+                <Button
+                  primary
+                  icon="chevron-right"
+                  onClick={() => nextWeek()}
+                />
+              </td>
+              }
+            </tr>
+          </tbody>
+        </table>
         <table style={table} onMouseDown={onMouseDown} onMouseUp={onMouseUp}>
           <thead>
             <tr>

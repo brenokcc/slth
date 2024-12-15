@@ -118,6 +118,7 @@ class Serializer:
         else:
             self.title = None
         self.show_title = show_title
+        self.base_url = None
 
     def actions(self, *actions) -> 'Serializer':
         self.metadata['actions'].extend(actions)
@@ -313,6 +314,8 @@ class Serializer:
                         if endpoint.check_permission():
                             if not lazy:                     
                                 returned = endpoint.process()
+                                if isinstance(returned, QuerySet) or isinstance(returned, Serializer):
+                                    returned.base_url = endpoint.base_url
                             path = self.path + [key]
                             if wrap:
                                 data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))

@@ -65,7 +65,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     cache = cache
 
     def __init__(self):
-        self.baseurl = None
+        self.base_url = None
         self.request = None
         self.source = None
         self.instantiator = None
@@ -175,6 +175,8 @@ class Endpoint(metaclass=EnpointMetaclass):
 
     def serialize(self):
         output = self.process()
+        if isinstance(output, QuerySet) or isinstance(output, Serializer):
+            output.base_url = self.base_url
         if isinstance(output, Task):
             job = Job.objects.create(task=output)
             output = Response(f'Tarefa {job.id} iniciada.', task=job.id)
@@ -233,7 +235,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         else:
             args = (source.pk,) if cls.has_args() else ()
         endpoint = cls(*args).configure(source).contextualize(request)
-        endpoint.baseurl = cls.get_api_url(*args)
+        endpoint.base_url = cls.get_api_url(*args)
         return endpoint
 
     @classmethod
