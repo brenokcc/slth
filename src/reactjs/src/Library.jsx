@@ -447,7 +447,9 @@ function Scheduler(props) {
 
   function loadWeek(number){
       const form = document.getElementsByName(props.data.input_name)[0].closest("form");
-      const url = form ? add_form_params(props.data.url, form, props.data.input_name) + "&week="+(number || week) : props.data.url + "?week="+(number || week);
+      var url = form ? add_form_params(props.data.url, form, props.data.input_name) : props.data.url;
+      var sep = url.indexOf("?") > 0 ? '&' : '?';
+      url = url + sep + "week="+(number || week);
       request("GET", url, function(data){
           console.log(data);
           setData(data);
@@ -604,7 +606,7 @@ function Scheduler(props) {
         <table style={{width: "100%"}}>
           <tbody>
             <tr>
-              {props.data.url &&
+              {props.data.url && week > 1 &&
               <td align="left" width={10}>
                 <Button
                   primary
