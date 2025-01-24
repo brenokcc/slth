@@ -39,6 +39,7 @@ class FormFactory:
         return self
 
     def fields(self, *names, **values) -> 'FormFactory':
+        names = names + tuple(values.keys())
         not_str = {name for name in names if not isinstance(name, str)}
         if not_str:
             self.fieldset('Dados Gerais', names)
@@ -126,6 +127,8 @@ class FormFactory:
         form._dispose = self._dispose
         form._image = self._image
         form._autosubmit = self._autosubmit
+        form._submit_label = endpoint.get_submit_label()
+        form._submit_icon = endpoint.get_submit_icon()
         for name in self._fieldlist:
             if name not in form.fields:
                 form.fields[name] = getattr(endpoint, name)

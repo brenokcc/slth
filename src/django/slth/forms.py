@@ -4,6 +4,7 @@ import datetime
 from django.forms import *
 from django.utils.translation import gettext_lazy as _
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
+from django.forms import fields
 from django.db.models import Model, QuerySet, Manager
 from .models import Token, Profile
 from django.db import transaction
@@ -156,7 +157,6 @@ class FormMixin:
         field_name = self.request.GET.get("on_change")
         if field_name:
             raise JsonResponseException(self.controller.on_change(field_name))
-
         data = dict(
             type="form",
             key=self._key,
@@ -168,6 +168,8 @@ class FormMixin:
             info=self._info,
             image=self._image,
             autosubmit=self._autosubmit,
+            submit_label=self._submit_label,
+            submit_icon=self._submit_icon,
         )
         data.update(
             controls=self.controller.controls, width=self.get_metadata("width", "100%")
@@ -340,7 +342,7 @@ class FormMixin:
                 if word in name:
                     data.update(type="password")
             pick = getattr(field, "pick", False)
-            if isinstance(field, CharField) or isinstance(field, IntegerField):
+            if isinstance(field, fields.CharField) or isinstance(field, fields.IntegerField):
                 mask = getattr(field, "mask", None)
                 if mask:
                     data.update(mask=mask)
@@ -528,6 +530,8 @@ class Form(DjangoForm, FormMixin):
         self._method = "POST"
         self._key = self._title.lower()
         self._autosubmit = None
+        self._submit_label = "Enviar"
+        self._submit_icon = "chevron-right"
 
         self.fieldsets = {}
         self.fields = {}

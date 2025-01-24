@@ -1,4 +1,5 @@
 import io
+import json
 import inspect
 from ..models import Log
 from django.apps import apps
@@ -11,6 +12,7 @@ from django.http import JsonResponse, HttpResponse
 from ..factory import FormFactory
 from django.core.exceptions import ValidationError
 from slth import forms
+from slth.models import Role
 from django.db.models import Model
 from datetime import datetime
 from django.template.loader import render_to_string
@@ -45,6 +47,7 @@ class ApiResponse(JsonResponse):
         self["Access-Control-Allow-Headers"] = "*"
         self["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
         self["Access-Control-Max-Age"] = "600"
+        # print(json.dumps(args[0], indent=1, ensure_ascii=False))
 
 
 class EnpointMetaclass(type):
@@ -82,7 +85,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         return self
 
     def objects(self, model):
-        return apps.get_model(model).objects
+        return apps.get_model(model).objects.contextualize(self.request)
 
     def get(self):
         fields = []
@@ -105,7 +108,7 @@ class Endpoint(metaclass=EnpointMetaclass):
             return True
         for name in names:
             if (
-                self.objects("slth.role")
+                Role.objects
                 .filter(username=self.request.user.username, name=name)
                 .exists()
             ):
@@ -151,7 +154,7 @@ class Endpoint(metaclass=EnpointMetaclass):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):
             form = self.getform(data.settitle(title).form(self))
-            if self.request.method == "POST" or (title and self.request.GET.get("form") == title):
+            if self.request.method == "POST" or (title and self.request.GET.get("form") == form._key):
                 try:
                     if isinstance(self, DeleteEndpoint):
                         return self.post()
@@ -177,6 +180,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         output = self.process()
         if isinstance(output, QuerySet) or isinstance(output, Serializer):
             output.base_url = self.base_url
+            output = output.contextualize(self.request)
         if isinstance(output, Task):
             job = Job.objects.create(task=output)
             output = Response(f'Tarefa {job.id} iniciada.', task=job.id)
@@ -291,7 +295,16 @@ class Endpoint(metaclass=EnpointMetaclass):
         return default if value is None else value
 
     def get_verbose_name(self):
-        return self.get_metadata("verbose_name")
+        return self.get_metadata("verbose_name", self.get_default_verbose_name())
+    
+    def get_submit_label(self):
+        return self.get_metadata("submit_label", "Enviar")
+    
+    def get_submit_icon(self):
+        return self.get_metadata("submit_icon", "chevron-right")
+    
+    def get_default_verbose_name(self):
+        return type(self).__name__
     
     def get_icon(self):
         return self.get_metadata("icon")
@@ -337,6 +350,9 @@ class ModelEndpoint(Endpoint):
 
     def get_icon(self):
         return super().get_icon() or getattr(self.model._meta, 'icon', None)
+    
+    def get_default_verbose_name(self):
+        return type(self).__name__.replace(self.model.__name__, f' {self.model._meta.verbose_name}')
 
 
 class QuerySetEndpoint(Generic[T], ModelEndpoint):

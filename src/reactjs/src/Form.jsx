@@ -1325,10 +1325,10 @@ function Form(props) {
         <Button onClick={cancel} label="Cancelar" default display="inline" />
         <Button
           onClick={submit}
-          label="Enviar"
+          label={props.data.submit_label}
           primary
           display="inline"
-          icon="chevron-right"
+          icon={props.data.submit_icon}
           spin
         />
       </div>
@@ -1387,7 +1387,7 @@ function Form(props) {
         url +
         sep +
         "form=" +
-        props.data.title +
+        props.data.key +
         "&" +
         new URLSearchParams(data).toString();
       data = null;

@@ -168,7 +168,6 @@ class QuerySet(models.QuerySet):
                     raise JsonResponseException(endpoint.serialize())
                 raise Exception()
 
-        
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
             if request and lookup in request.GET and lookup != choices_field_name:

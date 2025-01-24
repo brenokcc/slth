@@ -9,7 +9,7 @@ from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
 from .exceptions import JsonResponseException
 from .utils import absolute_url, build_url
-from .components import Image, FileLink, FileViewer
+from .components import Image, FileLink, FileViewer, Banner
 from django.db.models.fields.files import ImageFieldFile, FieldFile
 
 
@@ -36,7 +36,7 @@ def serialize(obj, primitive=False, request=None, logging=False):
         return None
     elif isinstance(obj, dict):
         if request:
-            if isinstance(obj, Image):
+            if isinstance(obj, Image) or isinstance(obj, Banner):
                 if isinstance(obj['src'], ImageFieldFile):
                     obj['src'] = build_url(request, obj['src'].url) if obj['src'] else None
             elif isinstance(obj, FileLink) or isinstance(obj, FileViewer):
@@ -316,12 +316,15 @@ class Serializer:
                                 returned = endpoint.process()
                                 if isinstance(returned, QuerySet) or isinstance(returned, Serializer):
                                     returned.base_url = endpoint.base_url
+                                    returned = returned.contextualize(self.request)
                             path = self.path + [key]
                             if wrap:
                                 data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))
                             else:
                                 data = serialize(returned)
-                                data['title'] = title
+                                #if 'title' in data and data['title'] is None:
+                                if lazy:
+                                    data['title'] = title
                             if isinstance(data, dict):
                                 data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                             if leaf: raise JsonResponseException(data)

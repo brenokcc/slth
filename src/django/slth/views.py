@@ -1,10 +1,8 @@
 
-import json
 import sys
 import slth
 import socket
 import traceback
-
 from .models import Token
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -17,13 +15,13 @@ from django.views.decorators.cache import never_cache, cache_control
 import os
 from django.conf import settings
 from django.http import FileResponse, HttpResponseNotFound
-
+from .endpoints import ApiResponse
 
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
     # host.docker.internal
-    vite = not socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(('localhost',5173))
+    vite = not socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(('127.0.0.1',5173))
     return render(request, 'index.html', dict(vite=vite, application=APPLICATON))
 
 def service_worker(request):
@@ -74,17 +72,9 @@ def dispatcher(request, **kwargs):
                     return e.response
                 except Exception as e:
                     traceback.print_exc() 
-                    return ApiResponse(data=dict(error=str(e)), safe=False, status=500)
+                    return ApiResponse(dict(error=str(e)), safe=False, status=500)
                 finally:
                     if endpoint:
                         endpoint.finish_audit_trail()
             else:
                 return ApiResponse({}, status=404)
-
-class ApiResponse(JsonResponse):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self["Access-Control-Allow-Origin"] = "*"
-        self["Access-Control-Allow-Headers"] = "*"
-        self["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH";
-        self["Access-Control-Max-Age"] = "600"

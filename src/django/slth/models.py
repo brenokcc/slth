@@ -16,7 +16,7 @@ from django.utils.html import strip_tags
 from django.core import serializers
 from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
-from .notifications import send_push_web_notification
+from .notifications import send_push_web_notification, send_whatsapp_notification
 from .components import HtmlContent
 from slth import APPLICATON
 from django.utils import timezone
@@ -222,18 +222,19 @@ class JobManager(models.Manager):
         task_runner = super().create(name=name or uuid1().hex, task=task, start=start)
         return task_runner
     
-    def execute(self):
+    def execute(self, preview=False):
         qs = self.filter(finish__isnull=True, attempt__lte=3, canceled=False)
         qs = qs.filter(start__isnull=True) | qs.filter(start__lt=datetime.now())
         for obj in qs:
             try:
                 obj.task.job = obj
                 print(f'Executing job {obj.id}...')
-                obj.start = datetime.now()
-                obj.attempt += 1
-                obj.task.run()
-                obj.finish = datetime.now()
-                print(f'Job {obj.id} completed with success.')
+                if not preview:
+                    obj.start = datetime.now()
+                    obj.attempt += 1
+                    obj.task.run()
+                    obj.finish = datetime.now()
+                    print(f'Job {obj.id} completed with success.')
             except Exception as e:
                 traceback.print_exc()
                 obj.error = str(e)
@@ -243,7 +244,8 @@ class JobManager(models.Manager):
                     obj.finish = datetime.now()
                     print(f'Job {obj.id} completed with error ({obj.error}).')
             finally:
-                obj.save()
+                if not preview:
+                    obj.save()
 
 
 class Job(models.Model):
@@ -280,18 +282,23 @@ class Job(models.Model):
 
 class PushNotificationQuerySet(models.QuerySet):
     def all(self):
-        return self
+        return self.fields('title', 'to', 'message', 'send_at', 'sent_at').search('title', 'message', 'to').filters('send_at__gte', 'send_at__lte', 'sent_at__gte', 'sent_at__lte').rows().order_by('-id')
 
     def create(self, to, title, message, send_at=None, action=None, url=None, key=None):
-        return super().create(
+        if key:
+            self.filter(key=key, sent_at__isnull=False).delete()
+        notification = super().create(
             to=to, title=title, message=message, send_at=send_at, url=url, key=key
         )
+        if send_at and send_at <= datetime.now():
+            notification.send()
+        return notification
     
-    def send(self):
+    def send(self, preview=False):
         qs = self.filter(attempt__lte=3, sent_at__isnull=True)
         qs = qs.filter(send_at__isnull=True) | qs.filter(send_at__lte=datetime.now())
         for obj in qs:
-            obj.send()
+            obj.send(preview=preview)
 
 
 class PushNotification(models.Model):
@@ -316,19 +323,92 @@ class PushNotification(models.Model):
     def __str__(self):
         return f'Push Notification {self.title} to {self.to}'
 
-    def send(self):
+    def send(self, preview=False):
         self.attempt = self.attempt + 1
         try:
             print(f'Sending notification "{self.title}" to "{self.to}"...')
-            send_push_web_notification(self.to, self.title, self.message, url=self.url)
-            self.sent_at = datetime.now()
-            print(f'Notification "{self.title}" to "{self.to}" sent with success.')
+            if not preview:
+                send_push_web_notification(self.to, self.title, self.message, url=self.url)
+                self.sent_at = datetime.now()
+                print(f'Notification "{self.title}" to "{self.to}" sent with success.')
         except Exception as e:
             self.error = str(e)
             print(f'Notification "{self.title}" to "{self.to}" failed during attempt {self.attempt}.')
             traceback.print_exc()
         finally:
-            super().save()
+            if not preview:
+                super().save()
+
+
+class WhatsappNotificationQuerySet(models.QuerySet):
+    def all(self):
+        return self.fields('title', 'to', 'message', 'send_at', 'sent_at').search('title', 'message', 'to').filters('send_at__gte', 'send_at__lte', 'sent_at__gte', 'sent_at__lte').rows().order_by('-id')
+
+    @meta('Enviadas')
+    def sent(self):
+        return self.filter(send_at__isnull=False)
+    
+    @meta('Não-Enviadas')
+    def unsent(self):
+        return self.filter(send_at__isnull=True)
+
+    def create(self, to, title, message, send_at=None, url=None, key=None):
+        if key:
+            self.filter(key=key, sent_at__isnull=False).delete()
+        notification = super().create(
+            to=to, title=title, message=message, send_at=send_at, url=url, key=key
+        )
+        if send_at and send_at <= datetime.now():
+            notification.send()
+        return notification
+    
+    def send(self, preview=False):
+        qs = self.filter(attempt__lte=3, sent_at__isnull=True)
+        qs = qs.filter(send_at__isnull=True) | qs.filter(send_at__lte=datetime.now())
+        for obj in qs:
+            obj.send(preview=preview)
+
+
+class WhatsappNotification(models.Model):
+    to = models.CharField(verbose_name='To')
+    title = models.CharField("Subject")
+    message = models.TextField("Content")
+    url = models.CharField("URL", null=True, blank=True)
+    
+    send_at = models.DateTimeField("Send at", null=True, blank=True)
+    sent_at = models.DateTimeField("Sent at", null=True, blank=True)
+    attempt = models.IntegerField("Attempt", default=0, blank=True)
+
+    error = models.TextField("Error", null=True, blank=True)
+    key = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+
+    class Meta:
+        verbose_name = 'Whatsapp Notification'
+        verbose_name_plural = 'Whatsapp Notifications'
+
+    objects = PushNotificationQuerySet()
+
+    def __str__(self):
+        return f'Push Notification {self.title} to {self.to}'
+
+    def send(self, preview=False):
+        self.attempt = self.attempt + 1
+        try:
+            print(f'Sending notification "{self.title}" to "{self.to}"...')
+            if not preview:
+                send_whatsapp_notification(self.to, self.title, self.message, url=self.url)
+                self.sent_at = datetime.now()
+                print(f'Notification "{self.title}" to "{self.to}" sent with success.')
+        except Exception as e:
+            self.error = str(e)
+            print(f'Notification "{self.title}" to "{self.to}" failed during attempt {self.attempt}.')
+            traceback.print_exc()
+        finally:
+            if not preview:
+                super().save()
+
+    def serializer(self):
+        return super().serializer().fieldset("Dados Gerais", ('subject', 'to', 'content', 'url', 'send_at'))
 
 
 class EmailManager(models.Manager):
@@ -339,15 +419,18 @@ class EmailManager(models.Manager):
         to = [to] if isinstance(to, str) else list(to)
         if key:
             self.filter(key=key, sent_at__isnull=False).delete()
-        return super().create(
+        email = super().create(
             to=" ".join(to), subject=subject, content=content, send_at=send_at, action=action, url=url, key=key
         )
+        if send_at and send_at <= datetime.now():
+            email.send()
+        return email
     
-    def send(self):
+    def send(self, preview=False):
         qs = self.filter(attempt__lte=3, sent_at__isnull=True)
         qs = qs.filter(send_at__isnull=True) | qs.filter(send_at__lte=datetime.now())
         for obj in qs:
-            obj.send()
+            obj.send(preview=preview)
 
 
 class Email(models.Model):
@@ -373,7 +456,7 @@ class Email(models.Model):
     def __str__(self):
         return self.subject
 
-    def send(self):
+    def send(self, preview=False):
         to = [email.strip() for email in self.to.split()]
         msg = EmailMultiAlternatives(self.subject, strip_tags(self.content), settings.DEFAULT_FROM_EMAIL, to)
         html = render_to_string('email.html', dict(email=self, title=APPLICATON['title']))
@@ -381,15 +464,17 @@ class Email(models.Model):
         self.attempt = self.attempt + 1
         try:
             print(f'Sending e-mail "{self.subject}" to "{self.to}"...')
-            msg.send(fail_silently=False)
-            self.sent_at = datetime.now()
-            print(f'E-mail "{self.subject}" to "{self.to}" sent with success.')
+            if not preview:
+                msg.send(fail_silently=False)
+                self.sent_at = datetime.now()
+                print(f'E-mail "{self.subject}" to "{self.to}" sent with success.')
         except Exception as e:
             self.error = str(e)
             print(f'Email "{self.subject}" to "{self.to}" failed during attempt {self.attempt}.')
             traceback.print_exc()
         finally:
-            super().save()
+            if not preview:
+                super().save()
 
     def formfactory(self):
         return super().formfactory().fieldset(

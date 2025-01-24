@@ -39,6 +39,22 @@
 		],
 		"description": "Create CharField"
 	},
+	"FileField": {
+		"scope": "python",
+		"prefix": "FileField",
+		"body": [
+			"$1 = models.FileField(verbose_name='$2', upload_to='files')$0",
+		],
+		"description": "Create FileField"
+	},
+	"ImageField": {
+		"scope": "python",
+		"prefix": "ImageField",
+		"body": [
+			"$1 = models.ImageField(verbose_name='$2', upload_to='images')$0",
+		],
+		"description": "Create ImageField"
+	},
 	"ForeignKey": {
 		"scope": "python",
 		"prefix": "ForeignKey",
@@ -71,19 +87,32 @@
 		],
 		"description": "Create TextField"
 	},
-	"Admin": {
+	"RelationEndpoint": {
 		"scope": "python",
-		"prefix": "None",
+		"prefix": "RelationEndpoint",
 		"body": [
-			"class $1(endpoints.AdminEndpoint[$2]):",
+			"class Adicionar$1(endpoints.RelationEndpoint[$1]):",
 			"    class Meta:",
-			"        verbose_name = '$3'",
+			"        verbose_name = 'Adicionar $1'",
+			"",
+			"    def formfactory(self):",
+			"        return super().formfactory().fields($2=self.source)",
+			"$0"
+		],
+		"description": "Create RelationEndpoint"
+	},
+	"ListEndpoint": {
+		"scope": "python",
+		"prefix": "ListEndpoint",
+		"body": [
+			"",
+			"class $1(endpoints.ListEndpoint[$2]):",
 			"",
 			"    def get(self):",
 			"        return super().get()",
-			"$0"
+			""
 		],
-		"description": "Create AdminEndpoint"
+		"description": "Create ListEndpoint"
 	},
 	"AddEndpoint": {
 		"scope": "python",

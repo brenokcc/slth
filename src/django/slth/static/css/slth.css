@@ -70,6 +70,14 @@ input[type="checkbox"], input[type="radio"]{
     text-align: center;
   }
 
+  #output h1{
+    font-size: 1.5rem;
+  }
+
+  .tabContent h1{
+    display: none;
+  }
+
 
   /* .object-viewer .object-fieldset {
     border: solid 1px #2c3e50;

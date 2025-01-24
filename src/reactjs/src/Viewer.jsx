@@ -568,10 +568,10 @@ function Group(props) {
 
   function renderContent() {
     var clone = { ...content };
-    clone.title = null;
+    //clone.title = null;
     const style = { padding: 0 };
     return (
-      <div style={style}>
+      <div style={style} className="tabContent">
         <ComponentFactory key={Math.random()} data={clone} />
       </div>
     );
