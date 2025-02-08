@@ -1,0 +1,134 @@
+# Sloth
+## Getting Start
+### Creating a Project
+1. mkdir app
+2. cd app/backend
+3. python -m slth.init
+### Work on the Project
+1. python manage.py sync
+2. python manage.py runserver
+3. python manage.py integration_test
+## models
+### model
+#### serializer()
+#### formfactory()
+### queryset
+#### statistics
+#####
+###### total()
+###### counter()
+###### sum()
+##### charts
+###### pie
+###### polar
+###### bar
+###### stacked_bar
+###### column
+###### stacked_column
+###### tree_map
+###### line
+###### area
+###### progress
+#### serialization
+##### fields()
+##### search()
+##### filters()
+##### actions()
+##### subsets()
+##### rendering
+###### timeline()
+###### accordion()
+###### cards()
+###### rows()
+#### bi()
+## components
+### basic
+#### Text
+#### QrCode
+#### Progress
+#### Status
+#### Badge
+### images
+#### Image
+#### Banner
+### file
+#### FileLink
+#### FileViewer
+### dev
+#### shell
+### dashboard
+#### Application
+##### Navbar
+##### Menu
+##### Footer
+#### Indicators
+#### Boxes
+#### IconSet
+#### Grid
+### datetime
+#### Scheduler
+### messages
+#### Info
+#### Warning
+### data
+#### Table
+#### HtmlContent
+#### TemplateContent
+#### Map
+#### Steps
+#### Webconf
+## api
+### Endpoint
+#### 
+##### get()
+###### serializer()
+###### formfactory()
+###### redirect()
+###### render()
+##### post()
+###### redirect()
+###### render()
+##### check_permission()
+#### PublicEndpoint
+#### ModelEndpoint
+##### QuerySetEndpoint
+##### ListEndpoint
+##### AddEndpoint
+##### ModelInstanceEndpoint
+###### InstanceEndpoint
+###### ViewEndpoint
+###### EditEndpoint
+###### DeleteEndpoint
+##### RelationEndpoint
+#### ChildEndpoint
+##### ChildInstanceEndpoint
+### FormFactory
+####
+##### settitle()
+##### info()
+##### actions()
+##### image()
+##### display()
+##### initial()
+##### choices()
+##### hidden()
+##### fields()
+##### fieldset()
+#### fields
+##### CharField
+##### BooleanField
+##### DateField
+##### DateTimeField
+##### ModelChoiceField
+##### ModelMultipleChoiceField
+### Serializer
+#### settitle()
+#### actions()
+#### field()
+#### fields()
+#### fieldset()
+#### queryset()
+#### endpoint()
+#### append()
+#### section()
+#### group()

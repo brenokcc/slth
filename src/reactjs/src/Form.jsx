@@ -97,6 +97,8 @@ function formValue(name, value) {
   var widget = group.querySelector('*[name="' + name + '"]');
   if (widget.tagName == "INPUT") {
     widget.value = value;
+  } else if (widget.tagName == "TEXTAREA") {
+    widget.innerHTML = value;
   } else {
     if (widget.tagName == "SELECT") {
       if (widget.style.display != "none") {
