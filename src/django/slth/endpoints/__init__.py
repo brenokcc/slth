@@ -19,14 +19,11 @@ from django.template.loader import render_to_string
 from ..forms import ModelForm, Form
 from ..serializer import serialize, Serializer
 from ..components import (
-    Application as Application_,
-    Navbar,
-    Menu,
-    Footer,
     Response,
     Boxes,
     TemplateContent,
 )
+from slth.application import Application as ApplicationConfig
 from ..exceptions import JsonResponseException, ReadyResponseException
 from ..utils import build_url, append_url
 from ..models import Profile, Log, Job
@@ -584,79 +581,7 @@ class Dashboard(Endpoint):
 
 class Application(PublicEndpoint):
     def get(self):
-        user = None
-        photo = None
-        navbar = None
-        menu = None
-        icon = build_url(self.request, APPLICATON["logo"])
-        logo = build_url(self.request, APPLICATON["logo"])
-        if self.request.user.is_authenticated:
-            user = self.request.user.username.split()[0].split("@")[0]
-            profile = Profile.objects.filter(user=self.request.user).first()
-            photo = profile and profile.photo and build_url(self.request, profile.photo.url) or None
-
-        navbar = Navbar(
-            title=APPLICATON["title"],
-            subtitle=APPLICATON["subtitle"],
-            logo=logo,
-            user=user,
-            photo=photo,
-            search=False,
-            roles=' | '.join((str(role) for role in self.objects('slth.role').filter(username=self.request.user.username)))
-        )
-        for entrypoint in ["actions", "usermenu", "adder", "settings", "tools", "toolbar"]:
-            if APPLICATON["dashboard"][entrypoint]:
-                for endpoint_name in APPLICATON["dashboard"][entrypoint]:
-                    cls = ENDPOINTS[endpoint_name]
-                    endpoint = cls().instantiate(self.request, self)
-                    if endpoint.check_permission() and endpoint.contribute(entrypoint):
-                        label = endpoint.get_verbose_name()
-                        url = build_url(self.request, cls.get_api_url())
-                        modal = cls.get_metadata("modal", False)
-                        icon = cls.get_metadata("icon", None)
-                        navbar.add_action(entrypoint, label, url, modal, icon=icon)
-        
-        if APPLICATON["menu"]:
-            items = []
-
-            def get_item(k, v):
-                if isinstance(v, dict):
-                    icon, label = k.split(":") if ":" in k else (None, k)
-                    subitems = []
-                    for k1, v1 in v.items():
-                        subitem = get_item(k1, v1)
-                        if subitem:
-                            subitems.append(subitem)
-                    if subitems:
-                        return dict(dict(icon=icon, label=label, items=subitems))
-                else:
-                    cls = ENDPOINTS.get(v)
-                    if cls:
-                        endpoint = cls().instantiate(self.request, self)
-                        if endpoint.check_permission() and endpoint.contribute("menu"):
-                            icon, label = k.split(":") if ":" in k else (None, k)
-                            url = build_url(self.request, cls.get_api_url())
-                            return dict(dict(label=label, url=url, icon=icon))
-
-            for k, v in APPLICATON["menu"].items():
-                item = get_item(k, v)
-                if item:
-                    items.append(item)
-            profile = (
-                Profile.objects.filter(user=self.request.user).first() if user else None
-            )
-            photo_url = (
-                profile.photo.url
-                if profile and profile.photo
-                else "/static/images/user.svg"
-            )
-            menu = Menu(items, user=user, image=build_url(self.request, photo_url))
-
-        footer = Footer(APPLICATON["version"])
-        return Application_(
-            icon=icon, navbar=navbar, menu=menu, footer=footer, oauth=oauth.providers(),
-            sponsors=APPLICATON.get("sponsors", ())
-        )
+        return ApplicationConfig.get_instance().serialize(self)
 
 
 class Manifest(PublicEndpoint):

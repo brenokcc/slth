@@ -11,6 +11,17 @@ function Action(props) {
   const id = props.id || Math.random();
   const [label, setLabel] = useState(props.data.name);
 
+  StyleSheet(`
+    .action{
+      padding: 12px;
+      text-decoration: none;
+      white-space: nowrap;
+      border-radius: 5px;
+      margin: 5px;
+      min-width: 50px;
+    }
+  `)
+
   function onClick(e) {
     e.preventDefault();
     var url = props.data.url;
@@ -50,16 +61,6 @@ function Action(props) {
   }
 
   function render() {
-    StyleSheet(`
-      .action{
-        padding: 12px;
-        text-decoration: none;
-        white-space: nowrap;
-        border-radius: 5px;
-        margin: 5px;
-        min-width: 50px;
-      }
-    `)
     var style = {
       lineHeight: props.data.icon ? "4rem" : "auto",
     };
@@ -93,6 +94,27 @@ function Action(props) {
 }
 
 function Dropdown(props) {
+
+  StyleSheet(`
+    .dropdown > div {
+      cursor: pointer;
+    }
+    .dropdown ul{
+      padding: 0px;
+      position: absolute;
+      width: 150px;
+      left: 0px;
+      text-align: center;
+      background-color: white;
+      box-shadow: 15px 15px 10px -15px #DDD;
+      display: none;
+    }
+    .dropdown li{
+      list-style-type: none;
+      padding: 10px;
+    }
+  `)
+
   function getListElement(e) {
     var dropdown = e.target.parentNode.querySelector(".dropdown ul");
     if (dropdown == null) {
@@ -124,25 +146,6 @@ function Dropdown(props) {
     dropdown.style.display = "none";
   }
   function render() {
-    StyleSheet(`
-      .dropdown > div {
-        cursor: pointer;
-      }
-      .dropdown ul{
-        padding: 0px;
-        position: absolute;
-        width: 150px;
-        left: 0px;
-        text-align: center;
-        background-color: white;
-        box-shadow: 15px 15px 10px -15px #DDD;
-        display: none;
-      }
-      .dropdown li{
-        list-style-type: none;
-        padding: 10px;
-      }
-    `)
     return (
       <div className="dropdown">
         <div

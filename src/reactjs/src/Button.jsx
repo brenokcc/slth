@@ -4,6 +4,19 @@ import { Theme } from "./Theme";
 import StyleSheet from "./StyleSheet";
 
 function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
+  StyleSheet(`
+    .button{
+      padding: 12px;
+      text-decoration: none;
+      white-space: nowrap;
+      border-radius: 5px;
+      margin: 5px;
+      cursor: pointer;
+      width: fit-content;
+      text-wrap: nowrap;
+    }
+  `)
+  
   function renderContent() {
     if (icon) {
       if (compact || !label) {
@@ -23,18 +36,6 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
   }
 
   function render() {
-    StyleSheet(`
-      .button{
-        padding: 12px;
-        text-decoration: none;
-        white-space: nowrap;
-        border-radius: 5px;
-        margin: 5px;
-        cursor: pointer;
-        width: fit-content;
-        text-wrap: nowrap;
-      }
-    `)
     const style = {
       display: display || "block",
     };

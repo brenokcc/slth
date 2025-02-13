@@ -6,6 +6,7 @@ import { hideMessages } from "./Message";
 import { Icon } from "./Icon";
 import { request, apiurl } from "./Request.jsx";
 import { Action } from "./Action.jsx";
+import StyleSheet from "./StyleSheet.jsx";
 
 function createLayer() {
   if (document.querySelector(".layer") == null) {
@@ -62,23 +63,24 @@ function openActionDialog(actions) {
 }
 
 function Layer(props) {
-  const style = {
-    backgroundColor: "black",
-    bottom: 0,
-    left: 0,
-    position: "fixed",
-    right: 0,
-    top: 0,
-    opacity: 0.7,
-    display: "none",
-  };
+  StyleSheet(`
+    .layer{
+      background-color: black;
+      bottom: 0;
+      left: 0;
+      position: fixed;
+      right: 0;
+      top: 0;
+      opacity: 0.7;
+      display: none;
+    }
+  `)
   return (
     <div
       className="layer"
       onClick={function () {
         closeDialog();
       }}
-      style={style}
     ></div>
   );
 }

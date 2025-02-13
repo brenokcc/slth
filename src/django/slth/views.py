@@ -20,8 +20,7 @@ from .endpoints import ApiResponse
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
-    # host.docker.internal
-    vite = not socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(('127.0.0.1',5173))
+    vite = bool(os.environ.get('VITE'))
     return render(request, 'index.html', dict(vite=vite, application=APPLICATON))
 
 def service_worker(request):
