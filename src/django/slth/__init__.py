@@ -15,6 +15,7 @@ import django.db.models.options as options
 from django.db.models.base import ModelBase
 from django.db.models import Model
 from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.autoreload import autoreload_started
 from django.core import serializers
 from django.utils import autoreload
@@ -185,13 +186,19 @@ def save_decorator(func):
             if obj:
                 for field in self._meta.fields:
                     a = getattr(obj, field.name)
-                    b = getattr(self, field.name)
+                    try:
+                        b = getattr(self, field.name)
+                    except ObjectDoesNotExist:
+                        b = None
                     if a != b:
                         diff[field.verbose_name] = (serialize(a), serialize(b))
         else:
             action = 'add'
             for field in self._meta.fields:
-                b = getattr(self, field.name)
+                try:
+                    b = getattr(self, field.name)
+                except ObjectDoesNotExist:
+                    b = None
                 if b is not None:
                     diff[field.verbose_name] = (None, serialize(b))
         func(self, *args, **kwargs)

@@ -420,8 +420,8 @@ class FormMixin:
                 if inline_form_field_name in self.data:
                     inline_form_data = {}
                     pk = self.data.get(inline_form_field_name)
-                    if pk:
-                        pk = int(pk)
+                    if pk or is_one_to_one:
+                        pk = int(pk or 0)
                         for name in inline_field.form.base_fields:
                             inline_form_field_name = f"{prefix}__{name}"
                             inline_form_data[name] = self.data.get(
@@ -568,6 +568,8 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._method = "POST"
         self._key = self._title.lower()
         self._autosubmit = None
+        self._submit_label = "Enviar"
+        self._submit_icon = "chevron-right"
 
         self.fieldsets = {}
         self.request = endpoint.request

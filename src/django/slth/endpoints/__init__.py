@@ -581,7 +581,7 @@ class Dashboard(Endpoint):
 
 class Application(PublicEndpoint):
     def get(self):
-        return ApplicationConfig.get_instance().serialize(self)
+        return ApplicationConfig.get_instance().serialize(self.request)
 
 
 class Manifest(PublicEndpoint):
