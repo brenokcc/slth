@@ -808,12 +808,7 @@ function Textarea(props) {
 }
 
 function Boolean(props) {
-  var field = props.data;
-  field["choices"] = [
-    { id: true, value: "Sim" },
-    { id: false, value: "Não" },
-  ];
-  return <Radio data={field} />;
+  return <Radio data={props.data} />;
 }
 
 function Radio(props) {
@@ -823,15 +818,10 @@ function Radio(props) {
   var field = props.data;
 
   function checked(choice) {
-    if (field.value != null) {
-      if (field.value == choice.id) {
-        return true;
-      } else {
-        return field.value.id == choice.id;
-      }
-    } else {
-      return false;
-    }
+    if (field.value !=null && field.value.toString() == choice.id.toString()) return true;
+    if (field.value !=null && field.value.id !=null && field.value.id.toString() == choice.id.toString()) return true;
+    if (field.value == null && choice.id.toString() == "null") return true;
+    return false;
   }
 
   function toogle(id) {
@@ -1065,7 +1055,7 @@ function OneToOne(props) {
   function render() {
     const style = { margin: 0 };
     return (
-      <div className="form-fieldset">
+      <div className={"form-fieldset "+props.data.name}>
         <h2 style={style} data-label={toLabelCase(props.data.label)}>
           {props.data.label}
         </h2>
@@ -1201,7 +1191,7 @@ function OneToMany(props) {
   function render() {
     const style = { margin: 0 };
     return (
-      <div className="form-fieldset">
+      <div className={"form-fieldset "+props.data.name}>
         <h2 style={style} data-label={toLabelCase(props.data.label)}>
           {props.data.label}
         </h2>

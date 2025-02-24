@@ -543,10 +543,11 @@ class Dashboard(Endpoint):
         verbose_name = ""
 
     def get(self):
+        application = ApplicationConfig.get_instance()
         serializer = Serializer(request=self.request)
-        if APPLICATON["dashboard"]["boxes"]:
+        if application.dashboard.boxes:
             boxes = Boxes("Acesso Rápido")
-            for name in APPLICATON["dashboard"]["boxes"]:
+            for name in application.dashboard.boxes:
                 cls = ENDPOINTS[name]
                 endpoint = cls().contextualize(self.request)
                 if endpoint.check_permission():

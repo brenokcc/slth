@@ -36,6 +36,7 @@ class IntegerField(IntegerField):
         field.pick = self.pick
         return field
 
+
 class ForeignKey(ForeignKey):
     def __init__(self, to, on_delete=None, **kwargs):
         self.pick = kwargs.pop('pick', False)

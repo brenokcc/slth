@@ -16,12 +16,14 @@ import os
 from django.conf import settings
 from django.http import FileResponse, HttpResponseNotFound
 from .endpoints import ApiResponse
+from slth.application import Application
 
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
     vite = bool(os.environ.get('VITE'))
-    return render(request, 'index.html', dict(vite=vite, application=APPLICATON))
+    application = Application.get_instance()
+    return render(request, 'index.html', dict(vite=vite, application=application))
 
 def service_worker(request):
     return render(request, 'service-worker.js', content_type='text/javascript')

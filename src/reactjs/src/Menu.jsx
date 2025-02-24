@@ -92,8 +92,8 @@ function Menu() {
             dataLabel={toLabelCase(item.label)}
             style={{ textDecoration: "none", display: "block", width: "100%" }}
           >
-            {level == 0 && (
-              <Icon icon={item.icon || "dot-circle"} style={iconStyle} />
+            {level == 0 && item.icon && (
+              <Icon icon={item.icon} style={iconStyle} />
             )}
             {item.label}
           </Link>

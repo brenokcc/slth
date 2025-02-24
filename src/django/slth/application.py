@@ -21,7 +21,7 @@ class Theme():
         self.auxiliary:Style = Style("#2670e8")
         self.highlight:Style = Style("#0c326f")
 
-        self.info:Style = Style("#1351b4")
+        self.info:Style = Style("#1351b4", "#d4e5ff")
         self.success:Style = Style("#1351b4")
         self.warning:Style = Style("#fff5c2")
         self.danger:Style = Style("#e52207")
