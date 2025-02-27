@@ -184,6 +184,7 @@ function QuerySet(props) {
   }
 
   function renderRow(row) {
+    const css = row.style;
     const td = { borderBottom: "solid 1px #DDD", padding: 5 };
     const actions = {
       borderBottom: "solid 1px #DDD",
@@ -192,7 +193,7 @@ function QuerySet(props) {
     };
     if (window.innerWidth < 800) {
       return (
-        <tr key={Math.random()}>
+        <tr key={Math.random()} className={css || ""}>
           <td key={Math.random()} style={td}>
             {row.title}
           </td>
@@ -209,7 +210,7 @@ function QuerySet(props) {
       );
     } else {
       return (
-        <tr key={Math.random()}>
+        <tr key={Math.random()} className={css || ""}>
           {row.data.map(function (field) {
             return (
               field.label != "ID" && (

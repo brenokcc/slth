@@ -9,7 +9,6 @@ from django.views.decorators.csrf import csrf_exempt
 from .exceptions import JsonResponseException, ReadyResponseException
 from .serializer import serialize
 from .utils import build_url
-from slth import APPLICATON
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache, cache_control
 import os
@@ -49,7 +48,8 @@ def dispatcher(request, **kwargs):
             if token:
                 request.user = token.user
         if request.path == '/':
-            cls = slth.ENDPOINTS.get(slth.APPLICATON['index'])
+            application = Application.get_instance()
+            cls = slth.ENDPOINTS.get(application.dashboard.index)
             url = build_url(request, cls.get_api_url())
             return ApiResponse(dict(type='redirect', url=url))
         else:

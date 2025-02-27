@@ -18,8 +18,8 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification, send_whatsapp_notification
 from .components import HtmlContent
-from slth import APPLICATON
 from django.utils import timezone
+from slth.application import Application as ApplicationConfig
 from django.contrib.auth.models import BaseUserManager
 
 
@@ -95,7 +95,8 @@ class RoleFilter(models.Filter):
         return 'Papel'
 
     def choices(self, queryset, term=None):
-        return [(k, v) for k, v in APPLICATON['groups'].items()]
+        application = ApplicationConfig.get_instance()
+        return [(k, v) for k, v in application.items()]
      
     def filter(self, queryset, value):
         if value:
@@ -165,7 +166,8 @@ class Role(models.Model):
         return self.get_description()
 
     def get_verbose_name(self):
-        return APPLICATON['groups'].get(self.name, self.name)
+        application = ApplicationConfig.get_instance()
+        return application.groups.get(self.name, self.name)
 
     def get_scope_value(self):
         return apps.get_model(self.model).objects.filter(pk=self.value).first() if self.model else None
@@ -457,9 +459,10 @@ class Email(models.Model):
         return self.subject
 
     def send(self, preview=False):
+        application = ApplicationConfig.get_instance()
         to = [email.strip() for email in self.to.split()]
         msg = EmailMultiAlternatives(self.subject, strip_tags(self.content), settings.DEFAULT_FROM_EMAIL, to)
-        html = render_to_string('email.html', dict(email=self, title=APPLICATON['title']))
+        html = render_to_string('email.html', dict(email=self, title=application.title))
         msg.attach_alternative(html, "text/html")
         self.attempt = self.attempt + 1
         try:

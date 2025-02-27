@@ -9,9 +9,15 @@ APPLICATION_CLASS = None
 
 class Style():
     def __init__(self, color="black", background="inherite", border="none"):
-        self.color = color
-        self.background = background
-        self.border = border
+        self.update(color=color, background=background, border=border)
+
+    def update(self, color=None, background=None, border=None):
+        if color:
+            self.color = color
+        if background:
+            self.background = background
+        if border:
+            self.border = border
 
 
 class Theme():
@@ -99,6 +105,7 @@ class Dashboard():
         self.adder:List = List()
         self.tools:List = List()
         self.settings:List = List()
+        self.index = "dashboard"
 
 
 class ApplicationMetaclass(type):
@@ -119,7 +126,6 @@ class Application(metaclass=ApplicationMetaclass):
         self.icon = "/static/images/logo.png"
         self.logo = "/static/images/logo.png"
         self.version =  "0.0.1"
-        self.index = "dashboard"
         self.oauth:Oauth = Oauth()
         self.groups:Groups = Groups()
         self.menu:Menu = Menu()

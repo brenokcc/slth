@@ -1,6 +1,3 @@
-import re
-import os
-import yaml
 import json
 import warnings
 from pathlib import Path
@@ -30,15 +27,6 @@ FILENAME = 'application.yml'
 ENDPOINTS = {}
 PROXIED_MODELS = []
 THREADS = []
-APPLICATON = None
-
-if APPLICATON is None and os.path.exists(FILENAME):
-    with open(FILENAME) as file:
-        content = file.read()
-        for variable in re.findall(r'\$[a-zA-z0-9_]+', content):
-            content = content.replace(variable, os.environ.get(variable[1:], ''))
-    APPLICATON = yaml.safe_load(content).get('application')
-
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):

@@ -3,11 +3,11 @@ import json
 import requests
 from django.conf import settings
 from slth.models import User
-from slth import APPLICATON
-
+from slth.application import Application as ApplicationConfig
 
 def authenticate(code):
-    for provider in APPLICATON.get('oauth', {}).values():
+    application = ApplicationConfig.get_instance()
+    for provider in application.oauth:
         client_secret = provider['client_secret']
         if client_secret.startswith('$'):
             client_secret = os.environ[client_secret[1:]]
@@ -46,7 +46,8 @@ def authenticate(code):
 
 def providers():
     oauth = []
-    for provider in APPLICATON.get('oauth', {}).values():
+    application = ApplicationConfig.get_instance()
+    for provider in application.oauth:
         redirect_uri = "{}{}".format(settings.SITE_URL, provider['redirect_uri'])
         authorize_url = '{}?response_type=code&client_id={}&redirect_uri={}'.format(
             provider['authorize_url'], provider['client_id'], redirect_uri

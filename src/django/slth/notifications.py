@@ -2,11 +2,12 @@ import json
 import os
 import requests
 from pywebpush import webpush
-from slth import APPLICATON
+from slth.application import Application as ApplicationConfig
 
 
 def send_push_web_notification(user, title, message, url=None, icon=None):
-    icon = icon or APPLICATON['icon']
+    application = ApplicationConfig.get_instance()
+    icon = icon or application.icon
     for subscription in user.pushsubscription_set.all():
         print(subscription.user, subscription.device, subscription.data, title, message, url)
         data = webpush(

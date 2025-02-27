@@ -28,7 +28,7 @@ from ..exceptions import JsonResponseException, ReadyResponseException
 from ..utils import build_url, append_url
 from ..models import Profile, Log, Job
 from slth.queryset import QuerySet
-from slth import APPLICATON, ENDPOINTS
+from slth import ENDPOINTS
 from .. import oauth
 from ..threadlocal import tl
 from ..tasks import Task
@@ -508,9 +508,10 @@ class Search(Endpoint):
         key = "_options_"
         options = self.cache.get(key, [])
         term = self.request.GET.get("term")
-        if options is None and APPLICATON["dashboard"]["search"]:
+        application = ApplicationConfig.get_instance()
+        if options is None and application.dashboard.search:
             options = []
-            for name in APPLICATON["dashboard"]["search"]:
+            for name in application.dashboard.search:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
@@ -534,7 +535,8 @@ class Home(PublicEndpoint):
         verbose_name = ""
 
     def get(self):
-        cls = ENDPOINTS[APPLICATON["index"]]
+        application = ApplicationConfig.get_instance()
+        cls = ENDPOINTS[application.dashboard.index]
         self.redirect(cls.get_api_url())
 
 
@@ -556,9 +558,9 @@ class Dashboard(Endpoint):
                     url = build_url(self.request, cls.get_api_url())
                     boxes.append(icon, label, url)
             serializer.append("Acesso Rápido", boxes)
-        if APPLICATON["dashboard"]["top"]:
+        if application.dashboard.top:
             group = serializer.group("Top")
-            for name in APPLICATON["dashboard"]["top"]:
+            for name in application.dashboard.top:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
@@ -566,8 +568,8 @@ class Dashboard(Endpoint):
                         endpoint.get_verbose_name(), cls, wrap=False
                     )
             group.parent()
-        if APPLICATON["dashboard"]["center"]:
-            for name in APPLICATON["dashboard"]["center"]:
+        if application.dashboard.center:
+            for name in application.dashboard.center:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
@@ -591,17 +593,18 @@ class Manifest(PublicEndpoint):
         verbose_name = "Manifest"
 
     def get(self):
+        application = ApplicationConfig.get_instance()
         return dict(
             {
-                "name": APPLICATON["title"],
-                "short_name": APPLICATON["title"],
+                "name": application.title,
+                "short_name": application.title,
                 "lang": "pt-BR",
                 "start_url": build_url(self.request, "/app/home/"),
                 "scope": build_url(self.request, "/app/"),
                 "display": "standalone",
                 "icons": [
                     {
-                        "src": build_url(self.request, APPLICATON["icon"]),
+                        "src": build_url(self.request, application.icon),
                         "sizes": "192x192",
                         "type": "image/png",
                     }
@@ -615,5 +618,5 @@ class Manifest(PublicEndpoint):
 
 class About(PublicEndpoint):
     def get(self):
-        return dict(version=APPLICATON["version"])
-
+        application = ApplicationConfig.get_instance()
+        return dict(version=application.version)
