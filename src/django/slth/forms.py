@@ -25,11 +25,11 @@ DjangoFileField = FileField
 DjangoImageField = ImageField
 
 MASKS = dict(
-    cpf_cnpj="999.999.999-99|99.999.999/9999-99",
     cpf="999.999.999-99",
     cnpj="99.999.999/9999-99",
     telefone="(99) 99999-9999",
-    cep='99.999-990'
+    cep='99.999-990',
+    cpf_cnpj="999.999.999-99|99.999.999/9999-99",
 )
 
 
@@ -264,7 +264,7 @@ class FormMixin:
                     field.form(endpoint=self._endpoint).to_dict(prefix=f"{name}__n")
                 )
             required = getattr(field, "required2", field.required)
-            label = field.label.title() if field.label else field.label
+            label = field.label.title() if field.label and field.label.islower() else field.label
             data = dict(
                 type="inline",
                 min=field.min,
@@ -384,10 +384,15 @@ class FormMixin:
                         data.update(pick=append_url(choiceurl, f"choices={fname}") if choiceurl else  absolute_url(
                             self.request, f"choices={fname}"
                         ))
+            if ftype == "boolean":
+                data.update(choices=[
+                    {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}, {"id": "null", "value": "Não Informado"}
+                ])
 
-        attr_name = f"on_{name}_change"
+        attr_name = f"on_{prefix}__{name}_change" if prefix else f"on_{name}_change"
+        on_change_name = f"{prefix}__{name}" if prefix else name
         if hasattr(self._endpoint, attr_name):
-            data["onchange"] = absolute_url(self.request, f"on_change={name}")
+            data["onchange"] = absolute_url(self.request, f"on_change={on_change_name}")
         if name in self._actions:
             cls = ENDPOINTS[self._actions[name]]
             endpoint = cls.instantiate(self.request, self)
@@ -409,6 +414,7 @@ class FormMixin:
         }
         self.is_valid()
         errors.update(self.errors)
+        inline_forms = []
         for inline_field_name, inline_field in inline_fields.items():
             data[inline_field_name] = []
             for i in range(0, inline_field.max):
@@ -419,12 +425,21 @@ class FormMixin:
                 inline_form_field_name = f"{prefix}__id"
                 if inline_form_field_name in self.data:
                     inline_form_data = {}
-                    pk = self.data.get(inline_form_field_name)
-                    if pk:
-                        pk = int(pk)
+                    inline_form_field_value = self.data.get(inline_form_field_name)
+                    if inline_form_field_value or is_one_to_one:
+                        pk = int(inline_form_field_value or 0)
                         for name in inline_field.form.base_fields:
+                            inline_form_field = inline_field.form.base_fields[name]
                             inline_form_field_name = f"{prefix}__{name}"
-                            inline_form_data[name] = self.data.get(
+                            inline_form_data[name] = self.data.getlist(
+                                inline_form_field_name
+                            ) if (
+                                (
+                                    isinstance(inline_form_field, DjangoMultipleChoiceField)
+                                    or isinstance(inline_form_field, ModelMultipleChoiceField)
+                                )
+                                and not isinstance(inline_form_field, TypedChoiceField)
+                                ) else self.data.get(
                                 inline_form_field_name
                             )
                             if (
@@ -448,18 +463,22 @@ class FormMixin:
                             instance=instance,
                             endpoint=self._endpoint,
                         )
-                        if inline_form.is_valid():
-                            if isinstance(inline_form, DjangoModelForm):
-                                data[inline_field_name].append(inline_form.instance)
-                            else:
-                                data[inline_field_name].append(inline_form.cleaned_data)
+                        if is_one_to_one and not inline_field.required and not inline_form_field_value:
+                            data[inline_field_name] = []
                         else:
-                            errors.update(
-                                {
-                                    f"{prefix}__{name}": error
-                                    for name, error in inline_form.errors.items()
-                                }
-                            )
+                            if inline_form.is_valid():
+                                if isinstance(inline_form, DjangoModelForm):
+                                    data[inline_field_name].append(inline_form.instance)
+                                else:
+                                    data[inline_field_name].append(inline_form.cleaned_data)
+                                inline_forms.append(inline_form)
+                            else:
+                                errors.update(
+                                    {
+                                        f"{prefix}__{name}": error
+                                        for name, error in inline_form.errors.items()
+                                    }
+                                )
         if errors:
             raise JsonResponseException(
                 dict(type="error", text="Por favor, corrija os erros.", errors=errors)
@@ -481,7 +500,8 @@ class FormMixin:
                         fieldname = attr_name.replace('clean_', '')
                         raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
             with transaction.atomic():
-                
+                for inline_form in inline_forms:
+                    inline_form.save()
                 if isinstance(self, DjangoModelForm):
                     self.instance.pre_save()
                     for inline_field_name in inline_fields:
@@ -568,6 +588,8 @@ class ModelForm(DjangoModelForm, FormMixin):
         self._method = "POST"
         self._key = self._title.lower()
         self._autosubmit = None
+        self._submit_label = "Enviar"
+        self._submit_icon = "chevron-right"
 
         self.fieldsets = {}
         self.request = endpoint.request
@@ -740,6 +762,7 @@ FIELD_TYPES = {
     "EmailField": "email",
     "DecimalField": "decimal",
     "BooleanField": "boolean",
+    "NullBooleanField": "boolean",
     "DateTimeField": "datetime",
     "DateField": "date",
     "IntegerField": "number",

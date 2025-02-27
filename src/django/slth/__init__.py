@@ -1,6 +1,3 @@
-import re
-import os
-import yaml
 import json
 import warnings
 from pathlib import Path
@@ -15,6 +12,7 @@ import django.db.models.options as options
 from django.db.models.base import ModelBase
 from django.db.models import Model
 from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.autoreload import autoreload_started
 from django.core import serializers
 from django.utils import autoreload
@@ -29,15 +27,6 @@ FILENAME = 'application.yml'
 ENDPOINTS = {}
 PROXIED_MODELS = []
 THREADS = []
-APPLICATON = None
-
-if APPLICATON is None and os.path.exists(FILENAME):
-    with open(FILENAME) as file:
-        content = file.read()
-        for variable in re.findall(r'\$[a-zA-z0-9_]+', content):
-            content = content.replace(variable, os.environ.get(variable[1:], ''))
-    APPLICATON = yaml.safe_load(content).get('application')
-
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -185,13 +174,19 @@ def save_decorator(func):
             if obj:
                 for field in self._meta.fields:
                     a = getattr(obj, field.name)
-                    b = getattr(self, field.name)
+                    try:
+                        b = getattr(self, field.name)
+                    except ObjectDoesNotExist:
+                        b = None
                     if a != b:
                         diff[field.verbose_name] = (serialize(a), serialize(b))
         else:
             action = 'add'
             for field in self._meta.fields:
-                b = getattr(self, field.name)
+                try:
+                    b = getattr(self, field.name)
+                except ObjectDoesNotExist:
+                    b = None
                 if b is not None:
                     diff[field.verbose_name] = (None, serialize(b))
         func(self, *args, **kwargs)

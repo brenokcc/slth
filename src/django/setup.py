@@ -1,11 +1,10 @@
-import os
 from setuptools import find_packages, setup
 
 install_requires = []
 
 setup(
     name='slthcore',
-    version='0.4.7',
+    version='0.4.8',
     packages=find_packages(),
     install_requires=install_requires,
     include_package_data=True,

@@ -19,19 +19,16 @@ from django.template.loader import render_to_string
 from ..forms import ModelForm, Form
 from ..serializer import serialize, Serializer
 from ..components import (
-    Application as Application_,
-    Navbar,
-    Menu,
-    Footer,
     Response,
     Boxes,
     TemplateContent,
 )
+from slth.application import Application as ApplicationConfig
 from ..exceptions import JsonResponseException, ReadyResponseException
 from ..utils import build_url, append_url
 from ..models import Profile, Log, Job
 from slth.queryset import QuerySet
-from slth import APPLICATON, ENDPOINTS
+from slth import ENDPOINTS
 from .. import oauth
 from ..threadlocal import tl
 from ..tasks import Task
@@ -511,9 +508,10 @@ class Search(Endpoint):
         key = "_options_"
         options = self.cache.get(key, [])
         term = self.request.GET.get("term")
-        if options is None and APPLICATON["dashboard"]["search"]:
+        application = ApplicationConfig.get_instance()
+        if options is None and application.dashboard.search:
             options = []
-            for name in APPLICATON["dashboard"]["search"]:
+            for name in application.dashboard.search:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
@@ -537,7 +535,8 @@ class Home(PublicEndpoint):
         verbose_name = ""
 
     def get(self):
-        cls = ENDPOINTS[APPLICATON["index"]]
+        application = ApplicationConfig.get_instance()
+        cls = ENDPOINTS[application.dashboard.index]
         self.redirect(cls.get_api_url())
 
 
@@ -546,10 +545,11 @@ class Dashboard(Endpoint):
         verbose_name = ""
 
     def get(self):
+        application = ApplicationConfig.get_instance()
         serializer = Serializer(request=self.request)
-        if APPLICATON["dashboard"]["boxes"]:
+        if application.dashboard.boxes:
             boxes = Boxes("Acesso Rápido")
-            for name in APPLICATON["dashboard"]["boxes"]:
+            for name in application.dashboard.boxes:
                 cls = ENDPOINTS[name]
                 endpoint = cls().contextualize(self.request)
                 if endpoint.check_permission():
@@ -558,9 +558,9 @@ class Dashboard(Endpoint):
                     url = build_url(self.request, cls.get_api_url())
                     boxes.append(icon, label, url)
             serializer.append("Acesso Rápido", boxes)
-        if APPLICATON["dashboard"]["top"]:
+        if application.dashboard.top:
             group = serializer.group("Top")
-            for name in APPLICATON["dashboard"]["top"]:
+            for name in application.dashboard.top:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
@@ -568,8 +568,8 @@ class Dashboard(Endpoint):
                         endpoint.get_verbose_name(), cls, wrap=False
                     )
             group.parent()
-        if APPLICATON["dashboard"]["center"]:
-            for name in APPLICATON["dashboard"]["center"]:
+        if application.dashboard.center:
+            for name in application.dashboard.center:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
@@ -584,79 +584,7 @@ class Dashboard(Endpoint):
 
 class Application(PublicEndpoint):
     def get(self):
-        user = None
-        photo = None
-        navbar = None
-        menu = None
-        icon = build_url(self.request, APPLICATON["logo"])
-        logo = build_url(self.request, APPLICATON["logo"])
-        if self.request.user.is_authenticated:
-            user = self.request.user.username.split()[0].split("@")[0]
-            profile = Profile.objects.filter(user=self.request.user).first()
-            photo = profile and profile.photo and build_url(self.request, profile.photo.url) or None
-
-        navbar = Navbar(
-            title=APPLICATON["title"],
-            subtitle=APPLICATON["subtitle"],
-            logo=logo,
-            user=user,
-            photo=photo,
-            search=False,
-            roles=' | '.join((str(role) for role in self.objects('slth.role').filter(username=self.request.user.username)))
-        )
-        for entrypoint in ["actions", "usermenu", "adder", "settings", "tools", "toolbar"]:
-            if APPLICATON["dashboard"][entrypoint]:
-                for endpoint_name in APPLICATON["dashboard"][entrypoint]:
-                    cls = ENDPOINTS[endpoint_name]
-                    endpoint = cls().instantiate(self.request, self)
-                    if endpoint.check_permission() and endpoint.contribute(entrypoint):
-                        label = endpoint.get_verbose_name()
-                        url = build_url(self.request, cls.get_api_url())
-                        modal = cls.get_metadata("modal", False)
-                        icon = cls.get_metadata("icon", None)
-                        navbar.add_action(entrypoint, label, url, modal, icon=icon)
-        
-        if APPLICATON["menu"]:
-            items = []
-
-            def get_item(k, v):
-                if isinstance(v, dict):
-                    icon, label = k.split(":") if ":" in k else (None, k)
-                    subitems = []
-                    for k1, v1 in v.items():
-                        subitem = get_item(k1, v1)
-                        if subitem:
-                            subitems.append(subitem)
-                    if subitems:
-                        return dict(dict(icon=icon, label=label, items=subitems))
-                else:
-                    cls = ENDPOINTS.get(v)
-                    if cls:
-                        endpoint = cls().instantiate(self.request, self)
-                        if endpoint.check_permission() and endpoint.contribute("menu"):
-                            icon, label = k.split(":") if ":" in k else (None, k)
-                            url = build_url(self.request, cls.get_api_url())
-                            return dict(dict(label=label, url=url, icon=icon))
-
-            for k, v in APPLICATON["menu"].items():
-                item = get_item(k, v)
-                if item:
-                    items.append(item)
-            profile = (
-                Profile.objects.filter(user=self.request.user).first() if user else None
-            )
-            photo_url = (
-                profile.photo.url
-                if profile and profile.photo
-                else "/static/images/user.svg"
-            )
-            menu = Menu(items, user=user, image=build_url(self.request, photo_url))
-
-        footer = Footer(APPLICATON["version"])
-        return Application_(
-            icon=icon, navbar=navbar, menu=menu, footer=footer, oauth=oauth.providers(),
-            sponsors=APPLICATON.get("sponsors", ())
-        )
+        return ApplicationConfig.get_instance().serialize(self.request)
 
 
 class Manifest(PublicEndpoint):
@@ -665,17 +593,18 @@ class Manifest(PublicEndpoint):
         verbose_name = "Manifest"
 
     def get(self):
+        application = ApplicationConfig.get_instance()
         return dict(
             {
-                "name": APPLICATON["title"],
-                "short_name": APPLICATON["title"],
+                "name": application.title,
+                "short_name": application.title,
                 "lang": "pt-BR",
                 "start_url": build_url(self.request, "/app/home/"),
                 "scope": build_url(self.request, "/app/"),
                 "display": "standalone",
                 "icons": [
                     {
-                        "src": build_url(self.request, APPLICATON["icon"]),
+                        "src": build_url(self.request, application.icon),
                         "sizes": "192x192",
                         "type": "image/png",
                     }
@@ -689,5 +618,5 @@ class Manifest(PublicEndpoint):
 
 class About(PublicEndpoint):
     def get(self):
-        return dict(version=APPLICATON["version"])
-
+        application = ApplicationConfig.get_instance()
+        return dict(version=application.version)

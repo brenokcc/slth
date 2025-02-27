@@ -49,7 +49,7 @@ function Calendar(props){
             margin: 0px;
         }       
     `)
-    const days = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+    const days = ["SEG", "TER", "QUA", "QUI", "SEX", "SAB", "DOM"];
     const months = [
         "JANEIRO",
         "FEVEVEIRO",

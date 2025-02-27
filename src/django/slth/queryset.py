@@ -89,6 +89,10 @@ class QuerySet(models.QuerySet):
         self.metadata['subsets'] = names
         return self
     
+    def style(self, name):
+        self.metadata['style'] = name
+        return self
+    
     def renderer(self, name):
         self.metadata['renderer'] = name
         return self
@@ -239,6 +243,7 @@ class QuerySet(models.QuerySet):
         ignore = self.metadata.get('ignore', ())
         renderer = self.metadata.get('renderer')
         reloadable = self.metadata.get('reloadable')
+        style = self.metadata.get('style')
         bi = self.metadata.get('bi', [])
         subset = None
         actions = []
@@ -359,6 +364,8 @@ class QuerySet(models.QuerySet):
                         action = endpoint.get_api_metadata(self.request, base_url, obj.pk)
                         action['name'] = action['name'].replace(" {}".format(self.model._meta.verbose_name), "")
                         serialized['actions'].append(action)
+                if style:
+                    serialized['style'] = getattr(obj, style)()
                 objs.append(serialized)
 
             if attrname:
