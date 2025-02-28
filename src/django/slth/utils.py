@@ -1,3 +1,4 @@
+from datetime import date
 from django.template import Template, Context
 from django.template.engine import Engine
 
@@ -36,3 +37,10 @@ def append_url(url, *querystrings):
 
 def parse_string_template(template, **data):
     return Template(template, engine=Engine()).render(Context(data))
+
+
+def age(born):
+    if born:
+        today = date.today()
+        return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    return None

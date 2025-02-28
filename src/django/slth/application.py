@@ -45,7 +45,6 @@ class Menu(dict):
         items = []
 
         def get_item(k, v):
-            print(k, v)
             if isinstance(v, dict):
                 icon, label = k.split(":") if ":" in k else (None, k)
                 subitems = []

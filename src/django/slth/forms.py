@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.forms import fields
 from django.db.models import Model, QuerySet, Manager
+from django.utils.text import slugify
 from .models import Token, Profile
 from django.db import transaction
 from django.db.models import Manager
@@ -220,7 +221,7 @@ class FormMixin:
                     fieldsetlist.append(fields[0][0])
                 else:
                     fieldsetlist.append(
-                        dict(type="fieldset", title=title, fields=fields)
+                        dict(type="fieldset", title=title, name=slugify(title), fields=fields)
                     )
             data.update(fieldsets=fieldsetlist)
         else:
@@ -285,7 +286,7 @@ class FormMixin:
             else:
                 value = None
                 if self.instance is None or self.instance.id is None:
-                    value = field.initial
+                    value = field.initial or self.initial.get(name)
                 else:
                     value = self.initial.get(name)
                 if callable(value):
@@ -307,7 +308,7 @@ class FormMixin:
                     isinstance(field, ModelChoiceField)
                     or isinstance(field, DjangoModelChoiceField)
                 ):
-                    obj = field.queryset.get(pk=value)
+                    obj = field.queryset.get(pk=value) if isinstance(value, int) else value
                     value = dict(id=obj.id, label=str(obj).strip())
                 elif isinstance(field, DjangoImageField):
                     value = build_url(self.request, value.url) if value else None
@@ -397,11 +398,9 @@ class FormMixin:
             cls = ENDPOINTS[self._actions[name]]
             endpoint = cls.instantiate(self.request, self)
             if endpoint.check_permission():
-                data.update(
-                    action=endpoint.get_api_metadata(
-                        self.request, absolute_url(self.request)
-                    )
-                )
+                action=endpoint.get_api_metadata(self.request, absolute_url(self.request))
+                action['name'] = action['name'].replace(field.label, "").strip()
+                data.update(action=action)
         return data
 
     def submit(self):

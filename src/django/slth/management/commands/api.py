@@ -50,10 +50,18 @@ class Excluir(endpoints.DeleteEndpoint[{model}]):
 """
 
 class Command(Command):
+
+    def add_arguments(self, parser):
+        parser.add_argument("models", nargs="*", type=str)
     
     def handle(self, *args, **options):
-        for model in apps.get_models():
-            if model._meta.app_label == "api":
+        names = options.get('models')
+        if names:
+            models = [apps.get_model(name) for name in names]
+        else:
+            models = apps.get_models()
+        for model in models:
+            if names or model._meta.app_label == "api":
                 content = TEMPLATE.format(
                     plural = slugify(model._meta.verbose_name_plural).replace('-de-', '-').replace('-', '').title(),
                     model = model.__name__,

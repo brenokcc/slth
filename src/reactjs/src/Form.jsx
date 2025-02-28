@@ -94,22 +94,37 @@ function formReload(name){
 }
 function formValue(name, value) {
   var group = document.querySelector(".form-group." + name);
-  var widget = group.querySelector('*[name="' + name + '"]');
-  if (widget.tagName == "INPUT") {
-    widget.value = value;
-  } else if (widget.tagName == "TEXTAREA") {
-    widget.innerHTML = value;
-  } else {
-    if (widget.tagName == "SELECT") {
-      if (widget.style.display != "none") {
-        widget.dispatchEvent(
-          new CustomEvent("customchange", { detail: { value: value } })
-        );
+  var elements = group.querySelectorAll('*[name="' + name + '"]');
+  if(elements.length > 1){
+    elements.forEach(function(widget) {
+      if(value == null) {
+        widget.checked = false;
       } else {
-        for (var i = 0; i < widget.options.length; i++) {
-          if (widget.options[i].value == value) {
-            widget.selectedIndex = i;
-            break;
+        if(value.id != null){
+          widget.checked = widget.value.toString() == value.id.toString()
+        } else {
+          widget.checked = widget.value.toString() == value.toString()
+        }
+      }
+    });
+  } else {
+    const widget = elements[0];
+    if (widget.tagName == "INPUT") {
+      widget.value = value;
+    } else if (widget.tagName == "TEXTAREA") {
+      widget.innerHTML = value;
+    } else {
+      if (widget.tagName == "SELECT") {
+        if (widget.style.display != "none") {
+          widget.dispatchEvent(
+            new CustomEvent("customchange", { detail: { value: value } })
+          );
+        } else {
+          for (var i = 0; i < widget.options.length; i++) {
+            if (widget.options[i].value == value) {
+              widget.selectedIndex = i;
+              break;
+            }
           }
         }
       }
@@ -1238,7 +1253,7 @@ function FormContent(props) {
       );
     } else {
       return props.data.fieldsets.map((fieldset) => (
-        <div key={Math.random()} className="form-fieldset">
+        <div key={Math.random()} className={"form-fieldset "+fieldset.name}>
           {fieldset.type == "inline" ? (
             renderField(fieldset)
           ) : (
