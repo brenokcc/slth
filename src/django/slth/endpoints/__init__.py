@@ -1,5 +1,4 @@
 import io
-import json
 import inspect
 from ..models import Log
 from django.apps import apps
@@ -26,10 +25,9 @@ from ..components import (
 from slth.application import Application as ApplicationConfig
 from ..exceptions import JsonResponseException, ReadyResponseException
 from ..utils import build_url, append_url
-from ..models import Profile, Log, Job
+from ..models import Log, Job
 from slth.queryset import QuerySet
 from slth import ENDPOINTS
-from .. import oauth
 from ..threadlocal import tl
 from ..tasks import Task
 
@@ -65,6 +63,7 @@ class Endpoint(metaclass=EnpointMetaclass):
     cache = cache
 
     def __init__(self):
+        self.form: Form | ModelForm = None
         self.base_url = None
         self.request = None
         self.source = None
@@ -150,15 +149,15 @@ class Endpoint(metaclass=EnpointMetaclass):
         elif isinstance(data, Serializer):
             data = data.contextualize(self.request).settitle(title)
         elif isinstance(data, FormFactory):
-            form = self.getform(data.settitle(title).form(self))
-            if self.request.method == "POST" or (title and self.request.GET.get("form") == form._key):
+            self.form = self.getform(data.settitle(title).build(self))
+            if self.request.method == "POST" or (title and self.request.GET.get("form") == self.form._key):
                 try:
                     if isinstance(self, DeleteEndpoint):
                         return self.post()
                     else:
-                        self.cleaned_data = form.submit()
-                        if form._message or form._redirect or form._dispose:
-                            return Response(form._message, form._redirect, dispose=form._dispose)
+                        self.cleaned_data = self.form.submit()
+                        if self.form._message or self.form._redirect or self.form._dispose:
+                            return Response(self.form._message, self.form._redirect, dispose=self.form._dispose)
                         else:
                             return self.post()
                 except ValidationError as e:
@@ -166,7 +165,7 @@ class Endpoint(metaclass=EnpointMetaclass):
                         dict(type="error", text="\n".join(e.messages), errors={})
                     )
             else:
-                data = form
+                data = self.form
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
         elif self.request.method == "POST":# and not data:
@@ -337,7 +336,6 @@ class PublicEndpoint(Endpoint):
         return True
 
 
-
 class ModelEndpoint(Endpoint):
     def __init__(self):
         self.model = self.__orig_bases__[0].__args__[0]
@@ -503,6 +501,43 @@ class ChildInstanceEndpoint(ChildEndpoint):
         return Serializer(self.get_instance()).contextualize(self.request)
 
 
+class RelationEditEndpoint(Generic[T], ChildEndpoint):
+
+    def __init__(self, instance):
+        self.source = instance
+        
+    def get(self) -> FormFactory:
+        return self.formfactory()
+    
+    def formfactory(self) -> FormFactory:
+        return FormFactory(self.get_instance())
+
+    def get_instance(self):
+        return self.__orig_bases__[0].__args__[0].objects.get(pk=self.request.GET['id'])
+
+
+class RelationDeleteEndpoint(Generic[T], ChildEndpoint):
+
+    def __init__(self, instance):
+        self.model = self.__orig_bases__[0].__args__[0]
+        self.source = instance
+        
+    def get(self) -> FormFactory:
+        return FormFactory(self.get_instance()).fields()
+
+    def post(self):
+        self.get_instance().safe_delete(self.request.user.username)
+        return super().post()
+    
+    def formfactory(self) -> FormFactory:
+        return FormFactory(self.get_instance())
+
+    def get_instance(self):
+        return self.model.objects.get(pk=self.request.GET['id'])
+
+
+
+
 class Search(Endpoint):
     def get(self):
         key = "_options_"
@@ -527,7 +562,6 @@ class Search(Endpoint):
         else:
             result = options
         return result[0:10]
-
 
 
 class Home(PublicEndpoint):

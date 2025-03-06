@@ -14,13 +14,26 @@ class {plural}(endpoints.ListEndpoint[{model}]):
     def get(self):
         return (
             super().get()
-            .actions('{lower}.cadastrar', '{lower}.editar', '{lower}.excluir')
+            .actions('{lower}.cadastrar', '{lower}.visualizar', '{lower}.editar', '{lower}.excluir')
         )
 
 
 class Cadastrar(endpoints.AddEndpoint[{model}]):
     class Meta:
+        icon = 'plus'
         verbose_name = 'Cadastrar {verbose_name}'
+
+    def get(self):
+        return (
+            super().get()
+        )
+
+        
+class Visualizar(endpoints.ViewEndpoint[{model}]):
+    class Meta:
+        modal = False
+        icon = 'eye'
+        verbose_name = 'Visualizar {verbose_name}'
 
     def get(self):
         return (
@@ -30,6 +43,7 @@ class Cadastrar(endpoints.AddEndpoint[{model}]):
 
 class Editar(endpoints.EditEndpoint[{model}]):
     class Meta:
+        icon = 'pen'
         verbose_name = 'Editar {verbose_name}'
 
     def get(self):
@@ -40,6 +54,7 @@ class Editar(endpoints.EditEndpoint[{model}]):
 
 class Excluir(endpoints.DeleteEndpoint[{model}]):
     class Meta:
+        icon = 'trash'
         verbose_name = 'Excluir {verbose_name}'
 
     def get(self):

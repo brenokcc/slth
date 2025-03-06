@@ -81,6 +81,7 @@
 ### Endpoint
 #### 
 ##### get()
+###### queryset
 ###### serializer()
 ###### formfactory()
 ###### redirect()

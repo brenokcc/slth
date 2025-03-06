@@ -64,7 +64,7 @@ def dispatcher(request, **kwargs):
                         return endpoint.to_response()
                     else:
                         url = '/api/auth/login/'
-                        if request.path != '/api/dashboard/':
+                        if request.path not in ('/api/dashboard/', '/api/auth/logout/'):
                             url = '{}?next={}'.format(url, request.get_full_path())
                         return ApiResponse(dict(type="redirect", url=url), status=403)
                 except JsonResponseException as e:

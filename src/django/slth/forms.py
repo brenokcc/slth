@@ -7,7 +7,6 @@ from django.forms.models import ModelChoiceIterator, ModelMultipleChoiceField
 from django.forms import fields
 from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
-from .models import Token, Profile
 from django.db import transaction
 from django.db.models import Manager
 from .exceptions import JsonResponseException
@@ -36,7 +35,7 @@ MASKS = dict(
 
 class FormController:
 
-    def __init__(self, form):
+    def __init__(self, form: Form | ModelForm):
         super().__init__()
         self.form = form
         self.controls = dict(hide=[], show=[], reload=[], set={})
@@ -67,7 +66,10 @@ class FormController:
                 v = v.strftime("%Y-%m-%d")
             self.controls["set"][k] = v
 
-    def get(self, name, value, default=None):
+    def get(self, field_name, default=None):
+        return self.field_value(field_name, self.form.request.GET.get(field_name, default))
+
+    def field_value(self, name, value, default=None):
         if value is None:
             return default
         else:
@@ -84,28 +86,28 @@ class FormController:
         self.controls["hide"].clear()
         self.controls["set"].clear()
 
-    def on_change(self, field_name):
+    def on_field_change(self, field_name):
         self.clear()
-        getattr(self.form._endpoint, f"on_{field_name}_change")(self, self.values())
+        value = self.get(field_name)
+        getattr(self.form._endpoint, f"on_{field_name}_change")(value)
         return self.controls
 
-
-    def get_field_queryset(self, fname, qs):
+    def get_field_queryset(self, field_name, queryset):
         method_attr = None
-        method_name = f"get_{fname}_queryset"
+        method_name = f"get_{field_name}_queryset"
         if hasattr(self.form._endpoint, method_name):
             method_attr = getattr(self.form._endpoint, method_name)
         elif hasattr(self.form, "instance") and hasattr(
             self.form.instance, method_name
         ):
             method_attr = getattr(self.form.instance, method_name)
-        queryset = method_attr(qs, self.values()) if method_attr else qs
+        queryset = method_attr(queryset) if method_attr else queryset
         return queryset.apply_lookups(self.form.request.user)
 
     def values(self):
         data = dict(**self.controls["set"])
         for name in self.form.fields:
-            value = self.get(name, self.form.request.GET.get(name))
+            value = self.get(name)
             if value:
                 data[name] = value
         return data
@@ -157,7 +159,7 @@ class FormMixin:
     def to_dict(self, prefix=None):
         field_name = self.request.GET.get("on_change")
         if field_name:
-            raise JsonResponseException(self.controller.on_change(field_name))
+            raise JsonResponseException(self.controller.on_field_change(field_name))
         data = dict(
             type="form",
             key=self._key,
@@ -177,7 +179,9 @@ class FormMixin:
         )
         if self._display:
             if isinstance(self._display, Serializer):
-                # self._display.request = self.request
+                self._display.request.GET._mutable = True
+                self._display.request.GET.pop('only', None)
+                self._display.request.GET._mutable = False
                 data.update(
                     display=self._display.serialize(forward_exception=True)["data"]
                 )
@@ -524,7 +528,7 @@ class FormMixin:
         self._title = title
         return self
 
-    def setvalue(self, **kwargs):
+    def values(self, **kwargs):
         self._values.update(**kwargs)
         return self
 
@@ -698,8 +702,6 @@ class CharField(CharField):
     def __init__(self, *args, **kwargs):
         self.mask = kwargs.pop("mask", None)
         super().__init__(*args, **kwargs)
-
-    
 
 
 class ChoiceField(ChoiceField):
