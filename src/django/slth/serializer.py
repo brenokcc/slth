@@ -143,10 +143,11 @@ class Serializer:
         self.metadata['content'].append(('queryset', name, dict(title=title, condition=condition, roles=roles)))
         return self
     
-    def endpoint(self, title, cls, wrap=True, condition=None, roles=()) -> 'Serializer':
+    def endpoint(self, title, cls, wrap=False, condition=None, roles=()) -> 'Serializer':
+        key = to_snake_case(title) if title else cls.replace('.', '_')
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
-        self.metadata['content'].append(('endpoint', to_snake_case(title), dict(title=title, cls=cls, wrap=wrap, condition=condition, roles=roles)))
+        self.metadata['content'].append(('endpoint', key, dict(title=title, cls=cls, wrap=wrap, condition=condition, roles=roles)))
         return self
     
     def append(self, title, component, condition=None, roles=()) -> 'Serializer':
@@ -217,6 +218,9 @@ class Serializer:
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls:### and cls.get_key_name() in self.metadata['allow']:
+                self.request.GET._mutable = True
+                self.request.GET.pop('action', None)
+                self.request.GET._mutable = False
                 endpoint = cls.instantiate(self.request, self.obj)
                 if endpoint.check_permission():
                     raise JsonResponseException(endpoint.serialize())
@@ -234,7 +238,7 @@ class Serializer:
             if leaf:
                 raise JsonResponseException(actions)
 
-        if not self.metadata['content'] and self.obj:
+        if not self.metadata['content'] and self.obj and isinstance(self.obj, Model):
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
             for m2m in type(self.obj)._meta.many_to_many:
                 self.queryset(m2m.verbose_name, m2m.name)

@@ -96,7 +96,7 @@ class RoleFilter(models.Filter):
 
     def choices(self, queryset, term=None):
         application = ApplicationConfig.get_instance()
-        return [(k, v) for k, v in application.items()]
+        return [(k, v) for k, v in application.groups.items()]
      
     def filter(self, queryset, value):
         if value:

@@ -1,5 +1,5 @@
 {
-	//cp "/Users/breno/Library/Application Support/Code/User/snippets/slth.code-snippets" /Users/breno/Documents/Workspace/slth/src/vscode/slth.code-snippets
+	//cp /Users/breno/Documents/Workspace/slth/src/vscode/slth.code-snippets "/Users/breno/Library/Application Support/Code/User/snippets/slth.code-snippets"
     // Place your global snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
 	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
 	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
@@ -93,10 +93,31 @@
 		"body": [
 			"class Adicionar$1(endpoints.RelationEndpoint[$1]):",
 			"    class Meta:",
+			"        icon='plus'",
 			"        verbose_name = 'Adicionar $1'",
 			"",
-			"    def formfactory(self):",
-			"        return super().formfactory().fields($2=self.source)",
+			"    def get(self):",
+			"        return super().get().values($2=self.source)",
+			"",
+			"",
+			"class Editar$1(endpoints.RelationEditEndpoint[$1]):",
+			"    class Meta:",
+			"        icon='pen'",
+			"        verbose_name = 'Editar $1'",
+			"",
+			"    def get(self):",
+			"        return super().get().values($2=self.source)",
+			"",
+			"",
+			"class Excluir$1(endpoints.RelationDeleteEndpoint[$1]):",
+			"    class Meta:",
+			"        icon='trash'",
+			"        verbose_name = 'Excluir $1'",
+			"",
+			"    def get(self):",
+			"        return super().get().values($2=self.source)",
+			"",
+			"",
 			"$0"
 		],
 		"description": "Create RelationEndpoint"

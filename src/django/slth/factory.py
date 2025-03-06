@@ -3,7 +3,7 @@ from .serializer import Serializer
 
 
 class FormFactory:
-    def __init__(self, instance, endpoint=None, method='POST'):
+    def __init__(self, instance, method='POST'):
         self._instance = instance
         self._fieldsets = {}
         self._values = {}
@@ -48,7 +48,7 @@ class FormFactory:
                 self._append_field(field_name)
         for k in values:
             self._append_field(k)
-            self.setvalue(**values)
+            self.values(**values)
         self._empty = not self._fieldlist
         return self
 
@@ -84,7 +84,7 @@ class FormFactory:
         self._actions.update(kwargs)
         return self
     
-    def setvalue(self, **kwargs) -> 'FormFactory':
+    def values(self, **kwargs) -> 'FormFactory':
         self._values.update(kwargs)
         return self
     
@@ -106,7 +106,7 @@ class FormFactory:
             self._redirect = '.'
         return self
 
-    def form(self, endpoint):
+    def build(self, endpoint):
         from .forms import ModelForm, Form
         
         if isinstance(self._instance, Model):
@@ -135,7 +135,7 @@ class FormFactory:
         for name, queryset in self._choices.items():
             form.fields[name].queryset = queryset
         form.fieldsets = self._fieldsets
-        form.setvalue(**self._values)
+        form.values(**self._values)
         if self._display:
             serializer = Serializer(self._instance, request=endpoint.request)
             for title, fields in self._display.items():
