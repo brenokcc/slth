@@ -8,6 +8,9 @@ function Paginator(props){
         justify-content: space-between;
         line-height: 4rem;
         align-items: baseline;
+        background: var(--fieldset-background);
+        padding: 10px;
+        border-radius: var(--border-radius);
       }
       .paginator .inline{
         display: inline;
@@ -20,6 +23,11 @@ function Paginator(props){
         padding-left: 5px;
         padding-right: 5px;
         text-align: center;
+        background-color: var(--default-background)
+      }
+      .paginator input{
+        background-color: var(--input-background);
+        border: var(--input-border)
       }
     `)
     

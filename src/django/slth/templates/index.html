@@ -51,24 +51,16 @@
   </script>
   {% endif %}
 
-  <style>
-    :root{
-      --primary-color: {{ application.theme.primary.color }};
-      --secondary-color: {{ application.theme.secondary.color }};
-      --auxiliary-color: {{ application.theme.auxiliary.color }};
-      --highlight-color: {{ application.theme.highlight.color }};
-      --info-color: {{ application.theme.info.color }};
-      --success-color: {{ application.theme.success.color }};
-      --warning-color: {{ application.theme.warning.color }};
-      --danger-color: {{ application.theme.danger.color }};
-      --border-radius: {{ application.theme.border.radius }};
-      --info-background: {{ application.theme.info.background }};
-    }
-  </style>
+  
+  {% if request.COOKIES.theme == "dark" %}
+    {{ application.theme.dark.to_css|safe }}
+  {% else %}
+    {{ application.theme.light.to_css|safe }}
+  {% endif %}
 
 </head>
 
-<body>
+<body class="{{ request.COOKIES.theme|default:'light' }}">
   <div id="root"></div>
 </body>
 

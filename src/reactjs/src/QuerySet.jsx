@@ -3,8 +3,7 @@ import { format } from "./Formatter";
 import { Action } from "./Action";
 import { Field } from "./Form";
 import { request } from "./Request";
-import { Theme } from "./Theme";
-import { Info } from "./Message";
+import { Info, Instruction } from "./Message";
 import { openActionDialog } from "./Modal";
 import { GridLayout } from "./Layout";
 import { Button } from "./Button";
@@ -19,7 +18,7 @@ import Paginator from "./Paginator.jsx";
 function Counter(props) {
   function render() {
     const style = {
-      backgroundColor: Theme.colors.primary,
+      backgroundColor: "var(--default-color)",
       color: "white",
       borderRadius: "50%",
       minWidth: 13,
@@ -46,6 +45,8 @@ function QuerySet(props) {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background-color: var(--default-background);
+      color: var(--primary-color);
     }
     .queryset .title .fa-spin{
       display: none;
@@ -64,6 +65,10 @@ function QuerySet(props) {
         font-weight: active ? bold : normal;
         text-decoration: none;
     }
+    .queryset .content{
+      background-color: var(--default-background);
+    }
+
   `)
 
   if (props.data.id == null) props.data.id = Math.random();
@@ -161,7 +166,7 @@ function QuerySet(props) {
       textAlign: "left",
       verticalAlign: "top",
       lineHeight: "1.2rem",
-      color: Theme.colors.primary,
+      color: "var(--default-color)",
       padding: 5,
     };
     if (window.innerWidth < 800) {
@@ -185,9 +190,9 @@ function QuerySet(props) {
 
   function renderRow(row) {
     const css = row.style;
-    const td = { borderBottom: "solid 1px #DDD", padding: 5 };
+    const td = { borderBottom: "var(--input-border)", padding: 5 };
     const actions = {
-      borderBottom: "solid 1px #DDD",
+      borderBottom: "var(--input-border)",
       lineHeight: "3rem",
       textAlign: "right",
     };
@@ -314,7 +319,7 @@ function QuerySet(props) {
   }
 
   function renderActions() {
-    return (
+    return data.actions.length > 0 && (
       <div align="right" style={{ marginTop: 20, marginBottom: 20 }}>
         {data.actions.map(function (action) {
           return <Action key={Math.random()} data={action} primary />;
@@ -325,8 +330,6 @@ function QuerySet(props) {
 
   function scrollTop(){
     const y = document.getElementById(props.data.id).getBoundingClientRect().top + window.scrollY;
-    console.log(y);
-    console.log(props.data.id)
     window.scrollTo(
       { top: y,  behavior: 'smooth' }
     );
@@ -334,14 +337,14 @@ function QuerySet(props) {
 
   function renderSearchFilterPanel() {
     const style = {
-      backgroundColor: "#f8f8f8",
-      borderBottom: "solid 1px #DDD",
+      backgroundColor: "var(--auxiliary-background)",
       marginBottom: 10,
       padding: 10,
+      borderRadius: "var(--border-radius)"
     };
     const searching = data.search.length > 0;
     const filtering = data.filters.length > 0;
-    if ((data.bi || data.data.length >= 0) && (searching || filtering)) {
+    if ((data.bi || data.data.length > 0) && (searching || filtering)) {
       const field = {
         name: "q",
         mask: null,
@@ -402,7 +405,7 @@ function QuerySet(props) {
   }
 
   function renderReloader(){
-    const style = {color: Theme.colors.primary}
+    const style = {color: "var(--default-color)"}
     return props.data.reloadable && <div align="center">
       <i>Ultima atualização em {new Date().toLocaleTimeString()}</i>
       <div><Link style={style} onClick={(e)=>{e.preventDefault(); reload()}}>Atualizar agora</Link></div>
@@ -432,6 +435,7 @@ function QuerySet(props) {
     } else {
       return (
         <div className="content">
+          {renderInstruction()}
           {renderReloader()}
           {renderActions()}
           {renderTabs()}
@@ -442,6 +446,10 @@ function QuerySet(props) {
         </div>
       );
     }
+  }
+
+  function renderInstruction() {
+    return data.info && <Instruction data={{ text: data.info }} />;
   }
 
   function render() {

@@ -65,8 +65,8 @@ class User(User):
             super().serializer()
             .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
             .fieldset('Dados de Acesso', (('username', 'get_timezone'), ('is_superuser', 'is_active'),))
-            .queryset('Notificação', 'get_push_subscriptions')
-            .queryset('Papéis', 'get_roles')
+            .queryset('get_push_subscriptions')
+            .queryset('get_roles')
         )
     
     @meta('Inscrições de Notificação')

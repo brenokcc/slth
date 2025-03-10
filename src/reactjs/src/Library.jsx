@@ -34,6 +34,7 @@ function Image(props) {
           width: props.data.width,
           height: props.data.height,
           borderRadius: props.data.round ? "50%" : 0,
+          width: "100%",
         }}
       />
     </div>
@@ -187,7 +188,7 @@ function Badge(props) {
       whiteSpace: "nowrap",
       backgroundColor: props.data.color,
       display: "inline-flex",
-      border: "solid 3px white",
+      marginRight: 5,
       lineHeight: "1rem"
     };
     return <div style={style}>
@@ -205,7 +206,7 @@ function Boxes(props) {
       marginLeft: -20,
       marginRight: -20,
       textAlign: "center",
-      backgroundColor: "#f8f8f8",
+      backgroundColor: "var(--auxiliary-background)",
     };
     const box = {
       padding: 20,
@@ -213,8 +214,7 @@ function Boxes(props) {
       flexDirection: "column",
       width: 250,
       height: 250,
-      backgroundColor: "white",
-      boxShadow: "0px 15px 10px -15px #DDD",
+      backgroundColor: "var(--default-background)",
       margin: 10,
       textDecoration: "none",
     };
@@ -234,12 +234,13 @@ function Boxes(props) {
 
     return props.data.items.length ? (
       <div style={boxes}>
-        <h2
+        {props.data.title && <h2
           data-label={toLabelCase(props.data.title)}
           style={{ color: Theme.colors.primary }}
         >
           {props.data.title}
         </h2>
+        }
         <div>
           {props.data.items.map((item) => (
             <Link
@@ -596,7 +597,7 @@ function Scheduler(props) {
       marginBottom: 15,
     };
     const cell = {
-      border: "solid 4px white",
+      border: "solid 4px transparent",
       userSelect: "none",
     };
     return (
@@ -670,7 +671,7 @@ function Scheduler(props) {
                         const dataLabel = data.matrix[0][j].text+ " " +row[0].text;
                         const td = {
                           backgroundColor: bgColor(value, dataLabel),
-                          border: "solid 4px white",
+                          border: "solid 4px var(--default-background)",
                           cursor: "pointer",
                         };
                         return (
@@ -713,7 +714,7 @@ function Tooltip(props){
       .tooltip .tooltiptext {
         visibility: hidden;
         width: 220px;
-        background-color: ${Theme.colors.highlight};
+        background-color: black;
         color: #fff;
         text-align: center;
         border-radius: 6px;

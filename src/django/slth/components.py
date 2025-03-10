@@ -95,9 +95,9 @@ class Indicators(dict):
 
 
 class Boxes(dict):
-    def __init__(self, title):
+    def __init__(self, title=None):
         self["type"] = "boxes"
-        self["title"] = str(title)
+        self["title"] = str(title) if title else None
         self["items"] = []
 
     def append(self, icon, label, url, style=None):

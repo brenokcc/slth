@@ -65,7 +65,7 @@ function openActionDialog(actions) {
 function Layer(props) {
   StyleSheet(`
     .layer{
-      background-color: black;
+      background-color: var(--default-color);
       bottom: 0;
       left: 0;
       position: fixed;
@@ -122,6 +122,9 @@ function Dialog(props) {
     maxWidth: 800,
     top: window.scrollY + 40,
     border: 0,
+    backgroundColor: "var(--default-background)",
+    color: "var(--default-color)",
+    borderRadius: "var(--border-radius)"
   };
 
   return (

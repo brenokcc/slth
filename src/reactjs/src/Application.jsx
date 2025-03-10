@@ -9,7 +9,7 @@ import { Icon } from "./Icon.jsx";
 import { PushWebNotification } from "./Notification.jsx";
 import toLabelCase from "./Utils.jsx";
 import Link from "./Link.jsx";
-import { Theme } from "./Theme";
+import { Theme, ThemeToggle } from "./Theme";
 import detectSwipe from "./Gestures.jsx";
 
 function Floating(props) {
@@ -20,8 +20,8 @@ function Floating(props) {
       display: "flex",
       width: 50,
       height: 50,
-      backgroundColor: Theme.colors.primary,
-      color: "white",
+      backgroundColor: "var(--primary-background)",
+      color: "var(--default-background)",
       right: 10,
       borderRadius: "50%",
       cursor: "pointer",
@@ -90,6 +90,7 @@ function Application(props) {
     const menu = document.querySelector("aside");
     if(menu){
       menu.style.display = menu.style.display == "none" ? "inline-block" : "none";
+      localStorage.setItem('menuDisplay', menu.style.display);
     }
   }
 
@@ -104,7 +105,7 @@ function Application(props) {
       display: "flex",
       width: "100%",
       justifyContent: "space-between",
-      boxShadow: "0px 15px 10px -15px #DDD",
+      //boxShadow: "0px 15px 10px -15px #DDD",
       overflowX: "hidden",
     };
     const selector = {
@@ -158,6 +159,9 @@ function Application(props) {
           )}
           <div style={{ padding: 10 }}>
             <PushWebNotification />
+          </div>
+          <div style={{ padding: 10 }}>
+            <ThemeToggle />
           </div>
 
           {props.data.navbar.toolbar && window.innerWidth > 800 &&
@@ -247,7 +251,7 @@ function Application(props) {
                     height: 30,
                     borderRadius: "50%",
                     objectFit: "cover",
-                    backgroundColor: Theme.colors.primary,
+                    backgroundColor: "var(--primary-background)",
                   }}
                 />
               </Dropdown>
@@ -266,10 +270,9 @@ function Application(props) {
             verticalAlign: "top",
             maxWidth: "350px",
             minWidth: "350px",
-            display: window.innerWidth < SMALL_WIDTH ? "none" : "block",
+            display: localStorage.getItem('menuDisplay') || window.innerWidth < SMALL_WIDTH ? "none" : "block",
             float: "left",
             minHeight: window.innerHeight+"px",
-            backgroundColor: "white",
           }}
         >
           <Menu />

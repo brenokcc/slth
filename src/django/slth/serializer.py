@@ -9,7 +9,7 @@ from django.db.models import Model, QuerySet, Manager
 from django.utils.text import slugify
 from .exceptions import JsonResponseException
 from .utils import absolute_url, build_url
-from .components import Image, FileLink, FileViewer, Banner
+from .components import Image, FileLink, FileViewer, Banner, Boxes
 from django.db.models.fields.files import ImageFieldFile, FieldFile
 
 
@@ -101,7 +101,7 @@ def getfield(obj, name_or_names, request=None):
 
 
 class Serializer:
-    def __init__(self, obj=None, request=None, serializer=None, type='object', title=None, show_title=True):
+    def __init__(self, obj=None, request=None, serializer=None, type='object', title=None, show_title=True, info=None):
         self.path = serializer.path.copy() if serializer else []
         self.obj = obj
         self.lazy = False
@@ -119,10 +119,20 @@ class Serializer:
             self.title = None
         self.show_title = show_title
         self.base_url = None
+        if info:
+            self.info(info)
 
     def actions(self, *actions) -> 'Serializer':
         self.metadata['actions'].extend(actions)
         self.metadata['allow'].extend(actions)
+        return self
+    
+    def info(self, text):
+        self.metadata['info'] = text
+        return self
+    
+    def todo(self, *endpoints):
+        self.metadata['todo'] = endpoints
         return self
     
     def field(self, name, reload=True, condition=None, roles=()) -> 'Serializer':
@@ -133,39 +143,62 @@ class Serializer:
         self.metadata['content'].append(('fields', None, dict(names=names, condition=condition, roles=roles)))
         return self
     
-    def fieldset(self, title, fields=(), actions=(), attr=None, reload=True, condition=None, roles=()) -> 'Serializer':
+    def fieldset(self, title, fields=(), actions=(), attr=None, reload=True, condition=None, roles=(), info=None) -> 'Serializer':
         self.metadata['allow'].extend(actions)
-        item = dict(title=title, names=fields, attr=attr, actions=actions, reload=reload, condition=condition, roles=roles)
+        item = dict(title=title, names=fields, attr=attr, actions=actions, reload=reload, condition=condition, roles=roles, info=info)
         self.metadata['content'].append(('fieldset', to_snake_case(title), item))
         return self
         
-    def queryset(self, title, name, condition=None, roles=()) -> 'Serializer':
-        self.metadata['content'].append(('queryset', name, dict(title=title, condition=condition, roles=roles)))
+    def queryset(self, name, condition=None, roles=()) -> 'Serializer':
+        self.metadata['content'].append(('queryset', name, dict(condition=condition, roles=roles)))
         return self
     
-    def endpoint(self, title, cls, wrap=False, condition=None, roles=()) -> 'Serializer':
-        key = to_snake_case(title) if title else cls.replace('.', '_')
+    def endpoint(self, cls, wrap=False, condition=None, roles=()) -> 'Serializer':
+        key = cls.replace('.', '_')
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
-        self.metadata['content'].append(('endpoint', key, dict(title=title, cls=cls, wrap=wrap, condition=condition, roles=roles)))
+        self.metadata['content'].append(('endpoint', key, dict(cls=cls, wrap=wrap, condition=condition, roles=roles)))
         return self
     
-    def append(self, title, component, condition=None, roles=()) -> 'Serializer':
-        self.metadata['content'].append(('component', to_snake_case(title), dict(title=title, component=component, condition=condition, roles=roles)))
+    def append(self, component, condition=None, roles=()) -> 'Serializer':
+        self.metadata['content'].append(('component', 'shortcut', dict(component=component, condition=condition, roles=roles)))
+        return self
     
-    def section(self, title) -> 'Serializer':
-        return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title)
-    
-    def group(self, title=None) -> 'Serializer':
+    def shortcuts(self, *endpoints) -> 'Serializer':
+        boxes = Boxes()
+        for name in endpoints:
+            cls = slth.ENDPOINTS[name]
+            endpoint = cls().contextualize(self.request)
+            if endpoint.check_permission():
+                icon = endpoint.get_icon() or "link"
+                label = endpoint.get_verbose_name()
+                url = build_url(self.request, cls.get_api_url())
+                boxes.append(icon, label, url)
+        return self.append(boxes)
+
+    def section(self, title=None, info=None) -> 'Serializer':
         show_title = True
         if title is None:
             title = 'group'
             show_title = False
-        return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title, show_title=show_title)
+        return Serializer(obj=self.obj, request=self.request, serializer=self, type='section', title=title, show_title=show_title, info=info)
+    
+    def group(self, title=None, info=None) -> 'Serializer':
+        show_title = True
+        if title is None:
+            title = 'group'
+            show_title = False
+        return Serializer(obj=self.obj, request=self.request, serializer=self, type='group', title=title, show_title=show_title, info=info)
 
     def parent(self) -> 'Serializer':
         self.serializer.metadata['content'].append(('serializer', to_snake_case(self.title), dict(serializer=self, condition=None, roles=())))
         return self.serializer
+    
+    def endsection(self) -> 'Serializer':
+        return self.parent()
+    
+    def endgroup(self) -> 'Serializer':
+        return self.parent()
     
     def contextualize(self, request) -> 'Serializer':
         self.request = request
@@ -215,7 +248,7 @@ class Serializer:
             if only:
                 only = only.split('__')
 
-        if self.request and 'action' in self.request.GET:
+        if self.request and 'action' in self.request.GET and not only:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             if cls:### and cls.get_key_name() in self.metadata['allow']:
                 self.request.GET._mutable = True
@@ -232,8 +265,11 @@ class Serializer:
                 cls = slth.ENDPOINTS[qualified_name]
                 endpoint = cls.instantiate(self.request, self.obj)
                 if endpoint.check_permission():
-                    action = endpoint.get_api_metadata(self.request, base_url, self.obj.pk)
-                    action['name'] = action['name'].replace(' {}'.format(self.obj._meta.verbose_name), '')
+                    if cls.has_args():
+                        action = endpoint.get_api_metadata(self.request, base_url, self.obj.pk)
+                        action['name'] = action['name'].replace(' {}'.format(self.obj._meta.verbose_name), '')
+                    else:
+                        action = endpoint.get_api_metadata(self.request, base_url)
                     actions.append(action)
             if leaf:
                 raise JsonResponseException(actions)
@@ -241,7 +277,7 @@ class Serializer:
         if not self.metadata['content'] and self.obj and isinstance(self.obj, Model):
             self.fields(*[field.name for field in type(self.obj)._meta.fields])
             for m2m in type(self.obj)._meta.many_to_many:
-                self.queryset(m2m.verbose_name, m2m.name)
+                self.queryset(m2m.name)
         
         items = []
         if not self.lazy:
@@ -271,6 +307,7 @@ class Serializer:
                     names = item['names']
                     attr = item['attr']
                     reload = item['reload']
+                    info = item['info']
                     if not only or key in only:
                         fieldset_actions=[]
                         fieldset_fields=[]
@@ -288,15 +325,16 @@ class Serializer:
                                 endpoint = cls.instantiate(self.request, obj)
                                 if obj and endpoint.check_permission():
                                     fieldset_actions.append(endpoint.get_api_metadata(self.request, base_url, obj.pk))
-                            data = dict(type='fieldset', title=title, key=key, url=url if reload else None, actions=fieldset_actions, data=fieldset_fields)
+                            data = dict(type='fieldset', title=title, info=info, key=key, url=url if reload else None, actions=fieldset_actions, data=fieldset_fields)
                         if leaf: raise JsonResponseException(data)
                 elif datatype == 'queryset':
-                    title = item['title']
                     if not only or key in only:
                         attr = getattr(self.obj, key)
                         if type(attr) == types.MethodType:
+                            title = getattr(attr, 'verbose_name', key.replace('get_', '').title())
                             value = attr().filter()
                         else:
+                            title = getattr(attr, 'verbose_name', key.title())
                             value = attr.filter()
                         value.instance = self.obj
                         path = self.path + [key]
@@ -306,10 +344,10 @@ class Serializer:
                             data = value.settitle(title).attrname('__'.join(path)).contextualize(self.request).serialize(debug=False)
                         
                         data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
-                        if leaf: raise JsonResponseException(data)
+                        if leaf:
+                            raise JsonResponseException(data)
                 elif datatype == 'endpoint':
                     data = {}
-                    title = item['title']
                     cls = item['cls']
                     wrap = item['wrap']
                     if not only or key in only:
@@ -323,22 +361,19 @@ class Serializer:
                                     returned = returned.contextualize(self.request)
                             path = self.path + [key]
                             if wrap:
-                                data = dict(type='fieldset', key=key, title=title, url=None, data=serialize(returned))
+                                data = dict(type='fieldset', key=key, title= endpoint.get_verbose_name(), url=None, data=serialize(returned))
                             else:
                                 data = serialize(returned)
-                                #if 'title' in data and data['title'] is None:
                                 if lazy:
-                                    data['title'] = title
+                                    data['title'] = endpoint.get_verbose_name()
                             if isinstance(data, dict):
                                 data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                             if leaf: raise JsonResponseException(data)
                             
                 elif datatype == 'component':
-                    title = item['title']
-                    component = item['component']
                     data = {}
                     if not only or key in only:
-                        data = serialize(component)
+                        data = serialize(item['component'])
                     path = self.path + [key]
                     data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                     if leaf: raise JsonResponseException(data)
@@ -354,7 +389,22 @@ class Serializer:
                 if data:
                     items.extend(data) if datatype == 'fields' else items.append(data)
 
+        info = self.metadata.get('info')
+        todo = []
+        for action_name in self.metadata.get('todo', ()):
+            cls = slth.ENDPOINTS[action_name]
+            endpoint = cls.instantiate(self.request, self.obj)
+            if endpoint.check_permission():
+                if cls.has_args():
+                    action = endpoint.get_api_metadata(self.request, base_url, self.obj.pk)
+                else:
+                    action = endpoint.get_api_metadata(self.request, base_url)
+                todo.append(action)
         output = dict(type=self.type, title=self.title if self.show_title else None)
+        if info:
+            output.update(info=info)
+        if todo:
+            output.update(todo=todo)
         if self.serializer:
             datatype = to_snake_case(self.title)
             output.update(key=datatype)

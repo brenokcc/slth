@@ -35,6 +35,8 @@ var root;
 var COMPONENT_REGISTRY = {};
 const APPLICATION_URL = "/api/application/";
 const APPLICATION_DATA = localStorage.getItem("application");
+const THEME = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? "dark" : "light";
+if(document.cookie.indexOf("theme")<0) document.cookie = "theme="+THEME+"; expires=Thu, 01 Jan 2030 00:00:00 UTC; path=/;";
 
 function ComponentFactory(props) {
   if(props.data){

@@ -276,7 +276,7 @@ class FormMixin:
                 max=field.max,
                 name=name,
                 count=len(instances),
-                label=label,
+                label=str(label),
                 required=required,
                 value=value,
             )
@@ -333,10 +333,10 @@ class FormMixin:
             data = dict(
                 type=ftype,
                 name=fname,
-                label=field.label,
+                label=str(field.label) if field.label else None,
                 required=field.required,
                 value=value,
-                help_text=field.help_text,
+                help_text=str(field.help_text),
                 mask=None,
             )
             data.update(**extra)

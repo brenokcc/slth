@@ -1,3 +1,5 @@
+import { Icon } from "./Icon.jsx";
+
 const Theme = {
   colors: {
     primary: "var(--primary-color)",
@@ -30,5 +32,28 @@ function Color(props) {
   return render();
 }
 
-export { Theme, Color };
+function ThemeToggle(props){
+
+  function isDark(){
+    return document.cookie.indexOf("dark") > 0 
+  }
+
+  function onClick(e){
+    const theme = isDark() ? "light" : "dark";
+    document.cookie = "theme="+theme+"; expires=Thu, 01 Jan 2030 00:00:00 UTC; path=/;";
+    document.location.reload();
+  }
+
+  function render(){
+    return <Icon
+      onClick={onClick}
+      icon={isDark() ? "sun" : "moon"}
+      style={{ cursor: "pointer", color: Theme.colors.primary }}
+    />
+  }
+
+  return render()
+}
+
+export { Theme, Color, ThemeToggle };
 export default Theme;

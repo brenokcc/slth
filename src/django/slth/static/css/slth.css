@@ -3,9 +3,9 @@
 @font-face{font-family:rawline-bold;font-weight:bold;font-weight:400;src:local('Rawline'),url(./fonts/rawline-700.woff)}
 body{
     margin: 0px;
-    background-color: "white";
+    background-color: var(--default-background);
     font-family: rawline;
-    color: #383838;
+    color: var(--default-color);
     overflow-x: hidden;
 }
 h1, h2, h3, h4, h5, dt, strong, .bold{
@@ -24,13 +24,21 @@ a {
     background-color: inherit;
 }
 
+.form-fieldset, .default-fieldset{
+  background-color: var(--fieldset-background);
+  color: var(--fieldset-color);
+  padding: 10px;
+  margin-bottom: 25px;
+  border-radius: var(--border-radius);
+}
+
 .form-control:focus {
     outline: none !important;
     border: solid 1px #c2850c !important;
 }
 input[type="checkbox"], input[type="radio"]{
     appearance: none;
-    background-color: #fff;
+    background-color: var(--default-background);
     margin: 0;
     font: inherit;
     width: 1.5em;
@@ -72,10 +80,6 @@ input[type="checkbox"], input[type="radio"]{
 
   #output h1{
     font-size: 1.5rem;
-  }
-
-  .tabContent h1{
-    display: none;
   }
 
 

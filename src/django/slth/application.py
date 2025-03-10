@@ -8,7 +8,8 @@ APPLICATION_CLASS = None
 
 
 class Style():
-    def __init__(self, color="black", background="inherite", border="none"):
+    def __init__(self, name, color="black", background="inherite", border="none"):
+        self.name = name
         self.update(color=color, background=background, border=border)
 
     def update(self, color=None, background=None, border=None):
@@ -19,18 +20,70 @@ class Style():
         if border:
             self.border = border
 
+    def to_css(self):
+        return f"""
+            --{self.name}-color: { self.color };
+            --{self.name}-border: { self.border };
+            --{self.name}-background: { self.background };
+        """
 
-class Theme():
+class ColorSchema:
+    def to_css(self):
+        css = []
+        css.append("<style>")
+        css.append(":root{")
+        css.append(f"--border-radius: {self.border_radius}px;")
+        css.append(self.default.to_css())
+        css.append(self.header.to_css())
+        css.append(self.footer.to_css())
+        css.append(self.fieldset.to_css())
+        css.append(self.input.to_css())
+        css.append(self.primary.to_css())
+        css.append(self.secondary.to_css())
+        css.append(self.auxiliary.to_css())
+        css.append(self.highlight.to_css())
+        css.append(self.info.to_css())
+        css.append(self.success.to_css())
+        css.append(self.warning.to_css())
+        css.append(self.danger.to_css())
+        css.append("</style>")
+        return "\n".join(css)
+
+
+class Light(ColorSchema):
     def __init__(self):
-        self.primary:Style = Style("#1351b4")
-        self.secondary:Style = Style("#071e41")
-        self.auxiliary:Style = Style("#2670e8")
-        self.highlight:Style = Style("#0c326f")
+        self.border_radius = 0
+        self.default: Style = Style("default", color="#383838", background="#FFFFFF")
+        self.header: Style = Style("header", color="#383838", background="#FFFFFF")
+        self.footer: Style = Style("footer", color="#383838", background="#FFFFFF")
+        self.fieldset: Style = Style("fieldset", color="#383838", background="#FFFFFF")
+        self.input: Style = Style("input", border="solid 1px #d9d9d9", background="#FFFFFF")
+        self.primary:Style = Style("primary", color="#1351b4", background="#1351b4")
+        self.secondary:Style = Style("secondary", color="#071e41")
+        self.auxiliary:Style = Style("auxiliary", color="#2670e8", background="#f8f8f8")
+        self.highlight:Style = Style("hightlight", color="#0c326f")
+        self.info:Style = Style("info", color="#1351b4", background="#d4e5ff")
+        self.success:Style = Style("success", color="#ffffff", background="#1351b4")
+        self.warning:Style = Style("warning", color="#fff5c2")
+        self.danger:Style = Style("danger", color="#e52207")
 
-        self.info:Style = Style("#1351b4", "#d4e5ff")
-        self.success:Style = Style("#1351b4")
-        self.warning:Style = Style("#fff5c2")
-        self.danger:Style = Style("#e52207")
+
+class Dark(ColorSchema):
+    def __init__(self):
+        self.border_radius = 3
+        self.default: Style = Style("default", color="#c3d0e5", background="#0D1117")
+        self.header: Style = Style("header", color="#383838", background="#FFFFFF")
+        self.footer: Style = Style("footer", color="#383838", background="#FFFFFF")
+        self.fieldset: Style = Style("fieldset", color="#91aad2", background="#262c35")
+        self.input: Style = Style("input", border="0", background="#0D1117")
+        self.primary:Style = Style("primary", color="#c3d0e5", background="#90C4F9")
+        self.secondary:Style = Style("secondary", color="#071e41")
+        self.auxiliary:Style = Style("auxiliary", color="#91aad2", background="#262c35")
+        self.highlight:Style = Style("hightlight", color="#0c326f")
+        self.info:Style = Style("info", color="#c3d0e5", background="#262c35")
+        self.success:Style = Style("success", color="#c3d0e5", background="#121f1a", border="1px solid #3b622b")
+        self.warning:Style = Style("warning", color="#fff5c2")
+        self.danger:Style = Style("danger", color="#e52207")
 
 
 class Groups(dict):
@@ -71,8 +124,8 @@ class Menu(dict):
         return items
 
 class Oauth(list):
-    def add(self, name, client_id, client_secret, redirect_uri, authorize_url, access_token_url, user_data_url, user_logout_url, user_scope, user_create, user_username, user_email):
-        super().append(dict(name=name, client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, authorize_url=authorize_url, access_token_url=access_token_url, user_data_url=user_data_url, user_logout_url=user_logout_url, user_scope=user_scope, user_create=user_create, user_username=user_username, user_email=user_email))
+    def add(self, name, client_id, client_secret, redirect_uri, authorize_url, access_token_url, user_data_url, user_username, user_email=None, user_scope=None, user_create=False, user_logout_url=None):
+        super().append(dict(name=name, client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, authorize_url=authorize_url, access_token_url=access_token_url, user_data_url=user_data_url, user_username=user_username, user_email=user_email, user_scope=user_scope, user_create=user_create, user_logout_url=user_logout_url))
 
     def serialize(self):
         data = []
@@ -105,6 +158,12 @@ class Dashboard():
         self.tools:List = List()
         self.settings:List = List()
         self.index = "dashboard"
+
+
+class Theme:
+    def __init__(self):
+        self.light = Light()
+        self.dark = Dark()
 
 
 class ApplicationMetaclass(type):

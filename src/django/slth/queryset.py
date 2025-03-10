@@ -97,6 +97,10 @@ class QuerySet(models.QuerySet):
         self.metadata['renderer'] = name
         return self
     
+    def info(self, text):
+        self.metadata['info'] = text
+        return self
+    
     def timeline(self):
         return self.renderer('timeline')
     
@@ -165,8 +169,10 @@ class QuerySet(models.QuerySet):
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
             actions = self.metadata.get('actions', ())
-            if cls.get_api_name() in actions:
-                source = self.model.objects.get(pk=pk) if pk else self
+            if cls.get_key_name() in actions:
+                source = self._hints.get('instance')
+                if source is None:
+                    source = self.model.objects.get(pk=pk) if pk else qs
                 endpoint = cls.instantiate(self.request, source)
                 if endpoint.check_permission():
                     raise JsonResponseException(endpoint.serialize())
@@ -242,6 +248,7 @@ class QuerySet(models.QuerySet):
         attrname = self.metadata.get('attrname')
         ignore = self.metadata.get('ignore', ())
         renderer = self.metadata.get('renderer')
+        info = self.metadata.get('info')
         reloadable = self.metadata.get('reloadable')
         style = self.metadata.get('style')
         bi = self.metadata.get('bi', [])
@@ -311,6 +318,8 @@ class QuerySet(models.QuerySet):
             aggregations.append(aggregation)
 
         data = dict(type='queryset', title=title, key=attrname, url=base_url, total=total, count=total, icon=None, actions=actions, filters=filters, search=search, q=self.request.GET.get('q'))
+        if info:
+            data.update(info=info)
         if renderer:
             data.update(renderer=renderer)
         if reloadable:

@@ -40,11 +40,11 @@ function Button({ id, onClick, icon, label, display, primary, compact, spin }) {
       display: display || "block",
     };
     if (primary) {
-      style.backgroundColor = Theme.colors.primary;
-      style.color = "white";
+      style.backgroundColor = "var(--primary-background)";
+      style.color = style.color = "var(--default-background)";
     } else {
-      style.border = "solid 1px " + Theme.colors.primary;
-      style.color = Theme.colors.primary;
+      style.border = "solid 1px var(--primary-color)";
+      style.color = "var(--primary-color)";
     }
     return (
       <a
