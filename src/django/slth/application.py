@@ -149,6 +149,7 @@ class Dashboard():
     def __init__(self):
         self.actions:List = List()
         self.toolbar:List = List()
+        self.todo:List = List()
         self.top:List = List()
         self.center:List = List()
         self.boxes:List = List()

@@ -30,6 +30,7 @@ def authenticate(code):
             else:
                 response = requests.get(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers)
             print(response.text)
+            breakpoint()
             if response.status_code == 200:
                 data = json.loads(response.text)
                 username = data[provider['user_username']]

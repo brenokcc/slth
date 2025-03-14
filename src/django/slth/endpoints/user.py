@@ -9,7 +9,8 @@ class Users(endpoints.ListEndpoint[User]):
 
 
 class Add(endpoints.AddEndpoint[User]):
-    pass
+    class Meta:
+        icon = "user-plus"
 
 
 class View(endpoints.ViewEndpoint[User]):
@@ -17,11 +18,13 @@ class View(endpoints.ViewEndpoint[User]):
 
 
 class Edit(endpoints.EditEndpoint[User]):
-    pass
+    class Meta:
+        icon = "user-pen"
 
 
 class Delete(endpoints.DeleteEndpoint[User]):
-    pass
+    class Meta:
+        icon = "user-minus"
 
 
 class ChangePassword(endpoints.ChildInstanceEndpoint):

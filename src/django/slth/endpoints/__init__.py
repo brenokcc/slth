@@ -584,7 +584,19 @@ class Dashboard(Endpoint):
 
     def get(self):
         application = ApplicationConfig.get_instance()
-        serializer = Serializer(request=self.request)
+        serializer = self.serializer()
+        if application.dashboard.actions:
+            serializer.actions(*application.dashboard.actions)
+        if application.dashboard.todo:
+            serializer.todo(*application.dashboard.todo)
+        if application.dashboard.top:
+            group = serializer.group("Top")
+            for name in application.dashboard.top:
+                cls = ENDPOINTS[name]
+                endpoint = cls.instantiate(self.request, self)
+                if endpoint.check_permission():
+                    group.endpoint(cls)
+            group.parent()
         if application.dashboard.boxes:
             boxes = Boxes("Acesso Rápido")
             for name in application.dashboard.boxes:
@@ -596,24 +608,12 @@ class Dashboard(Endpoint):
                     url = build_url(self.request, cls.get_api_url())
                     boxes.append(icon, label, url)
             serializer.append(boxes)
-        if application.dashboard.top:
-            group = serializer.group("Top")
-            for name in application.dashboard.top:
-                cls = ENDPOINTS[name]
-                endpoint = cls.instantiate(self.request, self)
-                if endpoint.check_permission():
-                    group.endpoint(
-                        cls, wrap=False
-                    )
-            group.parent()
         if application.dashboard.center:
             for name in application.dashboard.center:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
-                    serializer.endpoint(
-                        cls, wrap=False
-                    )
+                    serializer.endpoint(cls)
         return serializer
 
     def check_permission(self):

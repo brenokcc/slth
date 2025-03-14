@@ -171,31 +171,13 @@ function Application(props) {
                 {props.data.navbar.toolbar.map(function (action) {
                   return (
                    
-                      <Action key={Math.random()} data={action} primary compact/>
+                      <Action key={Math.random()} data={action} compact/>
                  
                   );
                 })}
               </div>
             )
           }
-
-          {props.data.navbar.actions &&
-            props.data.navbar.actions.length > 0 &&
-            props.data.navbar.actions.map(function (action) {
-              if (
-                action.url == "/api/auth/login/" &&
-                (props.data.navbar.user ||
-                  document.location.pathname == "/app/auth/login/")
-              ) {
-                return null;
-              } else {
-                return (
-                  <div key={Math.random()}>
-                    <Action key={Math.random()} data={action} primary />
-                  </div>
-                );
-              }
-            })}
 
           {props.data.oauth &&
             props.data.oauth.length > 0 &&

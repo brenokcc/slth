@@ -34,7 +34,6 @@ function Image(props) {
           width: props.data.width,
           height: props.data.height,
           borderRadius: props.data.round ? "50%" : 0,
-          width: "100%",
         }}
       />
     </div>

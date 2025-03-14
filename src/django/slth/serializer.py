@@ -154,9 +154,9 @@ class Serializer:
         return self
     
     def endpoint(self, cls, wrap=False, condition=None, roles=()) -> 'Serializer':
-        key = cls.replace('.', '_')
         if isinstance(cls, str):
             cls = slth.ENDPOINTS[cls]
+        key = cls.get_api_name().replace('.', '_')
         self.metadata['content'].append(('endpoint', key, dict(cls=cls, wrap=wrap, condition=condition, roles=roles)))
         return self
     

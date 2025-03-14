@@ -45,7 +45,7 @@ function Action(props) {
     } else {
       if (props.data.icon) {
         if (props.compact || !props.data.name || window.innerWidth < 800) {
-          return <Icon icon={props.data.icon} />;
+          return <Icon icon={props.data.icon} style={{ color: "var(--primary-color)" }}/>;
         } else {
           return (
             <>

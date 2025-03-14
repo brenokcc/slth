@@ -411,7 +411,7 @@ function Title(props) {
             {props.data.title}
           </h1>
         )}
-        <div style={{margin: 0, textAlign:compactAction ?  "right" : "center", width: compactAction ? "auto" : "100%"}}><ObjectActions data={props.data} /></div>
+        <div style={{margin: 0, textAlign:compactAction ?  "right" : "center", width: compactAction ? "100%" : "100%"}}><ObjectActions data={props.data} /></div>
       </div>
     );
   }
