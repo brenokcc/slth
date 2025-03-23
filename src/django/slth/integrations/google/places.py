@@ -7,12 +7,10 @@ places.search("Natal Shopping, Natal, RN")
 places.geolocation("ChIJj2AvPX__sgcRNr1SxD-1jdU")
 """
 
-GOOGLE_TOKEN = os.environ['GOOGLE_TOKEN']
-
 def search(description):
     response = requests.get(
         "https://maps.googleapis.com/maps/api/place/autocomplete/json?input={}&key={}".format(
-            description, GOOGLE_TOKEN
+            description, os.environ['GOOGLE_TOKEN']
         )
     )
     data = response.json()
