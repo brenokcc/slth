@@ -66,8 +66,15 @@ class FormController:
                 v = v.strftime("%Y-%m-%d")
             self.controls["set"][k] = v
 
-    def get(self, field_name, default=None):
-        return self.field_value(field_name, self.form.request.GET.get(field_name, default))
+    def get(self, field_name, *field_names, default=None):
+        value = self.field_value(field_name, self.form.request.GET.get(field_name, default))
+        if field_names:
+            values = [value]
+            for field_name in field_names:
+                values.append(self.field_value(field_name, self.form.request.GET.get(field_name, default)))
+            return values
+        else:
+            return value
 
     def field_value(self, name, value, default=None):
         if value is None:

@@ -40,16 +40,17 @@ function Action(props) {
   }
 
   function renderContent() {
+    const color = props.primary ? "white" : "var(--primary-color)";
     if (props.strech) {
       return props.data.name;
     } else {
       if (props.data.icon) {
         if (props.compact || !props.data.name || window.innerWidth < 800) {
-          return <Icon icon={props.data.icon} style={{ color: "var(--primary-color)" }}/>;
+          return <Icon icon={props.data.icon} style={{ color: color }}/>;
         } else {
           return (
             <>
-              <Icon icon={props.data.icon} style={{ paddingRight: 10 }} />
+              <Icon icon={props.data.icon} style={{ paddingRight: 10, color: color }} />
               {props.data.name || ""}
             </>
           );
@@ -85,6 +86,7 @@ function Action(props) {
         onClick={onClick}
         style={style}
         data-label={toLabelCase(props.data.name)}
+        tabIndex={props.tabIndex}
       >
         {renderContent()}
       </a>
@@ -147,7 +149,7 @@ function Dropdown(props) {
   }
   function render() {
     return (
-      <div className="dropdown">
+      <div className={"dropdown " + props.name}>
         <div
           onClick={onClick}
           data-label={toLabelCase(props.dataLabel)}

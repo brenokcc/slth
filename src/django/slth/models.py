@@ -627,6 +627,27 @@ class UserTimeZone(models.Model):
         return '{} - {}'.format(self.user.username, self.key)
 
 
+class SettingsQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class Settings(models.Model):
+    key = models.CharField(verbose_name='Chave')
+    value = models.CharField(verbose_name='Value')
+
+    class Meta:
+        icon = 'gears'
+        verbose_name = 'Configuração'
+        verbose_name_plural = 'Configurações'
+
+    objects = SettingsQuerySet()
+
+    def __str__(self):
+        return f'Configuração {self.id}'
+
+
+
 # class Task(models.Model):
 #     total = models.IntegerField(verbose_name='Total', default=0)
 #     partial = models.IntegerField(verbose_name='Parcial', default=0)

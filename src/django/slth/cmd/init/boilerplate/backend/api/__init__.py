@@ -13,6 +13,7 @@ class ApiApplication(Application):
             "pushsubscription.pushsubscriptions",
             "job.jobs",
             "deletion.deletions",
+            "settings.settings",
             "auth.logout",
         )
         self.dashboard.boxes.add("user.users")

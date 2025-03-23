@@ -5,7 +5,6 @@ from ..models import Log
 from django.apps import apps
 from typing import TypeVar, Generic
 from django.core.cache import cache
-from django.conf import settings
 from django.utils.text import slugify
 from django.db import models
 from django.http import JsonResponse, HttpResponse
@@ -118,6 +117,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         raise JsonResponseException(dict(type="redirect", url=url, autosubmit=self.request.GET.get('autosubmit')))
     
     def render(self, data, template=None, pdf=False, autoreload=None):
+        from django.conf import settings
         base_url=settings.SITE_URL
         data.update(base_url=base_url)
         if template is None:

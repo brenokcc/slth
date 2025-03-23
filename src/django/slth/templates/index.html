@@ -53,10 +53,10 @@
 
   
   {% if request.COOKIES.theme == "dark" %}
-    {{ application.theme.dark.to_css|safe }}
-  {% else %}
-    {{ application.theme.light.to_css|safe }}
+    <style>html { filter: invert(1); }</style>
   {% endif %}
+  {{ application.theme.light.to_css|safe }}
+  
 
 </head>
 

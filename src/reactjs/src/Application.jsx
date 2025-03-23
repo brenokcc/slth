@@ -152,6 +152,7 @@ function Application(props) {
                 actions={props.data.navbar.adder}
                 position={{}}
                 dataLabel="plus"
+                name="plus"
               >
                 <Icon icon="plus" style={{ cursor: "pointer", color: Theme.colors.primary }}/>
               </Dropdown>
@@ -192,6 +193,7 @@ function Application(props) {
                 actions={props.data.navbar.tools}
                 position={{}}
                 dataLabel="tools"
+                name="tools"
               >
                 <Icon icon="tools" style={{ cursor: "pointer", color: Theme.colors.primary }}/>
               </Dropdown>
@@ -203,6 +205,7 @@ function Application(props) {
                 actions={props.data.navbar.settings}
                 position={{}}
                 dataLabel="gear"
+                name="gear"
               >
                 <Icon icon="gear" style={{ cursor: "pointer", color: Theme.colors.primary }}/>
               </Dropdown>
@@ -225,6 +228,7 @@ function Application(props) {
                 actions={props.data.navbar.usermenu}
                 position={{}}
                 dataLabel={toLabelCase(props.data.navbar.user)}
+                name="usermenu"
               >
                 <img
                   src={props.data.navbar.photo || "/static/images/user.svg"}

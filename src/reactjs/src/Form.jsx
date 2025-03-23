@@ -42,6 +42,7 @@ function serialize_form(form, input_name){
   const data = new FormData(form);
   for (let [name, value] of Array.from(data.entries())){
     const input = form[name];
+    if (value !== '' && value!== null) continue;
     if (input_name == name) continue;
     if (input.tagName == "SELECT" && value !== '') continue;
     if (input.tagName == undefined && value !== '') continue;
@@ -198,7 +199,7 @@ function Field(props) {
           {props.data.label} {props.data.label && props.data.required ? "*" : ""}
         </label>
         {props.data.action && (
-          <Action data={props.data.action} style={{ padding: 0, margin:0 }} />
+          <Action data={props.data.action} style={{ padding: 0, margin:0 }} tabIndex="-1" />
         )}
       </div>
     );
