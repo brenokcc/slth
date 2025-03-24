@@ -1245,7 +1245,7 @@ function FormContent(props) {
                       key={Math.random()}
                       style={{
                         verticalAlign: "bottom",
-                        width: 100 / list.length + "%",
+                        width: (window.innerWidth > 600 ? 100 / list.length : 100) + "%",
                         display:
                           field.type == "hidden" ? "none" : "inline-block",
                       }}

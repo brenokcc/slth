@@ -299,8 +299,9 @@ function Application(props) {
     );
   }
   function renderFooter() {
+    const marginBottom = window.innerWidth > 800 ? 300 : 50;
     return props.data.footer ? (
-      <div align="center">
+      <div align="center" style={{marginBottom: marginBottom}}>
         <div>
           {window.application.sponsors && window.application.sponsors.length > 0 && (
           <div>

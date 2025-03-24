@@ -36,6 +36,9 @@ a {
     outline: none !important;
     border: solid 1px #c2850c !important;
 }
+input{
+  min-height: 22.5px;
+}
 input[type="checkbox"], input[type="radio"]{
     appearance: none;
     background-color: var(--default-background);

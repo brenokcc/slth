@@ -29,7 +29,7 @@ def geolocation(id_or_description):
     if place_id:
         response = requests.get(
             "https://maps.googleapis.com/maps/api/place/details/json?place_id={}&key={}".format(
-                place_id, GOOGLE_TOKEN
+                place_id, os.environ['GOOGLE_TOKEN']
             )
         )
         data = response.json()

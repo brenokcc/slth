@@ -70,21 +70,30 @@ def serialize(obj, primitive=False, request=None, logging=False):
     return str(obj)
 
 def getfield(obj, name_or_names, request=None):
+    cls = type(obj)
+    get_display_methods = getattr(cls, '_display_methods_', None)
+    if get_display_methods is None:
+        get_display_methods = [name for name in dir(cls) if name.endswith("_display")]
+        setattr(obj, '_display_methods_', get_display_methods)
     if isinstance(name_or_names, str):
         if ':' in name_or_names:
             name_or_names, action_name = name_or_names.split(':')
         else:
             name_or_names, action_name = name_or_names, None
-        attr = getattrr(obj, name_or_names)
+        get_display_method_name = f"get_{name_or_names}_display"
+        if get_display_method_name in get_display_methods:
+            attr = getattrr(obj, get_display_method_name)()
+        else:
+            attr = getattrr(obj, name_or_names)
         if type(attr) == types.MethodType:
             value = attr()
             label = getattr(attr, 'verbose_name', name_or_names.replace('get_', ''))
         elif name_or_names.startswith('get_') and name_or_names.endswith('_display'):
             value = attr()
-            label = getattr(type(obj), name_or_names[4:-8]).field.verbose_name
+            label = cls.get_field(name_or_names[4:-8]).verbose_name
         else:
             value = attr
-            label = type(obj).get_field(name_or_names).verbose_name
+            label = cls.get_field(name_or_names).verbose_name
         label = label.title().replace('_', ' ') if label and label.islower() else label
         field = dict(type='field', name=name_or_names, label=label, value=serialize(value, primitive=True, request=request))
         if action_name:
