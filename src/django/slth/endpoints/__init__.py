@@ -7,7 +7,7 @@ from typing import TypeVar, Generic
 from django.core.cache import cache
 from django.utils.text import slugify
 from django.db import models
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from ..factory import FormFactory
 from django.core.exceptions import ValidationError
 from slth import forms
@@ -172,6 +172,8 @@ class Endpoint(metaclass=EnpointMetaclass):
                 data = self.form
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
+        elif isinstance(data, HttpResponse) or isinstance(data, StreamingHttpResponse):
+            raise ReadyResponseException(data)
         elif self.request.method == "POST":# and not data:
             return self.post()
         return data

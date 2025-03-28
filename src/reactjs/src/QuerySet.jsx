@@ -73,6 +73,7 @@ function QuerySet(props) {
 
   if (props.data.id == null) props.data.id = Math.random();
   const [data, setData] = useState(props.data);
+  var xlsx = false;
 
   function renderTitleText() {
     if (data.attrname) {
@@ -324,6 +325,7 @@ function QuerySet(props) {
         {data.actions.map(function (action) {
           return <Action key={Math.random()} data={action} primary />;
         })}
+       {data.xlsx && <Button onClick={to_xlsx} label="Exportar" icon="file-excel" display="inline-block" />}
       </div>
     );
   }
@@ -389,6 +391,11 @@ function QuerySet(props) {
     }
   }
 
+  function to_xlsx(){
+    xlsx = true;
+    reload()
+  }
+
   function reload() {
     showLoader(true);
     var url;
@@ -398,6 +405,8 @@ function QuerySet(props) {
     if (props.data.url.indexOf("?") > 0)
       url = props.data.url + "&" + queryString;
     else url = props.data.url + "?" + queryString;
+    if(xlsx) url += "&xlsx=1";
+    xlsx = false;
     request("GET", url, function (data) {
       setData(data);
       showLoader(false);

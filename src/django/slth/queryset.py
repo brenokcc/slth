@@ -12,12 +12,15 @@ from functools import reduce
 from datetime import datetime
 import operator
 import json
+import tempfile
+import xlsxwriter
+from django.http import FileResponse
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from django.template.loader import render_to_string
 from django.db import models
 from .serializer import Serializer
-from .exceptions import JsonResponseException
+from .exceptions import JsonResponseException, ReadyResponseException
 from .utils import absolute_url, append_url, build_url
 
 
@@ -113,10 +116,10 @@ class QuerySet(models.QuerySet):
     def rows(self):
         return self.renderer('rows')
     
-    def bi(self, *names):
-        self.metadata['bi'] = []
+    def bi(self, *names, **dependency):
+        self.metadata['bi'] = dict(fields=[], dependency=dependency)
         for name in names:
-            self.metadata['bi'].append((name,) if isinstance(name, str) else name)
+            self.metadata['bi']['fields'].append((name,) if isinstance(name, str) else name)
         return self
 
     def settitle(self, name=None):
@@ -137,6 +140,10 @@ class QuerySet(models.QuerySet):
     
     def ignore(self, *names):
         self.metadata['ignore'] = names
+        return self
+    
+    def xlsx(self, *names):
+        self.metadata['xlsx'] = names
         return self
     
     def limit(self, limit, *limits):
@@ -165,6 +172,32 @@ class QuerySet(models.QuerySet):
         if pk:
             if self.metadata.get('attrname') is None or request.GET.get('only') == self.attrname:
                 qs = qs.filter(pk=pk)
+
+        if self.request and self.request.GET.get('xlsx'):
+            file = tempfile.NamedTemporaryFile(suffix='.xlsx', mode='w+b', delete=False)
+            workbook = xlsxwriter.Workbook(file)
+            worksheet = workbook.add_worksheet('A')
+            header = []
+            rows = []
+            serializer = Serializer(None, self.request).fields(*self.metadata['xlsx'])
+            for i, obj in enumerate(self[0:10]):
+                row = []
+                serializer.obj = obj
+                serialized = serializer.serialize(forward_exception=True)
+                for item in serialized['data']:
+                    if i == 0:
+                        header.append(item['label'])
+                    if item.get('type') == 'field':
+                        row.append(item['value'])
+                if i == 0:
+                    rows.append(header)
+                rows.append(row)
+            for row_idx, row_data in enumerate(rows):
+                for col_idx, col in enumerate(row_data):
+                    worksheet.write(row_idx, col_idx, col)
+            workbook.close()
+            file.close()
+            raise ReadyResponseException(FileResponse(open(file.name, 'rb')))
     
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
@@ -251,6 +284,7 @@ class QuerySet(models.QuerySet):
         info = self.metadata.get('info')
         reloadable = self.metadata.get('reloadable')
         style = self.metadata.get('style')
+        xlsx = self.metadata.get('xlsx')
         bi = self.metadata.get('bi', [])
         subset = None
         actions = []
@@ -326,19 +360,22 @@ class QuerySet(models.QuerySet):
             data.update(reloadable=reloadable)
         if bi:
             bi_data = []
-            for names in bi:
+            for names in bi['fields']:
                 items = []
                 for name in names:
-                    attr = getattr(qs, name)
-                    title = getattr(attr, 'verbose_name', name.title())
-                    value = attr()
-                    if isinstance(value, dict):
-                        item = value
-                        item['title'] = title
-                    else:
-                        item = dict(type='counter', title=title, value=value)
-                    items.append(item)
-                bi_data.append(items)
+                    depends_on = bi['dependency'].get(name)
+                    if depends_on is None or self.parameter(depends_on):
+                        attr = getattr(qs, name)
+                        title = getattr(attr, 'verbose_name', name.title())
+                        value = attr()
+                        if isinstance(value, dict):
+                            item = value
+                            item['title'] = title
+                        else:
+                            item = dict(type='counter', title=title, value=value)
+                        items.append(item)
+                if items:
+                    bi_data.append(items)
             data.update(bi=bi_data)
         else:
             objs = []
@@ -399,6 +436,8 @@ class QuerySet(models.QuerySet):
                 )
             )
             data.update(count=count, data=objs, pagination=pagination)
+            if xlsx:
+                data.update(xlsx=xlsx)
         if debug:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return data
@@ -432,6 +471,7 @@ class QuerySet(models.QuerySet):
                 tmp.append(lookup)
         field = self.model.get_field('__'.join(tmp)) if tmp else None
         if field:
+            label = None
             if isinstance(field, models.CharField):
                 field_type = 'text'
                 value = self.parameter(name)
@@ -444,6 +484,11 @@ class QuerySet(models.QuerySet):
             elif isinstance(field, models.DateField):
                 field_type = 'text' if suffix in ('year', 'month') else 'date'
                 value = self.parameter(name)
+                if suffix == 'year':
+                    field_type = 'choice'
+                    label = "Ano"
+                    choices = [{'id': '', 'value':''}]
+                    choices.extend([{'id': year, 'value': year} for year in self.model.objects.order_by(name).values_list(name, flat=True).distinct()])
             elif isinstance(field, models.ForeignKey):
                 field_type = 'choice'
                 value = self.parameter(name)
@@ -458,7 +503,7 @@ class QuerySet(models.QuerySet):
                 choices = [{'id': '', 'value':''}]
                 choices.extend([{'id': k, 'value': v} for k, v in field.choices])
                 choices.append({'id': 'null', 'value':'Nulo'})
-            label = str(field.verbose_name).title()
+            label = label or str(field.verbose_name).title()
             symbol = symbols.get(suffix) if suffix else None
             label = label + symbol if symbol else label
             data = dict(name=name, type=field_type, value=value, label=label, required=False, mask=None)

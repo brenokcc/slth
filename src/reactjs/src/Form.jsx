@@ -110,10 +110,8 @@ function formValue(name, value) {
     });
   } else {
     const widget = elements[0];
-    if (widget.tagName == "INPUT") {
+    if (widget.tagName == "INPUT" || widget.tagName == "TEXTAREA") {
       widget.value = value;
-    } else if (widget.tagName == "TEXTAREA") {
-      widget.innerHTML = value;
     } else {
       if (widget.tagName == "SELECT") {
         if (widget.style.display != "none") {
