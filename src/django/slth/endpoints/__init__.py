@@ -1,13 +1,13 @@
 import io
+import os
 import inspect
 from ..models import Log
 from django.apps import apps
 from typing import TypeVar, Generic
 from django.core.cache import cache
-from django.conf import settings
 from django.utils.text import slugify
 from django.db import models
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from ..factory import FormFactory
 from django.core.exceptions import ValidationError
 from slth import forms
@@ -27,7 +27,7 @@ from ..exceptions import JsonResponseException, ReadyResponseException
 from ..utils import build_url, append_url
 from ..models import Log, Job
 from slth.queryset import QuerySet
-from slth import ENDPOINTS
+from slth import ENDPOINTS, dumps
 from ..threadlocal import tl
 from ..tasks import Task
 
@@ -42,7 +42,8 @@ class ApiResponse(JsonResponse):
         self["Access-Control-Allow-Headers"] = "*"
         self["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
         self["Access-Control-Max-Age"] = "600"
-        # print(json.dumps(args[0], indent=1, ensure_ascii=False))
+        x = args[0]
+        #os.system('clear'); print(dumps(args[0]))
 
 
 class EnpointMetaclass(type):
@@ -91,7 +92,8 @@ class Endpoint(metaclass=EnpointMetaclass):
         return self.formfactory().fields(*fields) if fields else {}
 
     def post(self):
-        return Response(message="Ação realizada com sucesso")
+        redirect = '.' if 'only' in self.request.GET else self.form._redirect
+        return Response(message="Ação realizada com sucesso", redirect=redirect)
 
     def check_permission(self):
         return self.request.user.is_superuser
@@ -115,6 +117,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         raise JsonResponseException(dict(type="redirect", url=url, autosubmit=self.request.GET.get('autosubmit')))
     
     def render(self, data, template=None, pdf=False, autoreload=None):
+        from django.conf import settings
         base_url=settings.SITE_URL
         data.update(base_url=base_url)
         if template is None:
@@ -157,7 +160,8 @@ class Endpoint(metaclass=EnpointMetaclass):
                     else:
                         self.cleaned_data = self.form.submit()
                         if self.form._message or self.form._redirect or self.form._dispose:
-                            return Response(self.form._message, self.form._redirect, dispose=self.form._dispose)
+                            redirect = '.' if 'only' in self.request.GET else self.form._redirect
+                            return Response(self.form._message, redirect, dispose=self.form._dispose)
                         else:
                             return self.post()
                 except ValidationError as e:
@@ -168,6 +172,8 @@ class Endpoint(metaclass=EnpointMetaclass):
                 data = self.form
         elif isinstance(data, Form) or isinstance(data, ModelForm):
             data = data.settitle(title)
+        elif isinstance(data, HttpResponse) or isinstance(data, StreamingHttpResponse):
+            raise ReadyResponseException(data)
         elif self.request.method == "POST":# and not data:
             return self.post()
         return data
@@ -580,36 +586,36 @@ class Dashboard(Endpoint):
 
     def get(self):
         application = ApplicationConfig.get_instance()
-        serializer = Serializer(request=self.request)
-        if application.dashboard.boxes:
-            boxes = Boxes("Acesso Rápido")
-            for name in application.dashboard.boxes:
-                cls = ENDPOINTS[name]
-                endpoint = cls().contextualize(self.request)
-                if endpoint.check_permission():
-                    icon = endpoint.get_icon() or "check"
-                    label = endpoint.get_verbose_name()
-                    url = build_url(self.request, cls.get_api_url())
-                    boxes.append(icon, label, url)
-            serializer.append("Acesso Rápido", boxes)
+        serializer = self.serializer()
+        if application.dashboard.actions:
+            serializer.actions(*application.dashboard.actions)
+        if application.dashboard.todo:
+            serializer.todo(*application.dashboard.todo)
         if application.dashboard.top:
             group = serializer.group("Top")
             for name in application.dashboard.top:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
-                    group.endpoint(
-                        endpoint.get_verbose_name(), cls, wrap=False
-                    )
+                    group.endpoint(cls)
             group.parent()
+        if application.dashboard.boxes:
+            boxes = Boxes("Acesso Rápido")
+            for name in application.dashboard.boxes:
+                cls = ENDPOINTS[name]
+                endpoint = cls().contextualize(self.request)
+                if endpoint.check_permission():
+                    icon = endpoint.get_icon() or "link"
+                    label = endpoint.get_verbose_name()
+                    url = build_url(self.request, cls.get_api_url())
+                    boxes.append(icon, label, url)
+            serializer.append(boxes)
         if application.dashboard.center:
             for name in application.dashboard.center:
                 cls = ENDPOINTS[name]
                 endpoint = cls.instantiate(self.request, self)
                 if endpoint.check_permission():
-                    serializer.endpoint(
-                        endpoint.get_verbose_name(), cls, wrap=False
-                    )
+                    serializer.endpoint(cls)
         return serializer
 
     def check_permission(self):

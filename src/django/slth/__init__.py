@@ -64,8 +64,8 @@ class JSONDecoder(json.JSONDecoder):
         return obj
 
 
-def dumps(data):
-    return json.dumps(data, cls=JSONEncoder)
+def dumps(data, indent=1, ensure_ascii=False):
+    return json.dumps(data, indent=indent, ensure_ascii=ensure_ascii, cls=JSONEncoder)
 
 
 def loads(data):

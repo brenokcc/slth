@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ComponentFactory } from "./Root.jsx";
 import { request } from "./Request.jsx";
+import { Instruction, Todo } from "./Message";
 import { format } from "./Formatter.jsx";
 import { Action } from "./Action.jsx";
 import { Link } from "./Link.jsx";
@@ -164,6 +165,7 @@ function Cards(props) {
       box-shadow: 0 1px 6px rgba( 0, 0, 0 , 0.16 );
       margin: 10px;
       max-width: 300px;
+      background-color: var(--fieldset-background);
     }
     .cards h3{
       margin-top: 5px;
@@ -276,6 +278,7 @@ function Fieldset(props) {
   StyleSheet(`
     .object-fieldset{
       margin-top: 10px;
+      border-radius: var(--border-radius);
     }
   `)
 
@@ -285,9 +288,10 @@ function Fieldset(props) {
 
   function renderContainer() {
     const style = {
-      backgroundColor: "white",
+      backgroundColor: "var(--fieldset-background)",
       padding: 15,
       marginBottom: 15,
+      color: "var(--fieldset-color)",
     };
     return <div style={style}>{renderContent()}</div>;
   }
@@ -329,12 +333,17 @@ function Fieldset(props) {
     });
   }
 
+  function renderInstruction() {
+    return props.data.info && <Instruction data={{ text: props.data.info }} />;
+  }
+
   function render() {
     if (props.data.url) {
       window[id] = () => loadContent(props.data.url);
       return (
         <div className={props.data.url ? "reloadable object-fieldset" : "object-fieldset" } id={id}>
           {renderTitle()}
+          {renderInstruction()}
           {renderContainer()}
         </div>
       );
@@ -342,6 +351,7 @@ function Fieldset(props) {
       return (
         <div className="object-fieldset">
           {renderTitle()}
+          {renderInstruction()}
           {renderContainer()}
         </div>
       );
@@ -391,6 +401,7 @@ function Title(props) {
       .object-title h1 {
           margin: 0;
           color: ${Theme.colors.primary};
+          width: -webkit-fill-available;
       }
     `)
     const compactAction = window.innerWidth > 800 && props.data.actions.length < 4;
@@ -401,7 +412,7 @@ function Title(props) {
             {props.data.title}
           </h1>
         )}
-        <div style={{margin: 0, textAlign:compactAction ?  "right" : "center", width: compactAction ? "auto" : "100%"}}><ObjectActions data={props.data} /></div>
+        <div style={{margin: 0, textAlign:compactAction ?  "right" : "center", width: compactAction ? "100%" : "100%"}}><ObjectActions data={props.data} /></div>
       </div>
     );
   }
@@ -414,6 +425,7 @@ function Subtitle(props) {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
+        background-color: var(--default-background);
       }
       .fieldset-title h2 {
           margin: 0
@@ -452,10 +464,21 @@ function Object(props) {
     });
   }
 
+  function renderInstruction() {
+    return props.data.info && <Instruction data={{ text: props.data.info }} />;
+  }
+
+  function renderTodo() {
+    return props.data.todo && <Todo data={props.data.todo} />;
+  }
+
+
   function render() {
     return (
       <div className="object-viewer">
         {renderTitle()}
+        {renderInstruction()}
+        {renderTodo()}
         {renderContent()}
       </div>
     );
@@ -465,7 +488,11 @@ function Object(props) {
 
 function Section(props) {
   function renderTitle() {
-    return <Subtitle data={props.data} />;
+    if(!props.data.notitle) return <Subtitle data={props.data} />;
+  }
+
+  function renderInstruction() {
+    return props.data.info && <Instruction data={{ text: props.data.info }} />;
   }
 
   function renderContent() {
@@ -483,6 +510,7 @@ function Section(props) {
     return (
       <>
         {renderTitle()}
+        {renderInstruction()}
         {renderContent()}
       </>
     );
@@ -498,7 +526,8 @@ function Tabs(props) {
     .noscroll {
       -ms-overflow-style: none;  /* IE and Edge */
       scrollbar-width: none;  /* Firefox */
-      min-height: 2rem;
+      min-height: 3rem;
+      line-height: 2rem;
     }
   `)
   const [active, setActive] = useState(0);
@@ -524,9 +553,9 @@ function Tabs(props) {
                 padding: 5,
                 fontWeight: active == i ? "bold" : "normal",
                 borderBottom:
-                  active == i ? "solid 3px #2670e8" : "solid 3px inherite",
+                  active == i ? "solid 3px var(--primary-color)" : "solid 3px inherite",
                 textDecoration: "none",
-                color: "#0c326f",
+                color: "var(--auxiliary-color)",
                 margin: 15,
               }}
               onClick={function (e) {
@@ -553,9 +582,15 @@ function Group(props) {
   function renderTitle() {
     return (
       props.data.title != "Top" && (
-        <h2 data-label={toLabelCase(props.data.title)}>{props.data.title}</h2>
+        <h2 data-label={toLabelCase(props.data.title)} style={{textAlign: "center", width: "100%"}}>
+          {props.data.title}
+        </h2>
       )
     );
+  }
+
+  function renderInstruction() {
+    return props.data.info && <Instruction data={{ text: props.data.info }} />;
   }
 
   function renderActions() {
@@ -570,6 +605,7 @@ function Group(props) {
     var clone = { ...content };
     //clone.title = null;
     const style = { padding: 0 };
+    clone.notitle = true;
     return (
       <div style={style} className="tabContent">
         <ComponentFactory key={Math.random()} data={clone} />
@@ -598,8 +634,9 @@ function Group(props) {
     window[id] = () => loadContent(content.url);
     return (
       props.data.data.length > 0 && (
-        <div className="reloadable" id={id}>
+        <div className="group reloadable" id={id}>
           {renderTitle()}
+          {renderInstruction()}
           {renderActions()}
           {renderTabs()}
           {renderContent()}

@@ -2,6 +2,7 @@ import os
 import json
 import requests
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from slth.models import User
 from slth.application import Application as ApplicationConfig
 
@@ -11,13 +12,13 @@ def authenticate(code):
         client_secret = provider['client_secret']
         if client_secret.startswith('$'):
             client_secret = os.environ[client_secret[1:]]
-        print(client_secret)
         redirect_uri = "{}{}".format(settings.SITE_URL, provider['redirect_uri'])
         access_token_request_data = dict(
             grant_type='authorization_code', code=code, redirect_uri=redirect_uri,
             client_id=provider['client_id'], client_secret=client_secret
         )
         response = requests.post(provider['access_token_url'], data=access_token_request_data, verify=False)
+        print(response.text)
         if response.status_code == 200:
             data = json.loads(response.text)
             headers = {
@@ -28,20 +29,24 @@ def authenticate(code):
                 response = requests.post(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers)
             else:
                 response = requests.get(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers)
+            print(response.text)
+            breakpoint()
             if response.status_code == 200:
                 data = json.loads(response.text)
-                username = data[provider['user_data']['username']]
+                username = data[provider['user_username']]
                 user = User.objects.filter(username=username).first()
                 if user:
                     return user
-                elif provider.get('user_data').get('create'):
+                elif provider.get('user_create'):
                     user = User.objects.create(
                         username=username,
-                        email=data[provider['user_data']['email']] if provider['user_data']['email'] else ''
+                        email=data[provider['user_email']] if provider['user_email'] else ''
                     )
                     return user
+                else:
+                    raise ValidationError(f'Usuário "{username}" não cadastrado.')
         else:
-            print(response.text)
+            raise ValidationError(response.text)
     return
 
 def providers():

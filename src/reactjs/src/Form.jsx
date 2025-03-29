@@ -2,9 +2,9 @@ import { React } from "react";
 import ReactDOM from "react-dom/client";
 import { useState, useEffect } from "react";
 import { toLabelCase } from "./Utils";
-import { closeDialog, openDialog } from "./Modal";
+import { closeDialog } from "./Modal";
 import { ComponentFactory } from "./Root.jsx";
-import { showMessage, Info } from "./Message";
+import { showMessage, Info, Instruction } from "./Message";
 import { request, appurl, store } from "./Request.jsx";
 import { reloadState } from "./Reloader.jsx";
 import { Icon } from "./Icon.jsx";
@@ -33,15 +33,16 @@ const INPUT_TYPES = [
 ];
 const INPUT_STYLE = {
   padding: 15,
-  border: "solid 1px #d9d9d9",
+  border: "var(--input-border)",
   borderRadius: 5,
-  backgroundColor: "white",
+  backgroundColor: "var(--input-background)",
 };
 
 function serialize_form(form, input_name){
   const data = new FormData(form);
   for (let [name, value] of Array.from(data.entries())){
     const input = form[name];
+    if (value !== '' && value!== null) continue;
     if (input_name == name) continue;
     if (input.tagName == "SELECT" && value !== '') continue;
     if (input.tagName == undefined && value !== '') continue;
@@ -109,10 +110,8 @@ function formValue(name, value) {
     });
   } else {
     const widget = elements[0];
-    if (widget.tagName == "INPUT") {
+    if (widget.tagName == "INPUT" || widget.tagName == "TEXTAREA") {
       widget.value = value;
-    } else if (widget.tagName == "TEXTAREA") {
-      widget.innerHTML = value;
     } else {
       if (widget.tagName == "SELECT") {
         if (widget.style.display != "none") {
@@ -138,33 +137,6 @@ function formControl(controls) {
     for (var i = 0; i < controls.reload.length; i++) formReload(controls.reload[i]);
     for (var k in controls.set) formValue(k, controls.set[k]);
   }
-}
-
-function Instruction(props) {
-  function render() {
-    const style = {
-      color: Theme.colors.info,
-      backgroundColor: Theme.background.info,
-      padding: 20,
-      display: "flex",
-      justifyContent: "space-between",
-      marginTop: 10,
-      marginBottom: 10,
-    };
-    return (
-      <div style={style}>
-        <div>
-          <Icon
-            icon="circle-check"
-            style={{ color: Theme.colors.info, marginRight: 20 }}
-          />
-          {props.data.text}
-        </div>
-        {props.children && <div>{props.children}</div>}
-      </div>
-    );
-  }
-  return render();
 }
 
 function Error(props) {
@@ -225,7 +197,7 @@ function Field(props) {
           {props.data.label} {props.data.label && props.data.required ? "*" : ""}
         </label>
         {props.data.action && (
-          <Action data={props.data.action} style={{ padding: 0, margin:0 }} />
+          <Action data={props.data.action} style={{ padding: 0, margin:0 }} tabIndex="-1" />
         )}
       </div>
     );
@@ -506,7 +478,6 @@ function InputField(props) {
       if (type == "color") {
         style = { ...INPUT_STYLE };
         style.width = "100%";
-        style.backgroundColor = "white";
         style.height = 47.5;
       }
       return (
@@ -614,7 +585,7 @@ function Selector(props) {
       zIndex: 99999,
     };
     ul.position = "absolute";
-    ul.backgroundColor = "white";
+    ul.backgroundColor = "var(--default-background)";
     const widget = document.getElementById(id2);
     if (props.data.icon) style.paddingLeft = 30;
     if (widget) {
@@ -1246,11 +1217,11 @@ function FormContent(props) {
   }
   function render() {
     if (props.data.fields) {
-      return (
-        <div className="form-fields">
+      return props.data.fields.length > 0 ? (
+        <div className="form-fields default-fieldset">
           {props.data.fields.map((field) => renderField(field))}
         </div>
-      );
+      ) : null;
     } else {
       return props.data.fieldsets.map((fieldset) => (
         <div key={Math.random()} className={"form-fieldset "+fieldset.name}>
@@ -1272,7 +1243,7 @@ function FormContent(props) {
                       key={Math.random()}
                       style={{
                         verticalAlign: "bottom",
-                        width: 100 / list.length + "%",
+                        width: (window.innerWidth > 600 ? 100 / list.length : 100) + "%",
                         display:
                           field.type == "hidden" ? "none" : "inline-block",
                       }}
@@ -1361,7 +1332,7 @@ function Form(props) {
         action={props.data.url}
         style={{
           margin: "auto",
-          backgroundColor: "white",
+          
         }}
         method={props.data.method}
       >
@@ -1440,7 +1411,8 @@ function Form(props) {
                 else closeDialog();
               }
               if (data.redirect == "."){
-                form.reset();
+                if(document.getElementsByTagName("dialog").length == 0) form.reset();
+                else closeDialog();
               }
               if (data.dispose) form.style.display = "none";
               reloadState();

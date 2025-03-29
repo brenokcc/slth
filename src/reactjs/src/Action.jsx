@@ -40,16 +40,17 @@ function Action(props) {
   }
 
   function renderContent() {
+    const color = props.primary ? "white" : "var(--primary-color)";
     if (props.strech) {
       return props.data.name;
     } else {
       if (props.data.icon) {
         if (props.compact || !props.data.name || window.innerWidth < 800) {
-          return <Icon icon={props.data.icon} />;
+          return <Icon icon={props.data.icon} style={{ color: color }}/>;
         } else {
           return (
             <>
-              <Icon icon={props.data.icon} style={{ paddingRight: 10 }} />
+              <Icon icon={props.data.icon} style={{ paddingRight: 10, color: color }} />
               {props.data.name || ""}
             </>
           );
@@ -65,12 +66,12 @@ function Action(props) {
       lineHeight: props.data.icon ? "4rem" : "auto",
     };
     if (props.primary) {
-      style.backgroundColor = Theme.colors.primary;
-      style.color = "white";
+      style.backgroundColor = "var(--primary-background)";
+      style.color = style.color = "var(--default-background)";
     }
     if (props.default) {
-      style.border = "solid 1px " + Theme.colors.primary;
-      style.color = Theme.colors.primary;
+      style.border = "solid 1px var(--primary-color)";
+      style.color = "var(--primary-color)";
     }
     if (props.style) {
       Object.keys(props.style).map(function (k) {
@@ -85,6 +86,7 @@ function Action(props) {
         onClick={onClick}
         style={style}
         data-label={toLabelCase(props.data.name)}
+        tabIndex={props.tabIndex}
       >
         {renderContent()}
       </a>
@@ -105,8 +107,8 @@ function Dropdown(props) {
       width: 150px;
       left: 0px;
       text-align: center;
-      background-color: white;
-      box-shadow: 15px 15px 10px -15px #DDD;
+      background-color: var(--auxiliary-background);
+      box-shadow: 15px 15px 10px -15px var(--default-background);
       display: none;
     }
     .dropdown li{
@@ -147,7 +149,7 @@ function Dropdown(props) {
   }
   function render() {
     return (
-      <div className="dropdown">
+      <div className={"dropdown " + props.name}>
         <div
           onClick={onClick}
           data-label={toLabelCase(props.dataLabel)}

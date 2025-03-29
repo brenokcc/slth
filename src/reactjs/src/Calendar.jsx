@@ -79,7 +79,7 @@ function Calendar(props){
     var i = 0;
     while (start.getMonth() <= month || rows[i].length < 7) {
         if (rows[i].length == 7) i += 1;
-        if (i == 5) break;
+        if (i == 6) break;
         rows[i].push({
         date: start.getDate(),
         total: props.data.total[start.toLocaleDateString("pt-BR")],

@@ -65,8 +65,8 @@ class User(User):
             super().serializer()
             .fieldset('Dados Gerais', (('first_name', 'last_name'), 'email'))
             .fieldset('Dados de Acesso', (('username', 'get_timezone'), ('is_superuser', 'is_active'),))
-            .queryset('Notificação', 'get_push_subscriptions')
-            .queryset('Papéis', 'get_roles')
+            .queryset('get_push_subscriptions')
+            .queryset('get_roles')
         )
     
     @meta('Inscrições de Notificação')
@@ -625,6 +625,27 @@ class UserTimeZone(models.Model):
 
     def __str__(self):
         return '{} - {}'.format(self.user.username, self.key)
+
+
+class SettingsQuerySet(models.QuerySet):
+    def all(self):
+        return self
+
+
+class Settings(models.Model):
+    key = models.CharField(verbose_name='Chave')
+    value = models.CharField(verbose_name='Value')
+
+    class Meta:
+        icon = 'gears'
+        verbose_name = 'Configuração'
+        verbose_name_plural = 'Configurações'
+
+    objects = SettingsQuerySet()
+
+    def __str__(self):
+        return f'Configuração {self.id}'
+
 
 
 # class Task(models.Model):
