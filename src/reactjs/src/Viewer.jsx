@@ -401,6 +401,7 @@ function Title(props) {
       .object-title h1 {
           margin: 0;
           color: ${Theme.colors.primary};
+          width: -webkit-fill-available;
       }
     `)
     const compactAction = window.innerWidth > 800 && props.data.actions.length < 4;

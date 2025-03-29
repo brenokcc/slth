@@ -346,7 +346,7 @@ function QuerySet(props) {
     };
     const searching = data.search.length > 0;
     const filtering = data.filters.length > 0;
-    if ((data.bi || data.data.length > 0) && (searching || filtering)) {
+    if ((data.bi || props.data.data.length >= 0) && (searching || filtering)) {
       const field = {
         name: "q",
         mask: null,
@@ -397,7 +397,7 @@ function QuerySet(props) {
   }
 
   function reload() {
-    showLoader(true);
+    
     var url;
     const queryString = new URLSearchParams(
       new FormData(document.getElementById("form-" + props.data.id))
@@ -405,8 +405,13 @@ function QuerySet(props) {
     if (props.data.url.indexOf("?") > 0)
       url = props.data.url + "&" + queryString;
     else url = props.data.url + "?" + queryString;
-    if(xlsx) url += "&xlsx=1";
-    xlsx = false;
+    if(xlsx){
+      url += "&xlsx=1";
+      xlsx = false;
+    }
+    else{
+      showLoader(true);
+    }
     request("GET", url, function (data) {
       setData(data);
       showLoader(false);

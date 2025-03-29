@@ -173,44 +173,6 @@ class QuerySet(models.QuerySet):
             if self.metadata.get('attrname') is None or request.GET.get('only') == self.attrname:
                 qs = qs.filter(pk=pk)
 
-        if self.request and self.request.GET.get('xlsx'):
-            file = tempfile.NamedTemporaryFile(suffix='.xlsx', mode='w+b', delete=False)
-            workbook = xlsxwriter.Workbook(file)
-            worksheet = workbook.add_worksheet('A')
-            header = []
-            rows = []
-            serializer = Serializer(None, self.request).fields(*self.metadata['xlsx'])
-            for i, obj in enumerate(self[0:10]):
-                row = []
-                serializer.obj = obj
-                serialized = serializer.serialize(forward_exception=True)
-                for item in serialized['data']:
-                    if i == 0:
-                        header.append(item['label'])
-                    if item.get('type') == 'field':
-                        row.append(item['value'])
-                if i == 0:
-                    rows.append(header)
-                rows.append(row)
-            for row_idx, row_data in enumerate(rows):
-                for col_idx, col in enumerate(row_data):
-                    worksheet.write(row_idx, col_idx, col)
-            workbook.close()
-            file.close()
-            raise ReadyResponseException(FileResponse(open(file.name, 'rb')))
-    
-        if self.request and 'action' in self.request.GET:
-            cls = slth.ENDPOINTS[self.request.GET.get('action')]
-            actions = self.metadata.get('actions', ())
-            if cls.get_key_name() in actions:
-                source = self._hints.get('instance')
-                if source is None:
-                    source = self.model.objects.get(pk=pk) if pk else qs
-                endpoint = cls.instantiate(self.request, source)
-                if endpoint.check_permission():
-                    raise JsonResponseException(endpoint.serialize())
-                raise Exception()
-
         filters = qs.metadata.get('filters', ())
         for lookup in filters:
             if request and lookup in request.GET and lookup != choices_field_name:
@@ -297,6 +259,45 @@ class QuerySet(models.QuerySet):
 
         instance_actions = []
         queryset_actions = []
+
+        if self.request and self.request.GET.get('xlsx'):
+            file = tempfile.NamedTemporaryFile(suffix='.xlsx', mode='w+b', delete=False)
+            workbook = xlsxwriter.Workbook(file)
+            worksheet = workbook.add_worksheet('A')
+            header = []
+            rows = []
+            serializer = Serializer(None, self.request).fields(*self.metadata['xlsx'])
+            for i, obj in enumerate(self):
+                row = []
+                serializer.obj = obj
+                serialized = serializer.serialize(forward_exception=True)
+                for item in serialized['data']:
+                    if i == 0:
+                        header.append(item['label'])
+                    if item.get('type') == 'field':
+                        row.append(item['value'])
+                if i == 0:
+                    rows.append(header)
+                rows.append(row)
+            for row_idx, row_data in enumerate(rows):
+                for col_idx, col in enumerate(row_data):
+                    worksheet.write(row_idx, col_idx, col)
+            workbook.close()
+            file.close()
+            raise ReadyResponseException(FileResponse(open(file.name, 'rb')))
+    
+        if self.request and 'action' in self.request.GET:
+            cls = slth.ENDPOINTS[self.request.GET.get('action')]
+            actions = self.metadata.get('actions', ())
+            if cls.get_key_name() in actions:
+                source = self._hints.get('instance')
+                if source is None:
+                    pk = self.request.GET.get('id')
+                    source = self.model.objects.get(pk=pk) if pk else qs
+                endpoint = cls.instantiate(self.request, source)
+                if endpoint.check_permission():
+                    raise JsonResponseException(endpoint.serialize())
+                raise Exception()
 
         base_url = append_url(build_url(self.request, self.base_url), 'only={}'.format(attrname) if attrname else '')
         if self.request.GET.urlencode():
