@@ -136,7 +136,10 @@ class Endpoint(metaclass=EnpointMetaclass):
                     doc = HTML(string=html).render()
                     pages.extend(doc.pages)
             new_doc = doc.copy(pages=pages)
-            new_doc.write_pdf(buffer, base_url=base_url, stylesheets=[])
+            try:
+                new_doc.write_pdf(buffer, base_url=base_url, stylesheets=[])
+            except Exception:
+                new_doc.write_pdf(buffer)
             buffer.seek(0)
             raise ReadyResponseException(HttpResponse(buffer, content_type='application/pdf'))
         return TemplateContent(template, data, autoreload=autoreload)

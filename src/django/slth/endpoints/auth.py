@@ -12,12 +12,15 @@ from django.utils import timezone
 def login_response(user, redirect='/api/dashboard/'):
     token = Token.objects.create(user=user)
     current_timezone = timezone.get_current_timezone()
-    timezone_instance = TimeZone.objects.get_or_create(name=current_timezone.__str__())[0]
+    current_timezone_name = current_timezone.__str__()
+    timezone_instance = TimeZone.objects.filter(name=current_timezone_name).first()
+    if timezone_instance is None:
+        timezone_instance = TimeZone.objects.create(name=current_timezone_name)
     user_timezone = UserTimeZone.objects.filter(user=user).first()
     if user_timezone is None:
         UserTimeZone.objects.create(user=user, timezone=timezone_instance)
     else:
-        user_timezone.key = current_timezone.__str__()
+        user_timezone.timezone = timezone_instance
         user_timezone.save()
     return Response(
         message="Bem-vindo!",
