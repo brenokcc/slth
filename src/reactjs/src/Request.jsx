@@ -42,7 +42,7 @@ function appurl(path) {
 
 function request(method, path, callback, data) {
   const token = localStorage.getItem("token");
-  var headers = { Accept: "application/json", 'TZ': Intl.DateTimeFormat().resolvedOptions().timeZone };
+  var headers = { Accept: "application/json", 'TZ': "Etc/GMT"+(new Date().getTimezoneOffset()/-60) };
   if (token) headers["Authorization"] = "Token " + token;
   const url = apiurl(path);
   var params = {

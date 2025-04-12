@@ -57,7 +57,10 @@ def serialize(obj, primitive=False, request=None, logging=False):
         if logging:
             return f'{obj.pk}:{str(obj)}'
         else:
-            return str(obj) if primitive else dict(pk=obj.pk, str=str(obj))
+            try:
+                return str(obj) if primitive else dict(pk=obj.pk, str="{}".format(obj))
+            except TypeError:
+                return str(obj) if primitive else dict(pk=obj.pk, str="?")
     elif isinstance(obj, QuerySet) or isinstance(obj, Manager) or type(obj).__name__ == 'ManyRelatedManager':
         if logging:
             return [f'{obj.pk}:{str(obj)}' for obj in obj.filter()]

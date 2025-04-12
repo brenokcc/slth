@@ -77,7 +77,9 @@ function formHide(name) {
   if (name) {
     var fieldset = document.querySelector(".form-fieldset." + name);
     if (fieldset) fieldset.style.display = "none";
-    var field = document.querySelector(".form-group." + name);
+    var group = document.querySelector(".form-group." + name);
+    if (group) group.style.display = "none";
+    var field = document.querySelector(".form-field." + name);
     if (field) field.style.display = "none";
   }
 }
@@ -85,7 +87,9 @@ function formShow(name) {
   if (name) {
     var fieldset = document.querySelector(".form-fieldset." + name);
     if (fieldset) fieldset.style.display = "block";
-    var field = document.querySelector(".form-group." + name);
+    var group = document.querySelector(".form-group." + name);
+    if (group) group.style.display = "block";
+    var field = document.querySelector(".form-field." + name);
     if (field) field.style.display = "block";
   }
 }
@@ -258,7 +262,7 @@ function Field(props) {
       width: "calc(100%-5px)",
     };
     return (
-      <div id={id} style={style}>
+      <div id={id} style={style} className={"form-group "+props.data.name}>
         {renderLabel()}
         {renderInput()}
         {renderHelpText()}
@@ -1239,7 +1243,7 @@ function FormContent(props) {
                 <div key={Math.random()}>
                   {list.map((field) => (
                     <div
-                      className={"form-group " + field.name}
+                      className={"form-field " + field.name}
                       key={Math.random()}
                       style={{
                         verticalAlign: "bottom",

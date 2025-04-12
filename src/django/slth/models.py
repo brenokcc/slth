@@ -4,6 +4,7 @@ import pytz
 import binascii
 from uuid import uuid1
 import traceback
+from . import timezone
 from .db import models, meta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -18,7 +19,6 @@ from django.template.loader import render_to_string
 from django.core.mail import EmailMultiAlternatives
 from .notifications import send_push_web_notification, send_whatsapp_notification
 from .components import HtmlContent
-from django.utils import timezone
 from slth.application import Application as ApplicationConfig
 from django.contrib.auth.models import BaseUserManager
 
@@ -611,7 +611,8 @@ class TimeZone(models.Model):
         return self.name
     
     def localtime(self, value):
-        value_in_default_time_zone = pytz.timezone(timezone.get_current_timezone_name()).localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
+        # Returns the local datetime assuming that value is in the default timezone
+        value_in_default_time_zone = timezone.get_current_timezone().localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
         return value_in_default_time_zone.astimezone(pytz.timezone(self.name)).replace(tzinfo=None)
 
 

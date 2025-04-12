@@ -102,7 +102,7 @@ function Dialog(props) {
   }
 
   function content() {
-    const style = { maxWidth: 800 };
+    const style = { maxWidth: "100%" };
     const close = { textAlign: "right", cursor: "pointer", marginTop: -15 };
     if (data) {
       return (
@@ -117,9 +117,9 @@ function Dialog(props) {
   }
 
   const style = {
-    minWidth: window.innerWidth < 800 ? "calc(100% - 60px)" : 800,
+    minWidth: window.innerWidth < 800 ? "calc(100% - 30px)" : "calc(100% - 60px)",
     display: data ? "block" : "none",
-    maxWidth: 800,
+    maxWidth: "100%",
     top: window.scrollY + 40,
     border: 0,
     backgroundColor: "var(--default-background)",
@@ -160,7 +160,7 @@ function IDialog(props) {
         <iframe
           src={apiurl(props.url)}
           width="100%"
-          height={500}
+          height={window.innerHeight-100}
           style={{ border: 0 }}
         ></iframe>
       </dialog>

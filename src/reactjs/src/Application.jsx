@@ -311,7 +311,7 @@ function Application(props) {
             </div>)
           }
         </div>
-        <div>{Intl.DateTimeFormat().resolvedOptions().timeZone}</div>
+        <div>{"Etc/GMT"+(new Date().getTimezoneOffset()/-60)}</div>
         <div>Todos os direitos reservados</div>
         <div>{props.data.footer.version}</div>
       </div>
