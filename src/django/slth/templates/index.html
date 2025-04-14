@@ -52,7 +52,7 @@
   {% endif %}
 
   
-  {% if request.COOKIES.theme == "dark" %}
+  {% if 0 and request.COOKIES.theme == "dark" %}
     <style>html { filter: invert(1); }</style>
   {% endif %}
   {{ application.theme.light.to_css|safe }}
