@@ -611,9 +611,7 @@ class TimeZone(models.Model):
         return self.name
     
     def localtime(self, value):
-        # Returns the local datetime assuming that value is in the default timezone
-        value_in_default_time_zone = timezone.get_current_timezone().localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None)
-        return value_in_default_time_zone.astimezone(pytz.timezone(self.name)).replace(tzinfo=None)
+        return timezone.get_timezone(self.name).localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None) if value else None
 
 
 class UserTimeZone(models.Model):
