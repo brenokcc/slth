@@ -388,10 +388,10 @@ class WhatsappNotification(models.Model):
         verbose_name = 'Whatsapp Notification'
         verbose_name_plural = 'Whatsapp Notifications'
 
-    objects = PushNotificationQuerySet()
+    objects = WhatsappNotificationQuerySet()
 
     def __str__(self):
-        return f'Push Notification {self.title} to {self.to}'
+        return f'Whatsapp Notification {self.title} to {self.to}'
 
     def send(self, preview=False):
         self.attempt = self.attempt + 1

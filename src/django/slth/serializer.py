@@ -250,7 +250,7 @@ class Serializer:
         return self.request.user.is_superuser or not names or Role.objects.filter(username=self.request.user.username, name__in=names).exists()
 
     def to_dict(self, debug=False):
-        base_url = absolute_url(self.request)
+        base_url = absolute_url(self.request).replace('?only=actions', '')
         if self.request is None and self.serializer:
             self.request = self.serializer.request
         if self.ignore_only:
@@ -378,7 +378,7 @@ class Serializer:
                                 data = serialize(returned)
                                 if lazy:
                                     data['title'] = endpoint.get_verbose_name()
-                            if isinstance(data, dict):
+                            if isinstance(data, dict) and data.get('type') is None:
                                 data['url'] = absolute_url(self.request, 'only={}'.format('__'.join(path)))
                             if leaf: raise JsonResponseException(data)
                             

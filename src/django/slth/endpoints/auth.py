@@ -41,9 +41,12 @@ class Login(PublicEndpoint):
     def get(self):
         code = self.request.GET.get("code")
         if code:
-            user = oauth.authenticate(code)
-            if user:
-                return login_response(user)
+            try:
+                user = oauth.authenticate(code)
+                if user:
+                    return login_response(user)
+            except ValidationError:
+                self.redirect('/api/auth/login/')
         return self.formfactory().fields("username", "password")
 
     def post(self):

@@ -18,7 +18,7 @@ def authenticate(code):
             client_id=provider['client_id'], client_secret=client_secret
         )
         response = requests.post(provider['access_token_url'], data=access_token_request_data, verify=False)
-        print(response.text)
+        # print(response.text)
         if response.status_code == 200:
             data = json.loads(response.text)
             headers = {
@@ -26,11 +26,10 @@ def authenticate(code):
                 'x-api-key': client_secret
             }
             if provider.get('user_data_method', 'GET').upper() == 'POST':
-                response = requests.post(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers)
+                response = requests.post(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers, verify=False)
             else:
-                response = requests.get(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers)
-            print(response.text)
-            breakpoint()
+                response = requests.get(provider['user_data_url'], data={'scope': data.get('scope')}, headers=headers, verify=False)
+            # print(response.text)
             if response.status_code == 200:
                 data = json.loads(response.text)
                 username = data[provider['user_username']]
