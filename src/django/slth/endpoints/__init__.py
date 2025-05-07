@@ -92,7 +92,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         return self.formfactory().fields(*fields) if fields else {}
 
     def post(self):
-        redirect = '.' if 'only' in self.request.GET else self.form._redirect
+        redirect = '.' if 'only' in self.request.GET else (self.form and self.form._redirect or None)
         return Response(message="Ação realizada com sucesso", redirect=redirect)
 
     def check_permission(self):
@@ -163,7 +163,7 @@ class Endpoint(metaclass=EnpointMetaclass):
                     else:
                         self.cleaned_data = self.form.submit()
                         if self.form._message or self.form._redirect or self.form._dispose:
-                            redirect = '.' if 'only' in self.request.GET else self.form._redirect
+                            redirect = '.' if 'only' in self.request.GET else (self.form and self.form._redirect or None)
                             return Response(self.form._message, redirect, dispose=self.form._dispose)
                         else:
                             return self.post()
