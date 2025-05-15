@@ -5,7 +5,7 @@ install_requires = open('requirements.txt').read().splitlines()
 
 setup(
     name='slthlib',
-    version='0.0.8',
+    version='0.0.9',
     packages=find_packages(),
     install_requires=install_requires,
     include_package_data=True,
