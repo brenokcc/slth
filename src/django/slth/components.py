@@ -183,6 +183,40 @@ class TemplateContent(dict):
         self["autoreload"] = autoreload * 1000 if autoreload else None
 
 
+class GeoMap(dict):
+    
+    def __init__(self, lat=0, long=0, zoom=10, min_zoom=None, max_zoom=None, title=None):
+        self["type"] = "geomap"
+        self["title"] = title
+        self["lat"] = lat
+        self["long"] = long
+        self["zoom"] = zoom
+        self["min_zoom"] = min_zoom or zoom
+        self["max_zoom"] = max_zoom or zoom
+        self["polygons"] = []
+        self["points"] = []
+
+    def add_polygon(self, coordinates, info=None, color="#0b2353"):
+        feature = { "type": "Feature", "properties": { "info": str(info) }, "geometry": { "type": "Polygon", "coordinates": coordinates} }
+        return self.add_polygon_feature(feature, color=color)
+
+    def add_polygon_feature(self, feature, color="#0b2353"):
+        style = dict(weight=2, color="#999", opacity=1, fillColor=color, fillOpacity=0.8)
+        feature['properties']['style'] = style
+        self["polygons"].append(feature)
+        return feature
+
+    def add_point(self, lat, long, info=None):
+        feature = {"geometry": {"type": "Point", "coordinates": [lat, long]}, "type": "Feature", "properties": {"info": str(info)}}
+        return self.add_point_feature(feature)
+
+    def add_point_feature(self, feature, color="red"):
+        style = dict(radius=5, fillColor=color, color=color, weight=1, opacity=1, fillOpacity=0.8)
+        feature['properties']['style'] = style
+        self["points"].append(feature)
+        return feature
+    
+
 class Banner(dict):
     def __init__(self, src):
         self["type"] = "banner"

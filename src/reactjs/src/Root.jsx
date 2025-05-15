@@ -10,6 +10,7 @@ import { Response, request, apiurl } from "./Request";
 import { IconSet } from "./Icon";
 import { WebConf } from "./Media";
 import { ZoomMeet } from "./Meeting";
+import { GeoMap } from "./Geo";
 import {
   Image,
   Banner,
@@ -104,6 +105,7 @@ ComponentFactory.register(WebConf, "WebConf");
 ComponentFactory.register(Text, "Text");
 ComponentFactory.register(Html, "Html");
 ComponentFactory.register(ZoomMeet, "ZoomMeet");
+ComponentFactory.register(GeoMap, "GeoMap");
 
 window.addEventListener("popstate", (e) => {
   window.reload(e.currentTarget.location.href);
