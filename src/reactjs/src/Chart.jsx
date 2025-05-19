@@ -67,7 +67,8 @@ function Pie(props) {
         },
         roseType: props.area ? "area" : null,
         data: props.rows.map(function (row, i) {
-          return { name: row[0], value: row[1] };
+          console.log(row);
+          return { name: row[0], value: row[1], itemStyle: { color: row[2] } };
         }),
       };
     }
@@ -148,7 +149,7 @@ function Chart(props) {
         {
           name: null,
           data: props.rows.map(function (row) {
-            return row[1];
+            return { value: row[1], itemStyle: { color: row[2] } };
           }),
           type: type,
           stack: stack,

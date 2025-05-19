@@ -405,7 +405,7 @@ function Counter(props) {
       <div>
         <h2 align="center">{props.data.title}</h2>
         <div
-          style={{ fontSize: "8rem", textAlign: "center", color: "#5470c6" }}
+          style={{ fontSize: "8rem", textAlign: "center", color: "var(--primary-color)" }}
         >
           {props.data.value}
         </div>

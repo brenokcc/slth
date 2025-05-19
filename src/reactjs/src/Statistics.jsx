@@ -12,7 +12,7 @@ function Statistics(props) {
   function render1D() {
     var rows = [];
     for (var i = 0; i < props.data.series.length; i++) {
-      rows.push([props.data.series[i][0], props.data.series[i][1]]);
+      rows.push([props.data.series[i][0], props.data.series[i][1], props.data.series[i][2]]);
     }
     if (props.data.chart)
       return (

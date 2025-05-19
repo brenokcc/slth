@@ -1,6 +1,6 @@
 from datetime import date, timedelta, datetime
 from django.template.loader import render_to_string
-
+from . import geo
 
 SUCCESS = "success"
 PRIMARY = "primary"
@@ -185,30 +185,37 @@ class TemplateContent(dict):
 
 class GeoMap(dict):
     
-    def __init__(self, lat=0, long=0, zoom=10, min_zoom=None, max_zoom=None, title=None):
+    def __init__(self, lat=0, lon=0, zoom=10, min_zoom=None, max_zoom=None, title=None):
         self["type"] = "geomap"
         self["title"] = title
         self["lat"] = lat
-        self["long"] = long
+        self["long"] = lon
         self["zoom"] = zoom
         self["min_zoom"] = min_zoom or zoom
         self["max_zoom"] = max_zoom or zoom
         self["polygons"] = []
         self["points"] = []
 
-    def add_polygon(self, coordinates, info=None, color="#0b2353"):
-        feature = { "type": "Feature", "properties": { "info": str(info) }, "geometry": { "type": "Polygon", "coordinates": coordinates} }
+    def to_html(self, info):
+        if isinstance(info, dict):
+            info = "<br>".join([f"<b>{k}</b>: {v}" for k, v in info.items()])
+        elif info:
+            info = str(info).replace("\n", "<br>")
+        return info
+
+    def add_polygon(self, coordinates, info="", color="#0b2353"):
+        feature = { "type": "Feature", "properties": { "info": self.to_html(info) }, "geometry": { "type": "Polygon", "coordinates": coordinates} }
         return self.add_polygon_feature(feature, color=color)
 
     def add_polygon_feature(self, feature, color="#0b2353"):
-        style = dict(weight=2, color="#999", opacity=1, fillColor=color, fillOpacity=0.8)
+        style = dict(weight=2, color="white", opacity=1, fillColor=color, fillOpacity=0.8)
         feature['properties']['style'] = style
         self["polygons"].append(feature)
         return feature
 
-    def add_point(self, lat, long, info=None):
-        feature = {"geometry": {"type": "Point", "coordinates": [lat, long]}, "type": "Feature", "properties": {"info": str(info)}}
-        return self.add_point_feature(feature)
+    def add_point(self, lat, lon, info="", label="", color="red"):
+        feature = {"geometry": {"type": "Point", "coordinates": [lat, lon]}, "type": "Feature", "properties": {"info": self.to_html(info), "label": str(label), "color": color}}
+        return self.add_point_feature(feature, color=color)
 
     def add_point_feature(self, feature, color="red"):
         style = dict(radius=5, fillColor=color, color=color, weight=1, opacity=1, fillOpacity=0.8)
@@ -216,6 +223,75 @@ class GeoMap(dict):
         self["points"].append(feature)
         return feature
     
+
+class BrGeoMap(GeoMap):
+    
+    def __init__(self, color='#0b2353', show_info=True):
+        self.show_info = show_info
+        super().__init__(-50.6178, -12.5, zoom=4, max_zoom=7)
+        self.data = {
+            'AC': {'lat': -9.9754, 'lon': -67.8243},
+            'AL': {'lat': -9.6658, 'lon': -35.735},
+            'AP': {'lat': 0.0349, 'lon': -51.0694},
+            'AM': {'lat': -3.119, 'lon': -60.0217},
+            'BA': {'lat': -12.9714, 'lon': -38.5014},
+            'CE': {'lat': -3.7172, 'lon': -38.5433},
+            'DF': {'lat': -15.7939, 'lon': -47.8828},
+            'ES': {'lat': -20.3155, 'lon': -40.3128},
+            'GO': {'lat': -16.6864, 'lon': -49.2643},
+            'MA': {'lat': -2.5307, 'lon': -44.3068},
+            'MT': {'lat': -15.601, 'lon': -56.0974},
+            'MS': {'lat': -20.4697, 'lon': -54.6201},
+            'MG': {'lat': -19.9167, 'lon': -43.9345},
+            'PA': {'lat': -1.455, 'lon': -48.5022},
+            'PB': {'lat': -7.1153, 'lon': -34.861},
+            'PR': {'lat': -25.4284, 'lon': -49.2733},
+            'PE': {'lat': -8.0476, 'lon': -34.877},
+            'PI': {'lat': -5.0919, 'lon': -42.8034},
+            'RJ': {'lat': -22.9068, 'lon': -43.1729},
+            'RN': {'lat': -5.7945, 'lon': -35.211},
+            'RS': {'lat': -30.0346, 'lon': -51.2177},
+            'RO': {'lat': -8.7612, 'lon': -63.9004},
+            'RR': {'lat': 2.8238, 'lon': -60.6753},
+            'SC': {'lat': -27.5954, 'lon': -48.548},
+            'SP': {'lat': -23.5505, 'lon': -46.6333},
+            'SE': {'lat': -10.9472, 'lon': -37.0731},
+            'TO': {'lat': -10.2491, 'lon': -48.3243},
+        }
+
+        features = geo.brazil_states().get('features')
+        for feature in features:
+            feature["properties"]["info"] = feature["properties"]["name"] if self.show_info else None
+            self.add_polygon_feature(feature, color=color)
+
+    def add_data(self, state, label="", info="", color="red"):
+        lat = self.data[state]["lat"]
+        lon = self.data[state]["lon"]
+        label = f"<b>{state}</b>: {label}" if label != "" else label
+        self.add_point(lon, lat, info=info, label=label, color=color)
+
+class BrRegionGeoMap(GeoMap):
+    
+    def __init__(self, color='#0b2353', show_info=True):
+        self.show_info = show_info
+        super().__init__(-50.6178, -12.5, zoom=4, max_zoom=7)
+        self.data = {
+            'Norte': {'lon': -58.5921662263205, 'lat': -3.5078467396601667},
+            'Nordeste': {'lon': -41.64106903888117, 'lat': -7.60494867268045},
+            'Centro-Oeste': {'lon': -54.41021386798654, 'lat': -14.676752818694368},
+            'Sul': {'lon': -51.72844646026684, 'lat': -25.845669451210867},
+            'Sudeste': {'lon': -45.40620191141343, 'lat': -19.14188754461283},
+        }
+        features = geo.brazil_regions().get('features')
+        for feature in features:
+            feature["properties"]["info"] = feature["properties"]["NOME1"] if self.show_info else None
+            self.add_polygon_feature(feature, color=color)
+
+    def add_data(self, region, label="", info="", color="red"):
+        lat = self.data[region]["lat"]
+        lon = self.data[region]["lon"]
+        label = f"<b>{region}</b>: {label}" if label != "" else label
+        self.add_point(lon, lat, info=info, label=label, color=color)
 
 class Banner(dict):
     def __init__(self, src):
