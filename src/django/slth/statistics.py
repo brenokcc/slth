@@ -1,5 +1,6 @@
 import json
 from decimal import Decimal
+from django.conf import settings
 from django.db.models.aggregates import Count, Sum, Avg
 from django.core.exceptions import FieldDoesNotExist
 
@@ -16,6 +17,17 @@ TREE_MAP_CHART = 'tree_map'
 LINE_CHART = 'line'
 AREA_CHART = 'area'
 PROGRESS_CHART = 'progress'
+COLORS = getattr(settings, 'CHART_COLORS', [
+  '#5470C6',
+  '#91CC75',
+  '#FAC858',
+  '#EE6666',
+  '#73C0DE',
+  '#3BA272',
+  '#FC8452',
+  '#9A60B4',
+  '#EA7CCC'
+])
 
 
 class Statistics(object):
@@ -122,7 +134,7 @@ class Statistics(object):
             for i, (yk, yv) in enumerate(self._ydict.items()):
                 data = []
                 for j, (xk, xv) in enumerate(self._xdict.items()):
-                    data.append([formatter.get(xv, str(self._xfield_display_value(xv))), format_value(self._values_dict.get((xk, yk), 0)), '#000000'])
+                    data.append([formatter.get(xv, str(self._xfield_display_value(xv))), format_value(self._values_dict.get((xk, yk), 0)), COLORS[i % len(COLORS)]])
                 series.update(**{formatter.get(yv, str(self._yfield_display_value(yv))): data})
             ty = []
             for k, serie in series.items():
@@ -151,7 +163,7 @@ class Statistics(object):
             sx = 0
             data = list()
             for j, (xk, xv) in enumerate(self._xdict.items()):
-                data.append([formatter.get(xv, str(self._xfield_display_value(xv))), format_value(self._values_dict.get((xk, None), 0)), '#000000'])
+                data.append([formatter.get(xv, str(self._xfield_display_value(xv))), format_value(self._values_dict.get((xk, None), 0)), COLORS[j % len(COLORS)]])
                 sx+=data[-1][1]
             if data:
                 series['default'] = data
@@ -171,3 +183,4 @@ class Statistics(object):
         self.y = y
         self._calc()
         return self.serialize()
+ # type: ignore
