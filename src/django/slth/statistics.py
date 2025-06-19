@@ -1,6 +1,5 @@
 import json
 from decimal import Decimal
-from django.conf import settings
 from django.db.models.aggregates import Count, Sum, Avg
 from django.core.exceptions import FieldDoesNotExist
 
@@ -17,7 +16,7 @@ TREE_MAP_CHART = 'tree_map'
 LINE_CHART = 'line'
 AREA_CHART = 'area'
 PROGRESS_CHART = 'progress'
-COLORS = getattr(settings, 'CHART_COLORS', [
+COLORS = [
   '#5470C6',
   '#91CC75',
   '#FAC858',
@@ -27,7 +26,13 @@ COLORS = getattr(settings, 'CHART_COLORS', [
   '#FC8452',
   '#9A60B4',
   '#EA7CCC'
-])
+]
+
+try:
+    from django.conf import settings
+    COLORS = getattr(settings, 'CHART_COLORS')
+except Exception:
+    pass
 
 
 class Statistics(object):

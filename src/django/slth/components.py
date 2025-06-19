@@ -208,7 +208,7 @@ class GeoMap(dict):
         return self.add_polygon_feature(feature, color=color)
 
     def add_polygon_feature(self, feature, color="#0b2353"):
-        style = dict(weight=2, color="white", opacity=1, fillColor=color, fillOpacity=0.8)
+        style = dict(weight=2, color="white", opacity=1, fillColor=color, fillOpacity=0.5)
         feature['properties']['style'] = style
         self["polygons"].append(feature)
         return feature
