@@ -25,7 +25,8 @@ class Command(BaseCommand):
 
         print_and_call('makemigrations', *app_labels)
         print_and_call('migrate')
-        print_and_call('collectstatic', clear=True, verbosity=0, interactive=False)
+        if not settings.DEBUG:
+            print_and_call('collectstatic', clear=True, verbosity=0, interactive=False)
 
         if not User.objects.exists():
             user = User.objects.create_superuser('admin')

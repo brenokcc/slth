@@ -75,6 +75,7 @@ function Calendar(props){
     var rows = [[], [], [], [], [], []];
     var month = props.data.month - 1;
     var start = new Date(props.data.year, props.data.month - 1, 1);
+    if(start.getDay()==0) start.setDate(start.getDate() + 1);
     while (start.getDay() > 1) start.setDate(start.getDate() - 1);
     var i = 0;
     while (start.getMonth() <= month || rows[i].length < 7) {
