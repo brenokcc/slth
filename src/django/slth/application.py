@@ -191,6 +191,7 @@ class Application(metaclass=ApplicationMetaclass):
         self.menu:Menu = Menu()
         self.dashboard = Dashboard()
         self.theme:Theme = Theme()
+        self.sponsors:List = List()
 
     def load(self):
         pass
@@ -229,7 +230,7 @@ class Application(metaclass=ApplicationMetaclass):
                 type="footer", version=self.version
             ),
             oauth=self.oauth.serialize(),
-            sponsors=[]
+            sponsors=self.sponsors
         )
     
     @staticmethod
