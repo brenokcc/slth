@@ -206,17 +206,26 @@ class Application(metaclass=ApplicationMetaclass):
             photo = profile and profile.photo and build_url(request, profile.photo.url) or None
         else:
             user = profile = photo = None
+        
+        def contribute(endpoint_list, endpoint_name):
+            cls = ENDPOINTS[endpoint_name]
+            endpoint = cls().instantiate(request, None)
+            if endpoint.check_permission() and endpoint.contribute(entrypoint):
+                name = endpoint.get_verbose_name()
+                url = build_url(request, cls.get_api_url())
+                modal = cls.get_metadata("modal", False)
+                icon = cls.get_metadata("icon", None)
+                endpoint_list.append(dict(name=name, url=url, modal=modal, icon=icon))
+        
         endpoints = {"actions": [], "usermenu": [], "adder": [], "settings": [], "tools": [], "toolbar": []}
         for entrypoint in endpoints:
             for endpoint_name in getattr(self.dashboard, entrypoint):
-                cls = ENDPOINTS[endpoint_name]
-                endpoint = cls().instantiate(request, None)
-                if endpoint.check_permission() and endpoint.contribute(entrypoint):
-                    name = endpoint.get_verbose_name()
-                    url = build_url(request, cls.get_api_url())
-                    modal = cls.get_metadata("modal", False)
-                    icon = cls.get_metadata("icon", None)
-                    endpoints[entrypoint].append(dict(name=name, url=url, modal=modal, icon=icon))
+                contribute(endpoints[entrypoint], endpoint_name)
+
+        top = []
+        for endpoint_name in self.dashboard.top:
+            contribute(top, endpoint_name)
+        
         return dict(
             type="application",
             icon=icon,
@@ -229,6 +238,7 @@ class Application(metaclass=ApplicationMetaclass):
             footer=dict(
                 type="footer", version=self.version
             ),
+            top=top,
             oauth=self.oauth.serialize(),
             sponsors=self.sponsors
         )

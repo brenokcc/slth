@@ -156,6 +156,11 @@ class QuerySet(models.QuerySet):
             self.metadata['lookups'] = {}
         self.metadata['lookups'][role_name] = lookups
         return self
+    
+    def nolookup(self):
+        if 'lookups' in self.metadata:
+            self.metadata['lookups'].clear()
+        return self
 
     def apply_lookups(self, user):
         from . import permissions

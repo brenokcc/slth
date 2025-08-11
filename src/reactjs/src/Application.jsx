@@ -288,10 +288,32 @@ function Application(props) {
     );
   }
 
+  function renderTopActions(){
+    return (
+      <div style={{textAlign: "right"}}>
+        {props.data.top &&
+            props.data.top.length > 0 &&
+            (
+              <div className="top">
+                {props.data.top.map(function (action) {
+                  return (
+                   
+                      <Action key={Math.random()} data={action} compact={window.innerWidth < 800}/>
+                 
+                  );
+                })}
+              </div>
+            )
+          }
+      </div>
+    )
+  }
+
   function renderMain() {
     return (
       <main id="main" style={{width:"100%", overflowX:"auto"}}>
         {renderBreadcrumbs()}
+        {renderTopActions()}
         <Content data={props.data.content} />
         <footer>{renderFooter()}</footer>
         <Floating />

@@ -104,6 +104,14 @@ function Todo(props) {
       marginTop: 10,
       marginBottom: 10,
     };
+    const counterStyle = {
+      float: "right",
+      backgroundColor: Theme.colors.info,
+      color: Theme.background.info,
+      paddingLeft: 5,
+      paddingRight: 5,
+      borderRadius: 5,
+    }
     return props.data.map(function (item) {
       return (
         <div key={Math.random()} style={style}>
@@ -112,10 +120,10 @@ function Todo(props) {
               icon="warning"
               style={{ color: Theme.colors.info, marginRight: 20 }}
             />
-            Há ação pendente de execução. Para executá-la, clique em <strong>
-              <Link modal={item.modal} href={item.url}>{item.title.toLowerCase()}</Link>
-            </strong>.
+            <Link modal={item.modal} href={item.url}>{item.title}</Link>
+            
           </div>
+          <div style={counterStyle}>{item.counter}</div>
         </div>
       );
     });
