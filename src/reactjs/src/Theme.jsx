@@ -45,11 +45,11 @@ function ThemeToggle(props){
   }
 
   function render(){
-    return <Icon
+    return 0 ? <Icon
       onClick={onClick}
       icon={isDark() ? "sun" : "moon"}
       style={{ cursor: "pointer", color: Theme.colors.primary }}
-    />
+    /> : null;
   }
 
   return render()

@@ -364,6 +364,9 @@ class QuerySetEndpoint(Generic[T], ModelEndpoint):
         modal = False
 
     def get(self) -> QuerySet:
+        return self.get_queryset()
+    
+    def get_queryset(self):
         return self.model.objects.contextualize(self.request)
     
     def get_verbose_name(self):
@@ -375,6 +378,9 @@ class ListEndpoint(Generic[T], ModelEndpoint):
         modal = False
 
     def get(self) -> QuerySet:
+        return self.get_queryset()
+
+    def get_queryset(self):
         return self.model.objects.all().contextualize(self.request).actions(*self.get_default_actions())
     
     def get_verbose_name(self):
@@ -407,7 +413,7 @@ class AddEndpoint(Generic[T], ModelEndpoint):
         return self.instance.formfactory()
     
     def get_verbose_name(self):
-        return f'Cadastrar {self.model._meta.verbose_name}'
+        return getattr(self.Meta, 'verbose_name', f'Cadastrar {self.model._meta.verbose_name}')
 
 
 class ModelInstanceEndpoint(ModelEndpoint):
@@ -417,6 +423,9 @@ class ModelInstanceEndpoint(ModelEndpoint):
 
     def get_instance(self):
         return self.instance
+    
+    def check_instance(self):
+        return self.model.objects.all().filter(pk=self.instance.pk).apply_lookups(self.request.user).exists()
 
 
 class InstanceEndpoint(Generic[T], ModelInstanceEndpoint):

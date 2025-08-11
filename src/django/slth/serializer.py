@@ -411,6 +411,7 @@ class Serializer:
                     action = endpoint.get_api_metadata(self.request, base_url, self.obj.pk)
                 else:
                     action = endpoint.get_api_metadata(self.request, base_url)
+                action.update(counter=endpoint.get_queryset().apply_lookups(self.request.user).count())
                 todo.append(action)
         output = dict(type=self.type, title=self.title if self.show_title else None)
         if info:
