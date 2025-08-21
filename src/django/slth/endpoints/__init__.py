@@ -404,13 +404,10 @@ class AddEndpoint(Generic[T], ModelEndpoint):
         self.instance = self.model()
 
     def get(self) -> FormFactory:
-        return self.formfactory()
+        return self.instance.formfactory()
 
     def get_instance(self):
         return self.instance
-    
-    def formfactory(self):
-        return self.instance.formfactory()
     
     def get_verbose_name(self):
         return getattr(self.Meta, 'verbose_name', f'Cadastrar {self.model._meta.verbose_name}')

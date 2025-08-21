@@ -366,7 +366,7 @@ class FormMixin:
                 data.update(scheduler=field.scheduler)
             elif ftype == "choice" or pick:
                 choiceurl = self._endpoint.base_url if self._endpoint else None
-                if name in self.request.GET and not choices_field_name:
+                if name in self.request.GET and not choices_field_name and f'{name}__autocomplete' not in self.request.GET:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:
                     if choices_field_name == fname or (isinstance(field.choices, ModelChoiceIterator) and not pick):

@@ -260,6 +260,7 @@ function Field(props) {
       flexDirection: "column",
       padding: 5,
       width: "calc(100%-5px)",
+      position: "relative",
     };
     return (
       <div id={id} style={style} className={"form-group "+props.data.name}>
@@ -593,7 +594,6 @@ function Selector(props) {
     const widget = document.getElementById(id2);
     if (props.data.icon) style.paddingLeft = 30;
     if (widget) {
-      let dialog = null;
       let element = widget;
       let result = null;
       while (
@@ -602,34 +602,17 @@ function Selector(props) {
       ) {
         if (element.matches("dialog")) result = element;
       }
-      dialog = result;
-
       const rect = widget.getBoundingClientRect();
-      var top = rect.top + rect.height;
-      var left = rect.left;
-      if (dialog) {
-        const rect2 = dialog.getBoundingClientRect();
-        top = top - rect2.top;
-        left = left - rect2.left;
-      } else {
-        top += window.scrollY;
-        left += window.scrollX;
-      }
       ul.width = rect.width;
-      ul.top = top;
-      ul.left = left;
+      ul.top = 80;
+      ul.left = 5;
     }
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
       (!multiple && initial.length > 0 && initial[0]["value"]) || "";
     return (
       <>
-        {props.data.icon && (
-          <Icon
-            icon={props.data.icon}
-            style={{ position: "absolute", margin: 13, color: "#d9d9d9" }}
-          />
-        )}
+        <Icon icon="search" style={{ position: "absolute", right: 20, top: 45 }}/>
         <input
           id={id2}
           name={props.data.name + "__autocomplete"}
@@ -690,7 +673,7 @@ function Selector(props) {
       const input = document.getElementById(id2);
       if (!multiple) {
         if (
-          widget.options.length > 0 &&
+          widget.options.length == 0 || widget.options.length > 0 &&
           input.value != widget.options[0].innerHTML
         ) {
           widget.innerHTML = "";
@@ -769,9 +752,9 @@ function Selector(props) {
   function render() {
     return (
       <>
-        {renderSelections()}
         {renderSelect()}
         {renderSelector()}
+        {renderSelections()}
       </>
     );
   }
