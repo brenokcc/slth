@@ -13,6 +13,7 @@ SECRET_KEY = os.environ.get('S3_SECRET_KEY')
 HOST = os.environ.get('S3_HOST')
 
 
+
 MIME_TYPES = {
     # Images
     "jpg": "image/jpeg",
@@ -247,7 +248,23 @@ def get_object(bucket, object_key=None, only_url=False):
     else:
         resp = requests.get( url)
         print("Response", resp.status_code)
-        return resp.content
+        if resp.status_code == 200:
+            return resp.content
+        elif resp.status_code == 404:
+            return None
+        else:
+            raise Exception(resp.text)
+        
+def delete_object(bucket, object_key=None):
+    url = generate_presigned_url(bucket=bucket, object_key=object_key, method="DELETE")
+    print("DELETE:",  url)
+    resp = requests.delete(url)
+    print("Response", resp.status_code, resp.text)
+    if resp.status_code == 204:
+        return True
+    else:
+        raise Exception(resp.text)
+
 
 def list_objects(bucket, prefix='', max_keys=1000):
     files = {}
@@ -265,7 +282,11 @@ def list_objects(bucket, prefix='', max_keys=1000):
             etag = content.find("s3:ETag", ns).text[1:-1]
             # last_modified = content.find("s3:LastModified", ns).text
             files[key] = etag
-    return files
+        return files
+    elif resp.status_code == 404:
+        return files
+    else:
+        raise Exception(resp.text)
 
 def md5(filepath, chunk_size=8192):
     """Calculates the MD5 hash of a given file."""
@@ -279,24 +300,25 @@ def md5(filepath, chunk_size=8192):
         return "File not found."
 
 
-policy = json.dumps({
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {"AWS": ["*"]},
-            "Action": ["s3:GetObject"],
-            "Resource": [f"arn:aws:s3:::{bucket}/static/*"]
-        }
-    ]
-})
+def policy(bucket):
+    return json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": ["*"]},
+                "Action": ["s3:GetObject"],
+                "Resource": [f"arn:aws:s3:::{bucket}/static/*"]
+            }
+        ]
+    })
 
 if __name__ == "__main__":
 
     object_key = 'hello.txt'
 
     aws_request("PUT", bucket)
-    aws_request("PUT", bucket, "policy=", policy)
+    aws_request("PUT", bucket, "policy=", policy())
     aws_request("GET", bucket, "policy=")
 
     hash = md5(object_key)
