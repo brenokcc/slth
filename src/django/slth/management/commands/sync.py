@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import os
-
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.management.base import BaseCommand
 from django.utils import termcolors
 
@@ -34,3 +33,6 @@ class Command(BaseCommand):
             user.set_password(password)
             user.save()
             print('Superuser "admin" with password "{}" was created.'.format(password))
+
+        if getattr(settings, 'USE_S3'):
+            staticfiles_storage.collectstatic()

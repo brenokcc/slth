@@ -1,37 +1,47 @@
+import os
 import tempfile
 from django.apps import apps
 from django.core.files.storage import Storage
 from django.conf import settings
 from django.contrib.staticfiles.finders import AppDirectoriesFinder
-from . import s3
+from .s3 import Client
 
+"""
+if USE_S3:
+    S3_URL = os.environ.get('S3_URL', 'https://api.minio.aplicativo.click/test3')
+    S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY', 'admin')
+    S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY', '')
+    STORAGES = {
+        "default": {"BACKEND": "slth.storage.S3Storage"},
+        "staticfiles": {"BACKEND": "slth.storage.StaticStorage"}
+    }
+"""
 
 class File:
-    def __init__(self, bucket, name, mode='rb'):
-        self.bucket = bucket
+    def __init__(self, client, name, mode='rb'):
+        self.client = client
         self.name = name
         self.mode = mode
     
     def read(self):
-        response = s3.get_object(self.bucket, self.name)
-        return response.content if 'b' in self.mode else response.content.decode()
+        content = self.client.get_object(self.name)
+        return content if 'b' in self.mode else content.decode()
     
     def write(self, content):
         content = content if 'b' in self.mode else content.encode()
-        return s3.put_object(self.bucket, self.name, content)
+        return self.client.put_object(self.name, content)
 
 
 class S3Storage(Storage):
 
     def __init__(self):
-        self.bucket = "test3"
-        # if bucket does not exist, create and define the policy
-        if not s3.list_objects(self.bucket):
-            s3.put_object(self.bucket)
-            s3.aws_request("PUT", self.bucket, "policy=", s3.policy(self.bucket))
+        url = settings.S3_URL
+        access_key = settings.S3_ACCESS_KEY
+        secret_key = settings.S3_SECRET_KEY
+        self.client = Client(url, access_key, secret_key)
 
     def _open(self, name, mode='rb'):
-        return File(self.bucket, name, mode=mode)
+        return File(self.client, name, mode=mode)
 
     def _save(self, name, content):
         return self._open(name, mode='wb').write(content)
@@ -43,46 +53,47 @@ class S3Storage(Storage):
         return tmp_path
 
     def exists(self, name):
-        return bool(s3.list_objects(self.bucket, name))
+        return bool(self.client.list_objects(name))
     
     def delete(self, name):
-        s3.delete_object(self.bucket, name)
+        self.client.delete_object(name)
 
     def url(self, name):
-        print(name, 8888)
-        if name.startswith('static/'):
-            return f'/{name}'
-        return s3.get_object(self.bucket, name, only_url=True)
+        return self.client.get_object(name, only_url=True)
+
+
+class StaticStorage(S3Storage):
+
+    def url(self, name):
+        return f'{self.client.url}/static/{name}'
     
-    def staticfiles(self, sync=False):
+    def collectstatic(self):
         local = {}
         finder = AppDirectoriesFinder()
-        # apps.get_app_config("staticfiles").ignore_patterns
         ignore_patterns = ['CVS', '.*', '*~'] 
         for name, storage in finder.list(ignore_patterns):
             path = storage.path(name)
             md5 = s3.md5(path)
             local[f'static/{name}'] = dict(path=path, md5=md5, status=None)
-        if sync:
-            remote = s3.list_objects(self.bucket, 'static/')
-            print(remote)
-            for name, info in local.items():
-                md5 = remote.get(name)
-                if md5:
-                    del remote[name]
-                    if info['md5'] == md5:
-                        info['status'] = 'equals'
-                    else:
-                        info['status'] = 'updated'
+        remote = self.client.list_objects('static/')
+        print(remote)
+        for name, info in local.items():
+            md5 = remote.get(name)
+            if md5:
+                del remote[name]
+                if info['md5'] == md5:
+                    info['status'] = 'equals'
                 else:
-                    info['status'] = 'created'
-                
-                if info['status'] in ('created', 'updated'):
-                    with open(info['path'], 'rb') as file:
-                        self.open(name, 'wb').write(file.read())
-    
-                print(name, info['status'])
-            for name in remote:
-                self.delete(name)
-                print(name, 'deleted')
+                    info['status'] = 'updated'
+            else:
+                info['status'] = 'created'
+            
+            if info['status'] in ('created', 'updated'):
+                with open(info['path'], 'rb') as file:
+                    self.open(name, 'wb').write(file.read())
+
+            print(name, info['status'])
+        for name in remote:
+            self.delete(name)
+            print(name, 'deleted')
         return local
