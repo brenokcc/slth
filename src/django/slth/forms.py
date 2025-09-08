@@ -397,9 +397,14 @@ class FormMixin:
                             self.request, f"choices={fname}"
                         ))
             if ftype == "boolean":
-                data.update(choices=[
-                    {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}, {"id": "null", "value": "Não Informado"}
-                ])
+                if isinstance(field, NullBooleanField):
+                    data.update(choices=[
+                        {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}, {"id": "null", "value": "Não Informado"}
+                    ])
+                else:
+                    data.update(choices=[
+                        {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}
+                    ])
 
         attr_name = f"on_{prefix}__{name}_change" if prefix else f"on_{name}_change"
         on_change_name = f"{prefix}__{name}" if prefix else name

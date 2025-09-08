@@ -16,7 +16,7 @@ from django.conf import settings
 from django.http import FileResponse, HttpResponseNotFound
 from .endpoints import ApiResponse
 from slth.application import Application
-
+from .components import Response
 
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
@@ -38,7 +38,7 @@ def dispatcher(request, **kwargs):
     if request.method == 'OPTIONS':
         return ApiResponse({})
     else:
-        if(1 and 'application' not in request.path and 'test' not in sys.argv): import time; time.sleep(0)
+        token = None
         if 'HTTP_AUTHORIZATION' in request.META:
             token = Token.objects.filter(key=request.META['HTTP_AUTHORIZATION'].split()[1]).first()
             if token:
@@ -47,6 +47,11 @@ def dispatcher(request, **kwargs):
             token = Token.objects.filter(key=request.COOKIES.get('token')).first()
             if token:
                 request.user = token.user
+        
+        if token and not token.is_valid():
+            token.delete()
+            return ApiResponse(dict(type='redirect', url='/app/auth/logout/', message='Sua sessão expirou.'))
+        
         if request.path == '/':
             application = Application.get_instance()
             cls = slth.ENDPOINTS.get(application.dashboard.index)

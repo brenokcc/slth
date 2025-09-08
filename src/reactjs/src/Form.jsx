@@ -618,6 +618,7 @@ function Selector(props) {
           name={props.data.name + "__autocomplete"}
           type="text"
           className="form-control"
+          autocomplete="off"
           onFocus={(e) => {
             e.target.select();
             search(e);

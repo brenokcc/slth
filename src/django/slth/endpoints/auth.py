@@ -10,6 +10,7 @@ from . import PublicEndpoint, Endpoint, ChildInstanceEndpoint
 from django.utils import timezone
 
 def login_response(user, redirect='/api/dashboard/'):
+    Token.objects.filter(user=user).delete()
     token = Token.objects.create(user=user)
     current_timezone = timezone.get_current_timezone()
     current_timezone_name = current_timezone.__str__()

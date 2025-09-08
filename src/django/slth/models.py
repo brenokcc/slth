@@ -523,6 +523,21 @@ class Token(models.Model):
 
     def __str__(self):
         return self.key
+    
+    def is_valid(self):
+        seconds =  (datetime.now() - self.created).seconds
+        life_time = getattr(settings, 'TOKEN_LIFE_TIME', 15)
+        refresh_time = getattr(settings, 'TOKEN_REFRESH_TIME', 5)
+        if seconds > life_time * 60:
+            # print(f'Token {self.key} for {self.user} created at {self.created.isoformat()} is expired.')
+            return False
+        elif seconds > refresh_time * 60:
+            # print(f'Refreshing token {self.key} for {self.user} created at {self.created.isoformat()}...')
+            Token.objects.filter(pk=self.pk).update(created=datetime.now())
+            return True
+        else:
+            # print(f'Token {self.key} for {self.user} created at {self.created.isoformat()} is still valid.')
+            return True
 
 
 class LogQuerySet(models.QuerySet):
