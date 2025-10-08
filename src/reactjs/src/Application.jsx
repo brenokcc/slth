@@ -158,6 +158,11 @@ function Application(props) {
               </Dropdown>
             </div>
           )}
+          {props.data.navbar.name && 
+          <div style={{ padding: 10 }}>
+            Olá, { props.data.navbar.name }!
+          </div>
+          }
           <div style={{ padding: 10 }}>
             <PushWebNotification />
           </div>

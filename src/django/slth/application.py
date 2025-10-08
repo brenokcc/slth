@@ -201,11 +201,12 @@ class Application(metaclass=ApplicationMetaclass):
         logo = build_url(request, self.brand or self.logo)
         title = self.title if self.brand is None else None
         if request.user.is_authenticated:
+            name = request.user.first_name
             user = request.user.username.split()[0].split("@")[0]
             profile = apps.get_model("slth", "profile").objects.filter(user=request.user).first()
             photo = profile and profile.photo and build_url(request, profile.photo.url) or None
         else:
-            user = profile = photo = None
+            name = user = profile = photo = None
         
         def contribute(endpoint_list, endpoint_name):
             cls = ENDPOINTS[endpoint_name]
@@ -230,7 +231,7 @@ class Application(metaclass=ApplicationMetaclass):
             type="application",
             icon=icon,
             navbar=dict(
-                type="navbar", title=title, subtitle=self.subtitle, logo=logo, user=user, **endpoints
+                type="navbar", title=title, subtitle=self.subtitle, logo=logo, user=user, name=name, **endpoints
             ),
             menu=dict(
                 type="menu", items=self.menu.process(request), user=user, image=photo

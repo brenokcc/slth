@@ -486,6 +486,7 @@ function InputField(props) {
         style.height = 47.5;
       }
       return (
+        <>
         <input
           className={"form-control " + className}
           type={type}
@@ -498,8 +499,17 @@ function InputField(props) {
           onChange={onChange}
           style={style}
         />
+        { props.data.type == "password" && 
+          <Icon icon="eye" style={{ marginTop: -35, marginLeft: '90%', width: 20, color: "#CCC", cursor: "pointer"}} onClick={togglePassword}/>
+        }
+        </>
       );
     }
+  }
+
+  function togglePassword(e){
+    const widget = document.getElementById(id);
+    widget.type = widget.type == "text" ? "password" : "text";
   }
 
   return render();
