@@ -714,7 +714,7 @@ function Selector(props) {
           setOptions(options);
         }
       );
-    }, 1000);
+    }, 100);
   }
 
   function select(value, initializing = false) {
@@ -1349,7 +1349,8 @@ function Form(props) {
   }
 
   function cancel() {
-    closeDialog();
+    if(document.getElementsByTagName("dialog").length > 0) closeDialog();
+    else history.back();
   }
 
   function submit(e) {
