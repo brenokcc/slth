@@ -320,7 +320,7 @@ function QuerySet(props) {
   }
 
   function renderActions() {
-    return (data.xlsx || data.actions.length > 0) && (
+    return (data.xlsx || (data.actions && data.actions.length > 0)) && (
       <div align="right" style={{ marginTop: 20, marginBottom: 20 }}>
         {data.actions.map(function (action) {
           return <Action key={Math.random()} data={action} primary />;

@@ -272,6 +272,13 @@ function Application(props) {
     );
   }
 
+  const onChangeRole = (event) => {
+    if(event.target.selectedIndex > 0){
+      const id = props.data.navbar.roles[event.target.selectedIndex].id;
+      document.location.href = "/app/role/change/?role=" + event.target.options[event.target.selectedIndex].value;
+    }
+  };
+
   function renderBreadcrumbs() {
     const style = { margin: 15, display: "flex", justifyContent: "space-between" };
     const icon = { color: Theme.colors.primary };
@@ -285,9 +292,18 @@ function Application(props) {
             </Link>
             Área Administrativa
           </div>
-          <div title={props.data.navbar.roles}>
-            {props.data.navbar.user}
+          {!props.data.navbar.roles || props.data.navbar.roles.length == 0 && <div>{props.data.navbar.user}</div>}
+          {props.data.navbar.roles && props.data.navbar.roles.length > 0 && <div>
+            <select onChange={onChangeRole} style={{ padding: 10, border: 0}}>
+                <option value={props.data.navbar.role.id}>{props.data.navbar.role.name.toUpperCase()}</option>
+                {props.data.navbar.roles.map(function (role) {
+                  return role.active ? null : (
+                       <option value={role.id} key={Math.random()}>{role.name.toUpperCase()}</option>
+                  );
+                })}
+            </select>
           </div>
+          }
         </div>
       )
     );

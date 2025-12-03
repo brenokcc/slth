@@ -197,9 +197,16 @@ class Application(metaclass=ApplicationMetaclass):
         pass
 
     def serialize(self, request):
+        from slth.models import Role
         icon = build_url(request, self.icon)
         logo = build_url(request, self.brand or self.logo)
         title = self.title if self.brand is None else None
+        if getattr(settings, 'SINGLE_ROLE', False):
+            roles = [dict(id=role.id, name=str(role), active=role.active) for role in Role.objects.filter(username=request.user.username)]
+            active_roles = [role for role in roles if role['active']]
+        else:
+            roles = []
+            active_roles = []
         if request.user.is_authenticated:
             name = request.user.first_name
             user = request.user.username.split()[0].split("@")[0]
@@ -231,7 +238,7 @@ class Application(metaclass=ApplicationMetaclass):
             type="application",
             icon=icon,
             navbar=dict(
-                type="navbar", title=title, subtitle=self.subtitle, logo=logo, user=user, name=name, **endpoints
+                type="navbar", title=title, subtitle=self.subtitle, logo=logo, user=user, role=active_roles[0] if active_roles else None, roles=roles, name=name, **endpoints
             ),
             menu=dict(
                 type="menu", items=self.menu.process(request), user=user, image=photo

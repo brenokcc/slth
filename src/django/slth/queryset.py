@@ -289,7 +289,7 @@ class QuerySet(models.QuerySet):
                     worksheet.write(row_idx, col_idx, col)
             workbook.close()
             file.close()
-            raise ReadyResponseException(FileResponse(open(file.name, 'rb')))
+            raise ReadyResponseException(FileResponse(open(file.name, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
     
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]

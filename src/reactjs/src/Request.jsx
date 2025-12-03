@@ -80,6 +80,7 @@ function request(method, path, callback, data) {
       } else if (
         contentType.indexOf("text") < 0 ||
         contentType.indexOf("csv") >= 0 ||
+        contentType.indexOf("sheet") >= 0 ||
         contentType.indexOf("pdf") >= 0
       ) {
         var file = window.URL.createObjectURL(
@@ -87,7 +88,7 @@ function request(method, path, callback, data) {
         );
         var a = document.createElement("a");
         a.href = file;
-        if (contentType.indexOf("excel") >= 0) a.download = "Download.xls";
+        if (contentType.indexOf("sheet") >= 0) a.download = "Download.xls";
         else if (contentType.indexOf("pdf") >= 0) a.download = "Download.pdf";
         else if (contentType.indexOf("zip") >= 0) a.download = "Download.zip";
         else if (contentType.indexOf("json") >= 0) a.download = "Download.json";

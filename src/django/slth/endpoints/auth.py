@@ -3,13 +3,21 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from slth import forms
 from django.contrib.auth import authenticate
-from ..models import Token, UserTimeZone, TimeZone
+from ..models import Token, UserTimeZone, TimeZone, Role
 from ..components import Response
 from .. import oauth
 from . import PublicEndpoint, Endpoint, ChildInstanceEndpoint
 from django.utils import timezone
 
 def login_response(user, redirect='/api/dashboard/'):
+    if getattr(settings, 'SINGLE_ROLE', False):
+        roles = Role.objects.filter(username=user.username)
+        role = roles.filter(active=True).first() or roles.first()
+        roles.update(active=False)
+        role.active = True
+        role.save()
+    else:
+        Role.objects.filter(username=user.username).update(active=True)
     Token.objects.filter(user=user).delete()
     token = Token.objects.create(user=user)
     current_timezone = timezone.get_current_timezone()

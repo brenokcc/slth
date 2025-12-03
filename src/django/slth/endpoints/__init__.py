@@ -107,7 +107,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         for name in names:
             if (
                 Role.objects
-                .filter(username=self.request.user.username, name=name)
+                .filter(username=self.request.user.username, name=name, active=True)
                 .exists()
             ):
                 return True

@@ -78,7 +78,7 @@ class User(User):
     
     @meta('Papéis')
     def get_roles(self):
-        return Role.objects.filter(username=self.username).fields('get_description')
+        return Role.objects.filter(username=self.username).fields('get_description', 'active')
     
     @meta('Fuso Horário')
     def get_timezone(self):
@@ -123,7 +123,7 @@ class RoleUserFilter(models.Filter):
 class RoleQuerySet(models.QuerySet):
 
     def all(self):
-        return self.fields('username', 'get_verbose_name', 'get_scope_value').filters(user=RoleUserFilter())
+        return self.fields('username', 'get_verbose_name', 'get_scope_value', 'active').filters(user=RoleUserFilter())
 
     def contains(self, *names):
         _names = getattr(self, '_names', None)
