@@ -14,8 +14,9 @@ def login_response(user, redirect='/api/dashboard/'):
         roles = Role.objects.filter(username=user.username)
         role = roles.filter(active=True).first() or roles.first()
         roles.update(active=False)
-        role.active = True
-        role.save()
+        if role:
+            role.active = True
+            role.save()
     else:
         Role.objects.filter(username=user.username).update(active=True)
     Token.objects.filter(user=user).delete()
