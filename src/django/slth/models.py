@@ -28,9 +28,9 @@ class UserQuerySet(BaseUserManager):
     def all(self):
         return (
             self.
-            search("username", "email")
+            search("username", "email", "first_name", "last_name")
             .filters("is_superuser", "is_active")
-            .fields("username", "email", "get_roles")
+            .fields("username", "first_name", "last_name", "email", "get_roles")
             .actions(
                 "user.add",
                 "user.view",

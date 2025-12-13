@@ -34,10 +34,12 @@ def post_save_func(sender, **kwargs):
     creating = set()
     for name, role in sender.__roles__.items():
         scopes = role.get('scopes')
-        values = [role[k] for k in ('username', 'email', 'inactive', 'active') if k in role and role[k]]
+        values = [role[k] for k in ('username', 'email', 'first_name', 'last_name', 'inactive', 'active') if k in role and role[k]]
         for item in sender.objects.filter(pk=pk).values(*values):
             username = item[role['username']]
             email = item[role['email']] if 'email' in role and role['email'] else ''
+            first_name = item[role['first_name']] if 'first_name' in role and role['first_name'] else ''
+            last_name = item[role['last_name']] if 'last_name' in role and role['last_name'] else ''
             active = item[role['active']] if 'active' in role and role['active'] else True
             inactive = item[role['inactive']] if 'inactive' in role and role['inactive'] else False
             if username is None or (inactive or not active):
@@ -51,6 +53,10 @@ def post_save_func(sender, **kwargs):
                 if user is None:
                     user = User.objects.create(username=username)
                     user.email = email
+                    user.first_name = first_name.split()[0] if first_name else ''
+                    user.last_name = last_name.split()[-1] if last_name else ''
+                    if user.first_name == user.last_name:
+                        user.last_name = ''
                     if hasattr(settings, 'DEFAULT_PASSWORD'):
                         user.set_password(settings.DEFAULT_PASSWORD(user))
                     else:
@@ -59,6 +65,10 @@ def post_save_func(sender, **kwargs):
                 else:
                     if email and not user.email:
                         user.email = email
+                        user.first_name = first_name.split()[0]
+                        user.last_name = last_name.split()[-1]
+                        if user.first_name == user.last_name:
+                            user.last_name = ''
                         user.save()
                 if scopes:
                     for scope, lookup in scopes.items():
@@ -87,13 +97,13 @@ def post_delete_func(sender, **kwargs):
     Role.objects.filter(model=model, value=pk).delete()
 
 
-def role(name, username, email=None, active=None, inactive=None, **scopes):
+def role(key, username, email=None, first_name=None, last_name=None, active=None, inactive=None, **scopes):
     def decorate(cls):
         if not hasattr(cls, '__roles__'):
             cls.__roles__ = {}
-        metadata = dict(username=username, email=email, active=active, inactive=inactive, scopes=scopes)
-        ROLES[name] = (cls, metadata)
-        cls.__roles__[name] = metadata
+        metadata = dict(username=username, email=email, first_name=first_name, last_name=last_name, active=active, inactive=inactive, scopes=scopes)
+        ROLES[key] = (cls, metadata)
+        cls.__roles__[key] = metadata
         post_save.connect(post_save_func, cls)
         post_delete.connect(post_delete_func, cls)
         for field in cls._meta.many_to_many:
