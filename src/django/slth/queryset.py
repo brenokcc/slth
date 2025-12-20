@@ -154,7 +154,9 @@ class QuerySet(models.QuerySet):
     def lookup(self, role_name=None, **lookups):
         if 'lookups' not in self.metadata:
             self.metadata['lookups'] = {}
-        self.metadata['lookups'][role_name] = lookups
+        if role_name not in self.metadata['lookups']:
+            self.metadata['lookups'][role_name] = []
+        self.metadata['lookups'][role_name].append(lookups)
         return self
     
     def nolookup(self):
