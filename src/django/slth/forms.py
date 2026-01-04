@@ -508,12 +508,15 @@ class FormMixin:
                 }
             )
             for attr_name in dir(self._endpoint):
-                if attr_name.startswith('clean_'):
+                if attr_name == 'clean' or attr_name.startswith('clean_'):
                     try:
                         getattr(self._endpoint, attr_name)(data)
                     except ValidationError as e:
-                        fieldname = attr_name.replace('clean_', '')
-                        raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
+                        if attr_name == 'clean':
+                            raise JsonResponseException(dict(type="error", text=''.join(e.messages), errors={}))
+                        else:
+                            fieldname = attr_name.replace('clean_', '')
+                            raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
             with transaction.atomic():
                 for inline_form in inline_forms:
                     inline_form.save()

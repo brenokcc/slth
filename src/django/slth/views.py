@@ -18,6 +18,11 @@ from .endpoints import ApiResponse
 from slth.application import Application
 from .components import Response
 
+try:
+    import sentry_sdk
+except ImportError:
+    sentry_sdk = None
+
 @cache_control(max_age=0, no_cache=True, no_store=True, must_revalidate=True)
 def index(request, path=None):
     vite = bool(os.environ.get('VITE'))
@@ -77,6 +82,7 @@ def dispatcher(request, **kwargs):
                 except ReadyResponseException as e:
                     return e.response
                 except Exception as e:
+                    sentry_sdk.capture_exception(e)
                     traceback.print_exc() 
                     return ApiResponse(dict(error=str(e)), safe=False, status=500)
                 finally:

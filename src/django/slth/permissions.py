@@ -44,7 +44,6 @@ def apply_lookups(queryset, lookups, user):
         for lookup in lookup_list:
             if role_name in role_names:
                 if lookup:
-                    print(role_name, lookup)
                     for scope_lookup, scopename in lookup.items():
                         if scopename == 'username':
                             kwargs = {scope_lookup: user.username}
