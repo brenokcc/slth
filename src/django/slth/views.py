@@ -82,7 +82,8 @@ def dispatcher(request, **kwargs):
                 except ReadyResponseException as e:
                     return e.response
                 except Exception as e:
-                    sentry_sdk.capture_exception(e)
+                    if sentry_sdk:
+                        sentry_sdk.capture_exception(e)
                     traceback.print_exc() 
                     return ApiResponse(dict(error=str(e)), safe=False, status=500)
                 finally:
