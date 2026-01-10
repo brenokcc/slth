@@ -14,6 +14,7 @@ from slth import forms
 from slth.models import Role
 from django.db.models import Model
 from datetime import datetime
+from django.db import transaction
 from django.template.loader import render_to_string
 from ..forms import ModelForm, Form
 from ..serializer import serialize, Serializer
@@ -161,12 +162,13 @@ class Endpoint(metaclass=EnpointMetaclass):
                     if isinstance(self, DeleteEndpoint):
                         return self.post()
                     else:
-                        self.cleaned_data = self.form.submit()
-                        if self.form._message or self.form._redirect or self.form._dispose:
-                            redirect = '.' if 'only' in self.request.GET else (self.form and self.form._redirect or None)
-                            return Response(self.form._message, redirect, dispose=self.form._dispose)
-                        else:
-                            return self.post()
+                        with transaction.atomic():
+                            self.cleaned_data = self.form.submit()
+                            if self.form._message or self.form._redirect or self.form._dispose:
+                                redirect = '.' if 'only' in self.request.GET else (self.form and self.form._redirect or None)
+                                return Response(self.form._message, redirect, dispose=self.form._dispose)
+                            else:
+                                return self.post()
                 except ValidationError as e:
                     raise JsonResponseException(
                         dict(type="error", text="\n".join(e.messages), errors={})

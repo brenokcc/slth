@@ -40,7 +40,7 @@ def login_response(user, redirect='/api/dashboard/'):
 
 
 class Login(PublicEndpoint):
-    username = forms.CharField(label="Username", mask=getattr(settings, 'USERNAME_MASK', None))
+    username = forms.CharField(label=getattr(settings, 'USERNAME_ALIAS', "Username"), mask=getattr(settings, 'USERNAME_MASK', None))
     password = forms.CharField(label="Senha")
 
     class Meta:

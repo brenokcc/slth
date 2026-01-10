@@ -517,27 +517,27 @@ class FormMixin:
                         else:
                             fieldname = attr_name.replace('clean_', '')
                             raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
-            with transaction.atomic():
-                for inline_form in inline_forms:
-                    inline_form.save()
-                if isinstance(self, DjangoModelForm):
-                    self.instance.pre_save()
-                    for inline_field_name in inline_fields:
-                        for obj in self.cleaned_data[inline_field_name]:
-                            obj.save()
-                            # set one-to-one
-                            if hasattr(self.instance, f"{inline_field_name}_id"):
-                                if hasattr(obj, "deleting"):
-                                    setattr(self.instance, inline_field_name, None)
-                                else:
-                                    setattr(self.instance, inline_field_name, obj)
-                    self.save()
-                    for inline_field_name in inline_fields:
-                        for obj in self.cleaned_data[inline_field_name]:
+            
+            for inline_form in inline_forms:
+                inline_form.save()
+            if isinstance(self, DjangoModelForm):
+                self.instance.pre_save()
+                for inline_field_name in inline_fields:
+                    for obj in self.cleaned_data[inline_field_name]:
+                        obj.save()
+                        # set one-to-one
+                        if hasattr(self.instance, f"{inline_field_name}_id"):
                             if hasattr(obj, "deleting"):
-                                obj.delete()
-                    self.instance.post_save()
-                return self.cleaned_data
+                                setattr(self.instance, inline_field_name, None)
+                            else:
+                                setattr(self.instance, inline_field_name, obj)
+                self.save()
+                for inline_field_name in inline_fields:
+                    for obj in self.cleaned_data[inline_field_name]:
+                        if hasattr(obj, "deleting"):
+                            obj.delete()
+                self.instance.post_save()
+            return self.cleaned_data
 
     def settitle(self, title):
         self._title = title
