@@ -168,7 +168,10 @@ class Endpoint(metaclass=EnpointMetaclass):
                                 redirect = '.' if 'only' in self.request.GET else (self.form and self.form._redirect or None)
                                 return Response(self.form._message, redirect, dispose=self.form._dispose)
                             else:
-                                return self.post()
+                                try:
+                                    return self.post()
+                                except JsonResponseException as e:
+                                    return e.data
                 except ValidationError as e:
                     raise JsonResponseException(
                         dict(type="error", text="\n".join(e.messages), errors={})
