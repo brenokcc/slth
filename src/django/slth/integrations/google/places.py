@@ -11,7 +11,7 @@ def search(description):
     response = requests.get(
         "https://maps.googleapis.com/maps/api/place/autocomplete/json?input={}&key={}".format(
             description, os.environ['GOOGLE_TOKEN']
-        )
+        ), timeout=5
     )
     data = response.json()
     try:
@@ -30,7 +30,7 @@ def geolocation(id_or_description):
         response = requests.get(
             "https://maps.googleapis.com/maps/api/place/details/json?place_id={}&key={}".format(
                 place_id, os.environ['GOOGLE_TOKEN']
-            )
+            ), timeout=5
         )
         data = response.json()
         try:

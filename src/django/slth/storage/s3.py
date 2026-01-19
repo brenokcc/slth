@@ -229,7 +229,7 @@ class Client:
                 r = requests.put(url, headers=headers)
             print(r.status_code, r.text)
         else:
-            r = requests.get(url, headers=headers)
+            r = requests.get(url, headers=headers, timeout=5)
             print(r.status_code, r.text)
         return r
     
@@ -318,7 +318,7 @@ class Client:
             print("GET:",  url)
             return url
         else:
-            resp = requests.get( url)
+            resp = requests.get(url, timeout=5)
             print("Response", resp.status_code)
             if resp.status_code == 200:
                 return resp.content
@@ -342,7 +342,7 @@ class Client:
         params = {'list-type': '2', 'prefix': prefix, 'max-keys': max_keys}
         url = self.generate_presigned_url(object_key=None, method="GET", params=params)
         print("GET URL:",  url)
-        resp = requests.get( url)
+        resp = requests.get(url, timeout=5)
         print("Response", resp.status_code)
         if resp.status_code == 200:
             ns = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}

@@ -11,5 +11,5 @@ def send(to, message):
     url = 'https://www.justvoip.com/myaccount/sendsms.php?username={}&password={}&from={}&to={}&text={}'.format(
         JUSTVOIP_USERNAME, JUSTVOIP_PASSWORD, JUSTVOIP_FROM, to, message
     )
-    response = requests.get(url)
+    response = requests.get(url, timeout=5)
     print(response.text)
