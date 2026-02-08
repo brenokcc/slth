@@ -12,6 +12,7 @@ import { Button } from "./Button.jsx";
 import { Action } from "./Action.jsx";
 import { Theme } from "./Theme";
 import { Scheduler } from "./Library.jsx";
+import { GeoMap } from "./Geo.jsx";
 
 const INPUT_TYPES = [
   "text",
@@ -208,7 +209,7 @@ function Field(props) {
   }
   function renderInput() {
     if (props.data.type == "datetime") props.data.type = "datetime-local";
-
+    if (props.data.type == "geo") return <GeoField data={props.data} />; 
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
       return <InputField data={props.data} />;
     else if (props.data.type == "choice" && Array.isArray(props.data.choices))
@@ -272,6 +273,57 @@ function Field(props) {
     );
   }
   return render();
+}
+
+function GeoField(props) {
+  const [userLocation, setUserLocation] = useState(null);
+
+  function onMapClick(latlng){
+      const value = latlng.lat + "," + latlng.lng;
+      document.getElementById(props.data.name).value = value;
+      setUserLocation(value);
+    }
+
+  function geoDict(){
+    if(userLocation==""){
+      var latlng = null;
+    } else {
+      const tokens = userLocation.split(",");
+      var latlng = {lat: tokens[0], lng: tokens[1]};
+    }
+    return {lat: "-54.815434332605591", long: "-22.251316151125515", zoom: 13, polygons:[], points: [], onMapClick: onMapClick, latlng: latlng}
+  }
+
+  function render(){
+    return (
+      <>
+        <input type="hidden" name={props.data.name} id={props.data.name}/>
+        <div>{userLocation || "Click no mapa para indicar sua localização."}</div>
+        {userLocation!=null && <GeoMap data={geoDict()}></GeoMap>}
+      </>
+    )
+  }
+  if(userLocation == null){
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const value = position.coords.latitude + "," + position.coords.longitude;
+            //const value = "-22.24202489525269,-54.78178024291993";
+            document.getElementById(props.data.name).value = value;
+            setUserLocation(value);
+          },
+          function (error) {
+            setUserLocation("");
+            console.error("Error getting location:", error.message);
+          }
+        );
+      
+    } else {
+      setUserLocation("");
+      console.log("Geolocation is not supported by this browser.");
+    }
+  }
+  return render()
 }
 
 function InputField(props) {
@@ -1419,7 +1471,6 @@ function Form(props) {
           }
         } else if (data.type == "error") {
           var message = data.text;
-          console.log(data);
           Object.keys(data.errors).map(function (k) {
             if (k == "__all__") {
               message = data.errors[k];

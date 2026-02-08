@@ -772,6 +772,8 @@ class SchedulerField(CharField):
                 raise ValidationError('Este campo é obrigatório.')
         return value
 
+class GeoField(CharField):
+    pass
 
 FIELD_TYPES = {
     "CharField": "text",
@@ -791,4 +793,5 @@ FIELD_TYPES = {
     "FileField": "file",
     "ImageField": "file",
     "SchedulerField": "scheduler",
+    "GeoField": "geo",
 }
