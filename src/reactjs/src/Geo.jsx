@@ -3,6 +3,12 @@ import { useEffect } from "react";
 
 function GeoMap(props){
     const id = Math.random().toString();
+    let marker = null;
+    const icon = L.divIcon({
+        className: 'geo-icon',
+        html: '<span style="font-size:2rem;padding-top:-20px">📍</span>',
+        iconSize: [40, 40]
+    });
 
     useEffect(() => {
         const map = L.map(id).setView([props.data.long, props.data.lat], props.data.zoom);
@@ -46,6 +52,25 @@ function GeoMap(props){
             },
             pointToLayer(feature, latlng) { return L.circleMarker(latlng); }
         }).addTo(map);
+
+        if(props.data.latlng){
+            marker = L.marker(props.data.latlng, {icon: icon});
+            marker.addTo(map);
+            if(props.data.onMapClick){
+                props.data.onMapClick(props.data.latlng)
+            }
+        }
+
+        function onMapClick(e) {
+            if(props.data.latlng==null){
+                if(marker) marker.remove()
+                var latlng = e.latlng;
+                marker = L.marker(latlng, {icon: icon});
+                marker.addTo(map);
+                props.data.onMapClick(e.latlng);
+            }
+        }
+        if(props.data.onMapClick) map.on('click', onMapClick);
     
       }, []);
 

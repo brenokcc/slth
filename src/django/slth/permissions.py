@@ -40,17 +40,18 @@ def apply_lookups(queryset, lookups, user):
     roles = Role.objects.filter(username=user.username, active=True)
     role_names = set(active_role_names(user))
     role_names.add(None)
-    for role_name, lookup in lookups.items():
-        if role_name in role_names:
-            if lookup:
-                for scope_lookup, scopename in lookup.items():
-                    if scopename == 'username':
-                        kwargs = {scope_lookup: user.username}
-                    else:
-                        pks = roles.filter(scope=scopename).values_list('value', flat=True)
-                        kwargs = {'{}__in'.format(scope_lookup): pks}
-                    qs = qs | queryset.filter(**kwargs)
-            else:
-                qs = queryset
-                break
+    for role_name, lookup_list in lookups.items():
+        for lookup in lookup_list:
+            if role_name in role_names:
+                if lookup:
+                    for scope_lookup, scopename in lookup.items():
+                        if scopename == 'username':
+                            kwargs = {scope_lookup: user.username}
+                        else:
+                            pks = roles.filter(scope=scopename).values_list('value', flat=True)
+                            kwargs = {'{}__in'.format(scope_lookup): pks}
+                        qs = qs | queryset.filter(**kwargs)
+                else:
+                    qs = queryset
+                    break
     return qs

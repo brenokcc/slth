@@ -28,9 +28,9 @@ class UserQuerySet(BaseUserManager):
     def all(self):
         return (
             self.
-            search("username", "email")
+            search("username", "email", "first_name", "last_name")
             .filters("is_superuser", "is_active")
-            .fields("username", "email", "get_roles")
+            .fields("username", "first_name", "last_name", "email", "get_roles")
             .actions(
                 "user.add",
                 "user.view",
@@ -78,7 +78,7 @@ class User(User):
     
     @meta('Papéis')
     def get_roles(self):
-        return Role.objects.filter(username=self.username).fields('get_description')
+        return Role.objects.filter(username=self.username).fields('get_description', 'active')
     
     @meta('Fuso Horário')
     def get_timezone(self):
@@ -123,7 +123,7 @@ class RoleUserFilter(models.Filter):
 class RoleQuerySet(models.QuerySet):
 
     def all(self):
-        return self.fields('username', 'get_verbose_name', 'get_scope_value').filters(user=RoleUserFilter())
+        return self.fields('username', 'get_verbose_name', 'get_scope_value', 'active').filters(user=RoleUserFilter())
 
     def contains(self, *names):
         _names = getattr(self, '_names', None)
@@ -523,6 +523,21 @@ class Token(models.Model):
 
     def __str__(self):
         return self.key
+    
+    def is_valid(self):
+        seconds =  (datetime.now() - self.created).seconds
+        life_time = getattr(settings, 'TOKEN_LIFE_TIME', 15)
+        refresh_time = getattr(settings, 'TOKEN_REFRESH_TIME', 5)
+        if seconds > life_time * 60:
+            # print(f'Token {self.key} for {self.user} created at {self.created.isoformat()} is expired.')
+            return False
+        elif seconds > refresh_time * 60:
+            # print(f'Refreshing token {self.key} for {self.user} created at {self.created.isoformat()}...')
+            Token.objects.filter(pk=self.pk).update(created=datetime.now())
+            return True
+        else:
+            # print(f'Token {self.key} for {self.user} created at {self.created.isoformat()} is still valid.')
+            return True
 
 
 class LogQuerySet(models.QuerySet):

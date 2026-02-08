@@ -81,15 +81,16 @@ class Statistics(object):
         self._values_dict = None
 
     def calc(self):
+        pks = self.qs.order_by('id').values_list('id', flat=True).distinct()
+        qs = self.qs.model.objects.filter(pk__in=pks)
         self._values_dict = {}
         if self.y:
-            values_list = self.qs.values_list(self.x, self.y).order_by(self.x, self.y).annotate(self.func(self.z))
+            values_list = qs.values_list(self.x, self.y).order_by(self.x, self.y).distinct().annotate(self.func(self.z))
         else:
-            values_list = self.qs.values_list(self.x).order_by(self.x).annotate(self.func(self.z))
-
-        self._xfield = self.qs.model.get_field(self.x.replace('__year', '').replace('__month', ''))
+            values_list = qs.values_list(self.x).order_by(self.x).distinct().annotate(self.func(self.z))
+        self._xfield = qs.model.get_field(self.x.replace('__year', '').replace('__month', ''))
         if self._xdict == {}:
-            xvalues = self.qs.values_list(self.x, flat=True).order_by(self.x).distinct()
+            xvalues = qs.values_list(self.x, flat=True).order_by(self.x).distinct()
             if self._xfield.related_model:
                 if hasattr(self._xfield.related_model, 'cor'):
                     self.colors = {pk: color for pk, color in self._xfield.related_model.objects.values_list('id', 'cor')}
@@ -98,13 +99,13 @@ class Statistics(object):
                 }
             else:
                 self._xdict = {
-                    value: value for value in self.qs.values_list(self.x, flat=True)
+                    value: value for value in qs.values_list(self.x, flat=True).order_by(self.x).distinct()
                 }
             if None in xvalues:
                 self._xdict[None] = 'Não-Informado'
         if self.y:
-            self._yfield = self.qs.model.get_field(self.y.replace('__year', '').replace('__month', ''))
-            yvalues = self.qs.values_list(self.y, flat=True).order_by(self.y).distinct()
+            self._yfield = qs.model.get_field(self.y.replace('__year', '').replace('__month', ''))
+            yvalues = qs.values_list(self.y, flat=True).order_by(self.y).distinct()
             if self._ydict == {}:
                 if self._yfield.related_model:
                     self._ydict = {

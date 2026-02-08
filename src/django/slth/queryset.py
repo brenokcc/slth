@@ -154,7 +154,9 @@ class QuerySet(models.QuerySet):
     def lookup(self, role_name=None, **lookups):
         if 'lookups' not in self.metadata:
             self.metadata['lookups'] = {}
-        self.metadata['lookups'][role_name] = lookups
+        if role_name not in self.metadata['lookups']:
+            self.metadata['lookups'][role_name] = []
+        self.metadata['lookups'][role_name].append(lookups)
         return self
     
     def nolookup(self):
@@ -289,7 +291,7 @@ class QuerySet(models.QuerySet):
                     worksheet.write(row_idx, col_idx, col)
             workbook.close()
             file.close()
-            raise ReadyResponseException(FileResponse(open(file.name, 'rb')))
+            raise ReadyResponseException(FileResponse(open(file.name, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
     
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
@@ -452,10 +454,15 @@ class QuerySet(models.QuerySet):
         options = filter.choices(self)
         value = self.parameter(name)
         if isinstance(options, list) or isinstance(options, tuple):
+            add_null = False
             field_type = 'choice'
             choices = [{'id': '', 'value':''}]
-            choices.extend([{'id': k, 'value': v} for k, v in options])
-            choices.append({'id': 'null', 'value':'Nulo'})
+            for k, v in options:
+                choices.append({'id': k, 'value': v})
+                if k == 'null':
+                    add_null = False
+            if add_null:
+                choices.append({'id': 'null', 'value':'Nulo'})
         else:
             field_type = 'choice'
             choices = append_url(base_url, f'choices={name}')
@@ -484,8 +491,6 @@ class QuerySet(models.QuerySet):
             elif isinstance(field, models.BooleanField):
                 field_type = 'choice'
                 value = self.parameter(name)
-                if value:
-                    value = value == 'true'
                 choices = [dict(id='', value=''), dict(id='true', value='Sim'), dict(id='false', value='Não'), dict(id='null', value='Nulo')]
             elif isinstance(field, models.DateField):
                 field_type = 'text' if suffix in ('year', 'month') else 'date'
@@ -505,10 +510,15 @@ class QuerySet(models.QuerySet):
                 field_type = 'choice'
                 choices = append_url(base_url, f'choices={name}')
             if getattr(field, 'choices'):
+                add_null = False
                 field_type = 'choice'
                 choices = [{'id': '', 'value':''}]
-                choices.extend([{'id': k, 'value': v} for k, v in field.choices])
-                choices.append({'id': 'null', 'value':'Nulo'})
+                for k, v in field.choices:
+                    choices.append({'id': k, 'value': v})
+                    if k == 'null':
+                        add_null = False
+                if add_null:
+                    choices.append({'id': 'null', 'value':'Nulo'})
             label = label or str(field.verbose_name).title()
             symbol = symbols.get(suffix) if suffix else None
             label = label + symbol if symbol else label

@@ -366,7 +366,7 @@ class FormMixin:
                 data.update(scheduler=field.scheduler)
             elif ftype == "choice" or pick:
                 choiceurl = self._endpoint.base_url if self._endpoint else None
-                if name in self.request.GET and not choices_field_name:
+                if name in self.request.GET and not choices_field_name and f'{name}__autocomplete' not in self.request.GET:
                     data.update(type="hidden", value=self.request.GET[name])
                 else:
                     if choices_field_name == fname or (isinstance(field.choices, ModelChoiceIterator) and not pick):
@@ -397,9 +397,14 @@ class FormMixin:
                             self.request, f"choices={fname}"
                         ))
             if ftype == "boolean":
-                data.update(choices=[
-                    {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}, {"id": "null", "value": "Não Informado"}
-                ])
+                if isinstance(field, NullBooleanField):
+                    data.update(choices=[
+                        {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}, {"id": "null", "value": "Não Informado"}
+                    ])
+                else:
+                    data.update(choices=[
+                        {"id": "true", "value": "Sim"}, {"id": "false", "value": "Não"}
+                    ])
 
         attr_name = f"on_{prefix}__{name}_change" if prefix else f"on_{name}_change"
         on_change_name = f"{prefix}__{name}" if prefix else name
@@ -503,33 +508,36 @@ class FormMixin:
                 }
             )
             for attr_name in dir(self._endpoint):
-                if attr_name.startswith('clean_'):
+                if attr_name == 'clean' or attr_name.startswith('clean_'):
                     try:
                         getattr(self._endpoint, attr_name)(data)
                     except ValidationError as e:
-                        fieldname = attr_name.replace('clean_', '')
-                        raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
-            with transaction.atomic():
-                for inline_form in inline_forms:
-                    inline_form.save()
-                if isinstance(self, DjangoModelForm):
-                    self.instance.pre_save()
-                    for inline_field_name in inline_fields:
-                        for obj in self.cleaned_data[inline_field_name]:
-                            obj.save()
-                            # set one-to-one
-                            if hasattr(self.instance, f"{inline_field_name}_id"):
-                                if hasattr(obj, "deleting"):
-                                    setattr(self.instance, inline_field_name, None)
-                                else:
-                                    setattr(self.instance, inline_field_name, obj)
-                    self.save()
-                    for inline_field_name in inline_fields:
-                        for obj in self.cleaned_data[inline_field_name]:
+                        if attr_name == 'clean':
+                            raise JsonResponseException(dict(type="error", text=''.join(e.messages), errors={}))
+                        else:
+                            fieldname = attr_name.replace('clean_', '')
+                            raise JsonResponseException(dict(type="error", text="Por favor, corrija os erros.", errors={fieldname: ''.join(e.messages)}))
+            
+            for inline_form in inline_forms:
+                inline_form.save()
+            if isinstance(self, DjangoModelForm):
+                self.instance.pre_save()
+                for inline_field_name in inline_fields:
+                    for obj in self.cleaned_data[inline_field_name]:
+                        obj.save()
+                        # set one-to-one
+                        if hasattr(self.instance, f"{inline_field_name}_id"):
                             if hasattr(obj, "deleting"):
-                                obj.delete()
-                    self.instance.post_save()
-                return self.cleaned_data
+                                setattr(self.instance, inline_field_name, None)
+                            else:
+                                setattr(self.instance, inline_field_name, obj)
+                self.save()
+                for inline_field_name in inline_fields:
+                    for obj in self.cleaned_data[inline_field_name]:
+                        if hasattr(obj, "deleting"):
+                            obj.delete()
+                self.instance.post_save()
+            return self.cleaned_data
 
     def settitle(self, title):
         self._title = title
@@ -764,6 +772,8 @@ class SchedulerField(CharField):
                 raise ValidationError('Este campo é obrigatório.')
         return value
 
+class GeoField(CharField):
+    pass
 
 FIELD_TYPES = {
     "CharField": "text",
@@ -783,4 +793,5 @@ FIELD_TYPES = {
     "FileField": "file",
     "ImageField": "file",
     "SchedulerField": "scheduler",
+    "GeoField": "geo",
 }

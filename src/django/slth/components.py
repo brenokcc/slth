@@ -33,11 +33,12 @@ class Image(dict):
 
 
 class FileLink(dict):
-    def __init__(self, url, modal=False, icon=None):
+    def __init__(self, url, modal=False, icon=None, callback=None):
         self["type"] = "filelink"
         self["url"] = url
         self["modal"] = modal
         self["icon"] = icon
+        self["callback"] = callback
 
 
 class FileViewer(dict):

@@ -12,6 +12,7 @@ import { Button } from "./Button.jsx";
 import { Action } from "./Action.jsx";
 import { Theme } from "./Theme";
 import { Scheduler } from "./Library.jsx";
+import { GeoMap } from "./Geo.jsx";
 
 const INPUT_TYPES = [
   "text",
@@ -208,7 +209,7 @@ function Field(props) {
   }
   function renderInput() {
     if (props.data.type == "datetime") props.data.type = "datetime-local";
-
+    if (props.data.type == "geo") return <GeoField data={props.data} />; 
     if (INPUT_TYPES.indexOf(props.data.type) >= 0)
       return <InputField data={props.data} />;
     else if (props.data.type == "choice" && Array.isArray(props.data.choices))
@@ -260,6 +261,7 @@ function Field(props) {
       flexDirection: "column",
       padding: 5,
       width: "calc(100%-5px)",
+      position: "relative",
     };
     return (
       <div id={id} style={style} className={"form-group "+props.data.name}>
@@ -271,6 +273,57 @@ function Field(props) {
     );
   }
   return render();
+}
+
+function GeoField(props) {
+  const [userLocation, setUserLocation] = useState(null);
+
+  function onMapClick(latlng){
+      const value = latlng.lat + "," + latlng.lng;
+      document.getElementById(props.data.name).value = value;
+      setUserLocation(value);
+    }
+
+  function geoDict(){
+    if(userLocation==""){
+      var latlng = null;
+    } else {
+      const tokens = userLocation.split(",");
+      var latlng = {lat: tokens[0], lng: tokens[1]};
+    }
+    return {lat: "-54.815434332605591", long: "-22.251316151125515", zoom: 13, polygons:[], points: [], onMapClick: onMapClick, latlng: latlng}
+  }
+
+  function render(){
+    return (
+      <>
+        <input type="hidden" name={props.data.name} id={props.data.name}/>
+        <div>{userLocation || "Click no mapa para indicar sua localização."}</div>
+        {userLocation!=null && <GeoMap data={geoDict()}></GeoMap>}
+      </>
+    )
+  }
+  if(userLocation == null){
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const value = position.coords.latitude + "," + position.coords.longitude;
+            //const value = "-22.24202489525269,-54.78178024291993";
+            document.getElementById(props.data.name).value = value;
+            setUserLocation(value);
+          },
+          function (error) {
+            setUserLocation("");
+            console.error("Error getting location:", error.message);
+          }
+        );
+      
+    } else {
+      setUserLocation("");
+      console.log("Geolocation is not supported by this browser.");
+    }
+  }
+  return render()
 }
 
 function InputField(props) {
@@ -485,6 +538,7 @@ function InputField(props) {
         style.height = 47.5;
       }
       return (
+        <>
         <input
           className={"form-control " + className}
           type={type}
@@ -497,8 +551,17 @@ function InputField(props) {
           onChange={onChange}
           style={style}
         />
+        { props.data.type == "password" && 
+          <Icon icon="eye" style={{ marginTop: -35, marginLeft: '90%', width: 20, color: "#CCC", cursor: "pointer"}} onClick={togglePassword}/>
+        }
+        </>
       );
     }
+  }
+
+  function togglePassword(e){
+    const widget = document.getElementById(id);
+    widget.type = widget.type == "text" ? "password" : "text";
   }
 
   return render();
@@ -593,7 +656,6 @@ function Selector(props) {
     const widget = document.getElementById(id2);
     if (props.data.icon) style.paddingLeft = 30;
     if (widget) {
-      let dialog = null;
       let element = widget;
       let result = null;
       while (
@@ -602,39 +664,23 @@ function Selector(props) {
       ) {
         if (element.matches("dialog")) result = element;
       }
-      dialog = result;
-
       const rect = widget.getBoundingClientRect();
-      var top = rect.top + rect.height;
-      var left = rect.left;
-      if (dialog) {
-        const rect2 = dialog.getBoundingClientRect();
-        top = top - rect2.top;
-        left = left - rect2.left;
-      } else {
-        top += window.scrollY;
-        left += window.scrollX;
-      }
       ul.width = rect.width;
-      ul.top = top;
-      ul.left = left;
+      ul.top = 80;
+      ul.left = 5;
     }
     const li = { cursor: "pointer", padding: 10 };
     const defaultValue =
       (!multiple && initial.length > 0 && initial[0]["value"]) || "";
     return (
       <>
-        {props.data.icon && (
-          <Icon
-            icon={props.data.icon}
-            style={{ position: "absolute", margin: 13, color: "#d9d9d9" }}
-          />
-        )}
+        <Icon icon="search" style={{ position: "absolute", right: 20, top: 45 }}/>
         <input
           id={id2}
           name={props.data.name + "__autocomplete"}
           type="text"
           className="form-control"
+          autocomplete="off"
           onFocus={(e) => {
             e.target.select();
             search(e);
@@ -690,7 +736,7 @@ function Selector(props) {
       const input = document.getElementById(id2);
       if (!multiple) {
         if (
-          widget.options.length > 0 &&
+          widget.options.length == 0 || widget.options.length > 0 &&
           input.value != widget.options[0].innerHTML
         ) {
           widget.innerHTML = "";
@@ -720,7 +766,7 @@ function Selector(props) {
           setOptions(options);
         }
       );
-    }, 1000);
+    }, 100);
   }
 
   function select(value, initializing = false) {
@@ -769,9 +815,9 @@ function Selector(props) {
   function render() {
     return (
       <>
-        {renderSelections()}
         {renderSelect()}
         {renderSelector()}
+        {renderSelections()}
       </>
     );
   }
@@ -1355,7 +1401,8 @@ function Form(props) {
   }
 
   function cancel() {
-    closeDialog();
+    if(document.getElementsByTagName("dialog").length > 0) closeDialog();
+    else history.back();
   }
 
   function submit(e) {
@@ -1424,7 +1471,6 @@ function Form(props) {
           }
         } else if (data.type == "error") {
           var message = data.text;
-          console.log(data);
           Object.keys(data.errors).map(function (k) {
             if (k == "__all__") {
               message = data.errors[k];
