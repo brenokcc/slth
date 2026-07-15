@@ -1,7 +1,11 @@
+import os
+import csv
 import slth
 import pickle
 import base64
 import zlib
+import zipfile
+from django.conf import settings
 from django.apps import apps
 from django.db import models
 from django.db.models import manager, Q, CharField, CASCADE
@@ -226,7 +230,7 @@ class QuerySet(models.QuerySet):
             conditions = []
             for term in terms:
                 queries = [
-                    Q(**{lookup: term})
+                    Q(**{lookup.replace('__icontains', '__unaccent__icontains'): term}) if 'django.contrib.postgres' in settings.INSTALLED_APPS else Q(**{lookup: term})
                     for lookup in lookups
                 ]
                 conditions.append(reduce(operator.or_, queries))
@@ -243,6 +247,60 @@ class QuerySet(models.QuerySet):
             if debug:
                 print(json.dumps(e.data, indent=2, ensure_ascii=False))
             return e.data
+        
+    def to_rows(self, chunk_size=1000):
+        header = []
+        rows = []
+        serializer = Serializer(None, self.request).fields(*self.metadata['xlsx'])
+        for i, obj in enumerate(self.iterator(chunk_size=chunk_size)):
+            if i % 1000 == 0: print(i) 
+            row = []
+            serializer.obj = obj
+            serialized = serializer.serialize(forward_exception=True)
+            for item in serialized['data']:
+                if i == 0:
+                    header.append(item['label'])
+                if item.get('type') == 'field':
+                    row.append(item['value'])
+            if i == 0:
+                rows.append(header)
+            rows.append(row)
+        return rows
+        
+    def to_xlsx(self, chunk_size=1000):
+        file = tempfile.NamedTemporaryFile(suffix='.xlsx', mode='w+b', delete=False)
+        workbook = xlsxwriter.Workbook(file)
+        worksheet = workbook.add_worksheet('A')
+        for row_idx, row_data in enumerate(self.to_rows(chunk_size)):
+            for col_idx, col in enumerate(row_data):
+                worksheet.write(row_idx, col_idx, col)
+        workbook.close()
+        file.close()
+        return file
+    
+    def to_csv(self, chunk_size=1000):
+        file = tempfile.NamedTemporaryFile(suffix='.csv', mode='w', delete=False)
+        writer = csv.writer(file)
+        writer.writerows(self.to_rows(chunk_size)) 
+        return file
+    
+    def to_file(self):
+        total = self.count()
+        if total < 1000:
+            file = self.to_xlsx()
+            file_path = file.name
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        elif total < 3000:
+            file = self.to_csv()
+            file_path = file.name
+            content_type = 'text/csv'
+        else:
+            file = self.to_csv()
+            file_path = file.name.replace('.csv', '.zip')
+            with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                zipf.write(file.name, arcname='download.csv')
+            content_type = 'application/x-zip-compressed:'
+        return file_path, content_type
     
     def to_dict(self, debug=False):
         title = self.metadata.get('title', str(self.model._meta.verbose_name_plural))
@@ -268,30 +326,8 @@ class QuerySet(models.QuerySet):
         queryset_actions = []
 
         if self.request and self.request.GET.get('xlsx'):
-            file = tempfile.NamedTemporaryFile(suffix='.xlsx', mode='w+b', delete=False)
-            workbook = xlsxwriter.Workbook(file)
-            worksheet = workbook.add_worksheet('A')
-            header = []
-            rows = []
-            serializer = Serializer(None, self.request).fields(*self.metadata['xlsx'])
-            for i, obj in enumerate(self):
-                row = []
-                serializer.obj = obj
-                serialized = serializer.serialize(forward_exception=True)
-                for item in serialized['data']:
-                    if i == 0:
-                        header.append(item['label'])
-                    if item.get('type') == 'field':
-                        row.append(item['value'])
-                if i == 0:
-                    rows.append(header)
-                rows.append(row)
-            for row_idx, row_data in enumerate(rows):
-                for col_idx, col in enumerate(row_data):
-                    worksheet.write(row_idx, col_idx, col)
-            workbook.close()
-            file.close()
-            raise ReadyResponseException(FileResponse(open(file.name, 'rb'), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
+            file_path, content_type = self.to_file()
+            raise ReadyResponseException(FileResponse(open(file_path, 'rb'), content_type=content_type))
     
         if self.request and 'action' in self.request.GET:
             cls = slth.ENDPOINTS[self.request.GET.get('action')]
