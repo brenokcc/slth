@@ -247,6 +247,8 @@ class Serializer:
     
     def check_role(self, names):
         from slth.models import Role
+        if not self.request:
+            return True
         return self.request.user.is_superuser or not names or Role.objects.filter(username=self.request.user.username, name__in=names).exists()
 
     def to_dict(self, debug=False):

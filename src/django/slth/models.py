@@ -626,7 +626,7 @@ class TimeZone(models.Model):
         return self.name
     
     def localtime(self, value):
-        return timezone.get_timezone(self.name).localize(value).astimezone(timezone.get_default_timezone()).replace(tzinfo=None) if value else None
+        return timezone.get_timezone(self.name).localize(value).astimezone(timezone.get_current_timezone()).replace(tzinfo=None) if value else None
 
 
 class UserTimeZone(models.Model):
