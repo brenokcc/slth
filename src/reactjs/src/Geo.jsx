@@ -19,7 +19,7 @@ function GeoMap(props){
         map.boxZoom.disable();
         map.keyboard.disable();
         
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_3p4p_1_06f6a50c23755fb1e9dc5226', {
             maxZoom: props.data.max_zoom,
             minZoom: props.data.min_zoom,
             noWrap: true,
@@ -29,7 +29,7 @@ function GeoMap(props){
         props.data.polygons.map(function(feature){features.push(feature);});
         
         const points = {"type": "FeatureCollection", "features": []}
-        props.data.points.map(function(feature){points.features.push(feature);});
+        if(!props.data.heatmap) props.data.points.map(function(feature){points.features.push(feature);});
         features.push(points);
 
         L.geoJSON(features, {
@@ -53,6 +53,33 @@ function GeoMap(props){
             pointToLayer(feature, latlng) { return L.circleMarker(latlng); }
         }).addTo(map);
 
+        var cfg = {
+            // radius should be small ONLY if scaleRadius is true (or small radius is intended)
+            // if scaleRadius is false it will be the constant radius used in pixels
+            "radius": .003,
+            "maxOpacity": .8,
+            // scales the radius based on map zoom
+            "scaleRadius": true,
+            // if set to false the heatmap uses the global maximum for colorization
+            // if activated: uses the data maximum within the current map boundaries
+            //   (there will always be a red spot with useLocalExtremas true)
+            "useLocalExtrema": true,
+            // which field name in your data represents the latitude - default "lat"
+            latField: 'lat',
+            // which field name in your data represents the longitude - default "lng"
+            lngField: 'lng',
+            // which field name in your data represents the data value - default "value"
+            valueField: 'count'
+        };
+        const heatpoints = [];
+        props.data.points.map(function(point){heatpoints.push({"lng": Number(point.geometry.coordinates[0]), "lat": Number(point.geometry.coordinates[1]), "count": 1});});
+        const heatmapLayer = new HeatmapOverlay(cfg);
+        // heatpoints = [{lat: -22.2441487, lng:-54.8082846, count: 20},{lat: -22.218248, lng:-54.7838213, count: 1}]
+        const testData = {max: 10, data: heatpoints};
+        heatmapLayer.setData(testData);
+        if (props.data.heatmap){
+            heatmapLayer.addTo(map);
+        }
         if(props.data.latlng){
             marker = L.marker(props.data.latlng, {icon: icon});
             marker.addTo(map);

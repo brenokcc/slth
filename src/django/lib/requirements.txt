@@ -12,3 +12,4 @@ pytz==2024.2
 fpdf2==2.8.1
 #weasyprint
 XlsxWriter==3.2.2
+truststore==0.10.5

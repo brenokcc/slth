@@ -186,7 +186,7 @@ class TemplateContent(dict):
 
 class GeoMap(dict):
     
-    def __init__(self, lat=0, lon=0, zoom=10, min_zoom=None, max_zoom=None, title=None):
+    def __init__(self, lat=0, lon=0, zoom=10, min_zoom=None, max_zoom=None, title=None, heatmap=False):
         self["type"] = "geomap"
         self["title"] = title
         self["lat"] = lat
@@ -196,6 +196,7 @@ class GeoMap(dict):
         self["max_zoom"] = max_zoom or zoom
         self["polygons"] = []
         self["points"] = []
+        self["heatmap"] = heatmap
 
     def to_html(self, info):
         if isinstance(info, dict):
