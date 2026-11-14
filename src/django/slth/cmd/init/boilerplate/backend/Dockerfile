@@ -1,5 +1,5 @@
 FROM python:alpine
-RUN apk add --no-cache gcc build-base libffi-dev postgresql-dev curl
+RUN apk add --no-cache gcc build-base libffi-dev postgresql-dev curl libjpeg vim
 WORKDIR /opt/deploy
 RUN pip install -U pip
 ADD requirements.txt .

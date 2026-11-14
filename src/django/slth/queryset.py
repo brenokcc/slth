@@ -286,11 +286,11 @@ class QuerySet(models.QuerySet):
     
     def to_file(self):
         total = self.count()
-        if total < 1000:
+        if total < 10000:
             file = self.to_xlsx()
             file_path = file.name
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        elif total < 3000:
+        elif total < 30000:
             file = self.to_csv()
             file_path = file.name
             content_type = 'text/csv'
