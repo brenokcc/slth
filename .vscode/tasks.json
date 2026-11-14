@@ -1,0 +1,83 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Create folders",
+            "type": "shell",
+            "command": "mkdir",
+            "args": [
+                "-p",
+                "${workspaceFolder}/src/django/slth/static/js"
+            ]
+        },
+        {
+            "label": "Install Sloth Dependencies (Backend)",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                "${workspaceFolder}/src/django/lib/requirements.txt"
+            ]
+        },
+        {
+            "label": "Install Sloth Dependencies (Frontend)",
+            "type": "shell",
+            "command": "npm",
+            "args": [
+                "install"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/src/reactjs/"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Release Sloth (PyPI)",
+            "type": "shell",
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/src/django/"
+            },
+            "args": [
+                "release.sh"
+            ]
+        },
+        {
+            "label": "Release Sloth (NPM)",
+            "type": "shell",
+            "command": "bash",
+            "options": {
+                "cwd": "${workspaceFolder}/src/reactjs/"
+            },
+            "args": [
+                "release.sh"
+            ]
+        },
+        {
+            "label": "Build Sloth (ReactJS -> Django)",
+            "type": "shell",
+            "command": "npm",
+            "options": {
+                "cwd": "${workspaceFolder}/src/reactjs/"
+            },
+            "args": [
+                "run",
+                "django"
+            ],
+            "dependsOn": "Create folders",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Sloth ReactJS",
+            "type": "shell",
+            "command": "npm",
+            "options": {
+                "cwd": "${workspaceFolder}/src/reactjs/"
+            },
+            "args": ["run", "dev"]
+        }
+    ]
+}
