@@ -34,5 +34,5 @@ class Command(BaseCommand):
             user.save()
             print('Superuser "admin" with password "{}" was created.'.format(password))
 
-        if getattr(settings, 'USE_S3'):
+        if getattr(settings, 'USE_S3', False):
             staticfiles_storage.collectstatic()
