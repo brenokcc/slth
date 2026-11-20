@@ -28,7 +28,7 @@ class Command(BaseCommand):
             print_and_call('collectstatic', clear=True, verbosity=0, interactive=False)
 
         if not User.objects.exists():
-            user = User.objects.create_superuser('admin')
+            user = User.objects.create_superuser(getattr(settings, 'DEFAULT_SUPERUSER', 'admin'))
             password = getattr(settings, 'DEFAULT_PASSWORD', lambda user: '123')(user)
             user.set_password(password)
             user.save()
