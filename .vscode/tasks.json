@@ -2,6 +2,16 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Setup",
+            "type": "shell",
+            "command": "sh",
+            "args": ["${workspaceFolder}/setup.sh"],
+            "runOptions": { "runOn": "folderOpen" },
+            "isBackground": true,
+            "problemMatcher": [],
+            "presentation": { "reveal": "never", "panel": "dedicated", "close": true }
+        },
+        {
             "label": "Create folders",
             "type": "shell",
             "command": "mkdir",
@@ -35,15 +45,20 @@
             "problemMatcher": []
         },
         {
-            "label": "Release Sloth (PyPI)",
+            "label": "Release Sloth Core (PyPI)",
             "type": "shell",
-            "command": "bash",
+            "command": "${workspaceFolder}/src/django/release.sh",
             "options": {
                 "cwd": "${workspaceFolder}/src/django/"
-            },
-            "args": [
-                "release.sh"
-            ]
+            }
+        },
+        {
+            "label": "Release Sloth Lib (PyPI)",
+            "type": "shell",
+            "command": "${workspaceFolder}/src/django/lib/release.sh",
+            "options": {
+                "cwd": "${workspaceFolder}/src/django/lib/"
+            }
         },
         {
             "label": "Release Sloth (NPM)",

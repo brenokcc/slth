@@ -1,5 +1,7 @@
+source ../../../.venv/bin/activate
+pip install --upgrade pip
 LOCAL_VERSION=$(cat setup.py | grep -oh -m 1 "\d.\d.\d")
-REMOTE_VERSION=$(pip index versions slthlib | grep -oh -m 1 "\d.\d.\d")
+REMOTE_VERSION=$(pip index versions slthlib 2>/dev/null | grep -Eo -m 1 "[0-9]+\.[0-9]+\.[0-9]+")
 echo "$REMOTE_VERSION >> $LOCAL_VERSION"
 if [[ $LOCAL_VERSION != $REMOTE_VERSION ]]; then
   python setup.py sdist
