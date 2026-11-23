@@ -171,7 +171,8 @@ class QuerySet(models.QuerySet):
     def apply_lookups(self, user):
         from . import permissions
         lookups = self.metadata.get('lookups')
-        if lookups:
+        if lookups and not self.metadata.get('lookups_applied'):
+            self.metadata.update(lookups_applied=True)
             return permissions.apply_lookups(self, lookups, user)
         return self
 

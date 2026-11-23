@@ -12,6 +12,7 @@ from ..factory import FormFactory
 from django.core.exceptions import ValidationError
 from slth import forms
 from slth.models import Role
+from slth.permissions import active_role_names
 from django.db.models import Model
 from datetime import datetime
 from django.db import transaction
@@ -106,11 +107,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         if self.request.user.is_superuser and superuser:
             return True
         for name in names:
-            if (
-                Role.objects
-                .filter(username=self.request.user.username, name=name, active=True)
-                .exists()
-            ):
+            if name in active_role_names(self.request.user):
                 return True
         return False
 
@@ -247,7 +244,7 @@ class Endpoint(metaclass=EnpointMetaclass):
         if cls.is_child():
             args = (source,) if cls.has_args() else ()
         else:
-            args = (source.pk,) if cls.has_args() else ()
+            args = (source,) if cls.has_args() else ()
         endpoint = cls(*args).configure(source).contextualize(request)
         endpoint.base_url = cls.get_api_url(*args)
         return endpoint
@@ -421,7 +418,7 @@ class AddEndpoint(Generic[T], ModelEndpoint):
 class ModelInstanceEndpoint(ModelEndpoint):
     def __init__(self, pk):
         super().__init__()
-        self.instance = self.model.objects.get(pk=pk)
+        self.instance = pk if isinstance(pk, Model) else self.model.objects.get(pk=pk)
 
     def get_instance(self):
         return self.instance
